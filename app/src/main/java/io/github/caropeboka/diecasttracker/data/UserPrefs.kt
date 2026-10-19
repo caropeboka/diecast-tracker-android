@@ -4,8 +4,11 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 
 enum class CollectionLayout { Grid, List }
 
@@ -29,8 +32,21 @@ class UserPrefs(context: Context) {
         store.edit { it[SORT] = sort.key }
     }
 
+    /** The last place chosen on the map or by GPS: "where I'm hunting now" (web: Cek koleksi's saved place). */
+    suspend fun rememberPlace(place: PlaceValue) {
+        store.edit { it[HUNT_PLACE] = Json.encodeToString(place) }
+    }
+
+    /** That place while its point is fresh (under 3 hours): new diecasts and sightings start there. */
+    suspend fun recentPlace(now: Long = System.currentTimeMillis()): PlaceValue? {
+        val json = store.data.first()[HUNT_PLACE] ?: return null
+        val place = runCatching { Json.decodeFromString<PlaceValue>(json) }.getOrNull() ?: return null
+        return place.takeIf { it.name.isNotBlank() && it.isFresh(now) }
+    }
+
     private companion object {
         val LAYOUT = stringPreferencesKey("collection_layout")
         val SORT = stringPreferencesKey("collection_sort")
+        val HUNT_PLACE = stringPreferencesKey("hunt_place")
     }
 }

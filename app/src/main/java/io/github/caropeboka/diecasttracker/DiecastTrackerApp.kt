@@ -11,6 +11,9 @@ import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
 import io.github.caropeboka.diecasttracker.data.backup.BackupImporter
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
+import io.github.caropeboka.diecasttracker.data.places.DeviceLocation
+import io.github.caropeboka.diecasttracker.data.places.Nominatim
+import io.github.caropeboka.diecasttracker.data.places.PlaceLookup
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,6 +37,13 @@ class AppContainer(context: Context) {
     val gemini = GeminiClient(http, aiSettings)
     val scanner = DiecastScanner(aiSettings.gemini, gemini, photos)
     val matcher = CollectionMatcher(repository)
+
+    val location = DeviceLocation(context)
+    val nominatim = Nominatim(http, database.places(), userAgent = "DiecastTracker-Android/${versionName(context)} (personal diecast collection tracker)")
+    val places = PlaceLookup(database.places(), nominatim)
+
+    private fun versionName(context: Context): String =
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "1"
 }
 
 class DiecastTrackerApp : Application() {
@@ -43,7 +53,10 @@ class DiecastTrackerApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        container.scope.launch(Dispatchers.IO) { container.repository.housekeeping() }
+        container.scope.launch(Dispatchers.IO) {
+            container.repository.housekeeping()
+            container.database.places().pruneCache(before = System.currentTimeMillis() - Nominatim.REVERSE_TTL_MS)
+        }
     }
 }
 

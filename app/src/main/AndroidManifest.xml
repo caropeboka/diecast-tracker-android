@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- AI scan (Gemini). -->
+    <!-- AI scan (Gemini), map tiles and place names (OpenStreetMap). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- "Lokasi saya" in the location picker; asked for only when used. Approximate is enough to start. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".DiecastTrackerApp"
