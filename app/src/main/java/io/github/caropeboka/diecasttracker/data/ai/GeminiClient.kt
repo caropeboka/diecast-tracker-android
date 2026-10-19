@@ -1,10 +1,12 @@
 package io.github.caropeboka.diecasttracker.data.ai
 
 import android.util.Log
+import io.github.caropeboka.diecasttracker.util.array
+import io.github.caropeboka.diecasttracker.util.obj
+import io.github.caropeboka.diecasttracker.util.string
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.addJsonObject
@@ -316,12 +318,6 @@ internal fun compareVersions(a: String, b: String): Int {
     }
     return 0
 }
-
-internal fun JsonObject.obj(key: String): JsonObject? = this[key] as? JsonObject
-
-internal fun JsonObject.array(key: String): JsonArray? = this[key] as? JsonArray
-
-internal fun JsonObject.string(key: String): String? = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
 
 private fun JsonObject.strings(key: String): List<String> =
     array(key).orEmpty().mapNotNull { (it as? JsonPrimitive)?.takeIf(JsonPrimitive::isString)?.content }
