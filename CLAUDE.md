@@ -8,14 +8,22 @@ behaviour and logic**. It keeps working on the laptop until the Android app catc
 rather than re-inventing; its feature tests (`tests/Feature/*`) describe the expected behaviour and contain
 real-world fixtures.
 
-## Status (2026-10-18)
+## Status (2026-10-19)
 
-**Phase 1 done** (not yet committed — the user runs `git init` and all git commands themselves; give them the
-commands and the commit messages). Next step: **phase 2** (AI scan).
+Phase 1 is committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). **Phase 2 done**, version
+0.2.0 (not yet committed — the user runs all git commands themselves; give them the commands and the commit
+messages). Next step: **phase 3** (sightings & location).
 
 Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand/rarity/tag, 7 sorts, layout and
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
 cover), tags, the four statuses, read-only sightings list, web backup import (merge/replace, one transaction).
+
+Phase 2 delivered: AI scan with **Gemini only** (the user's choice; Claude can be added later). The collection's
+Scan button opens the camera straight away (`DiecastEditRoute(scan = true)`; without a key it leads to the AI settings);
+the first photo(s) of a new diecast are scanned automatically; "Isi otomatis / Baca ulang dengan AI" reads up to 4
+photos. AI-filled fields get ✦ and a brand border until edited; confidence note; duplicate warning like the web
+(tap opens the existing diecast). AI settings screen: key shown as `••••1234`, test key → live model list, remove key.
+The success path was verified with tests only — the emulator run used a fake key (error path).
 
 ## Build, test, run
 
@@ -45,6 +53,19 @@ cover), tags, the four statuses, read-only sightings list, web backup import (me
 - `MainActivity` finishes a launcher-started duplicate on top of an existing task (sideloaded apps opened via the
   installer's "Open" button otherwise stack a second copy).
 
+## Notes from phase 2
+
+- `GeminiClient` ports `AiVision.php`: chosen model + one retry after 1.5 s on 500/503, then lite models first, up to
+  4 fallbacks within 80 s; the fallback list comes from the live model list, cached 12 h per key (hashed) in the `ai`
+  DataStore. Unlike the web, a failed list is not cached, and no connection (`UnknownHostException`) stops at once
+  with its own message.
+- The `ai` DataStore (`datastore/ai.preferences_pb`, API key + model) is excluded from cloud backup; device-to-device
+  transfer still copies it.
+- `CollectionMatcher` ports PHP's `similar_text` exactly (reference values from PHP in its test); it skips the diecast
+  being edited.
+- Tests fake Gemini with an OkHttp interceptor (`FakeGemini`) instead of MockWebServer; the web's Gemini tests are ported
+  in `GeminiClientTest`.
+
 ## Decisions (made with the user)
 
 | Topic | Decision |
@@ -55,6 +76,7 @@ cover), tags, the four statuses, read-only sightings list, web backup import (me
 | Location / map | Fused Location Provider; **osmdroid** with OpenStreetMap tiles (no API key). |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
 | Settings | DataStore (Gemini/Claude API key, model). |
+| AI provider | Gemini only for now (phase 2); Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
 | Existing data | Import the web app's **backup zip** (see below). |
 | Devices | Phone: Android 16 (API 36), USB debugging not set up yet. Emulator AVD `Medium_Phone_API_37.0` (API 37, WHPX acceleration works). |
