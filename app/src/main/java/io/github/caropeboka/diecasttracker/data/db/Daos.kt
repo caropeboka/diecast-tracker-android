@@ -20,6 +20,13 @@ interface DiecastDao {
     )
     fun observeList(query: SupportSQLiteQuery): Flow<List<DiecastListItem>>
 
+    @RawQuery
+    suspend fun list(query: SupportSQLiteQuery): List<DiecastListItem>
+
+    /** Every status counts ("do I already have, want or know this one?"); a diecast without brand may be any brand. */
+    @Query("SELECT id, name, collection_number FROM diecasts WHERE :brand IS NULL OR brand IS NULL OR brand = :brand COLLATE NOCASE")
+    suspend fun matchCandidates(brand: String?): List<MatchCandidate>
+
     @Transaction
     @Query("SELECT * FROM diecasts WHERE id = :id")
     suspend fun getDetails(id: Long): DiecastWithDetails?

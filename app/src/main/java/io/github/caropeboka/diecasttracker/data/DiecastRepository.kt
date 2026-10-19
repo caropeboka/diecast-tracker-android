@@ -6,6 +6,7 @@ import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.db.DiecastTagCrossRef
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
+import io.github.caropeboka.diecasttracker.data.db.MatchCandidate
 import io.github.caropeboka.diecasttracker.data.db.PhotoEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.db.TagEntity
@@ -42,6 +43,12 @@ class DiecastRepository(
     fun observePlaces(): Flow<List<String>> = dao.observePlaces().map { it.sortedWith(naturalCaseInsensitiveOrder) }
 
     suspend fun details(id: Long): DiecastWithDetails? = dao.getDetails(id)
+
+    suspend fun matchCandidates(brand: String?): List<MatchCandidate> = dao.matchCandidates(brand)
+
+    /** Cards for [ids], in no particular order. */
+    suspend fun listItems(ids: Collection<Long>): List<DiecastListItem> =
+        if (ids.isEmpty()) emptyList() else dao.list(CollectionQuery.byIds(ids))
 
     /**
      * Inserts ([DiecastEntity.id] = 0) or updates a diecast.

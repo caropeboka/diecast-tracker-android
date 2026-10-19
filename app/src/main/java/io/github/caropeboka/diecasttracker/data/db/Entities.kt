@@ -177,3 +177,10 @@ data class DiecastListItem(
     @ColumnInfo(name = "sightings_count") val sightingsCount: Int,
     @ColumnInfo(name = "sightings_min_price") val sightingsMinPrice: Long?,
 )
+
+/** What the duplicate check compares a scanned diecast against. */
+data class MatchCandidate(
+    val id: Long,
+    val name: String,
+    @ColumnInfo(name = "collection_number") val collectionNumber: String?,
+)
