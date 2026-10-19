@@ -27,6 +27,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -39,8 +40,14 @@ val LocalSnackbar = staticCompositionLocalOf { SnackbarHostState() }
 
 /** Saira Condensed, uppercase — the web app's `font-heading`. */
 @Composable
-fun Heading(text: String, modifier: Modifier = Modifier, style: TextStyle = MaterialTheme.typography.titleLarge) {
-    Text(text.uppercase(), modifier = modifier, style = style, maxLines = 1)
+fun Heading(text: String, modifier: Modifier = Modifier, style: TextStyle = MaterialTheme.typography.titleLarge, maxLines: Int = 1) {
+    Text(text.uppercase(), modifier = modifier, style = style, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
+}
+
+/** A section's heading: the heading font at title-medium size. */
+@Composable
+fun SubHeading(text: String, modifier: Modifier = Modifier, maxLines: Int = 1) {
+    Heading(text, modifier, MaterialTheme.typography.titleMedium.copy(fontFamily = MaterialTheme.typography.titleLarge.fontFamily), maxLines)
 }
 
 /** A card-coloured panel with a heading, like the web form's sections. */
@@ -53,9 +60,7 @@ fun SectionCard(title: String?, modifier: Modifier = Modifier, content: @Composa
         border = BorderStroke(1.dp, Garage.Border),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (title != null) {
-                Heading(title, style = MaterialTheme.typography.titleMedium.copy(fontFamily = MaterialTheme.typography.titleLarge.fontFamily))
-            }
+            if (title != null) SubHeading(title)
             content()
         }
     }

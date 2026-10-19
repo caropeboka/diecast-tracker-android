@@ -22,6 +22,7 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MAX_PHOTOS
 import io.github.caropeboka.diecasttracker.data.PhotoException
 import io.github.caropeboka.diecasttracker.data.PhotoStore
+import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.AiException
 import io.github.caropeboka.diecasttracker.data.ai.AiRetryLaterException
 import io.github.caropeboka.diecasttracker.data.ai.Confidence
@@ -29,6 +30,7 @@ import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.ui.DiecastEditRoute
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -83,6 +85,7 @@ class DiecastEditViewModel(
     private val messages: Messages,
     private val scanner: DiecastScanner,
     private val matcher: CollectionMatcher,
+    private val prefs: UserPrefs,
 ) : ViewModel() {
     private val route = saved.toRoute<DiecastEditRoute>()
     val isNew = route.id == 0L
@@ -107,6 +110,16 @@ class DiecastEditViewModel(
     var existing by mutableStateOf<DiecastEntity?>(null)
         private set
     var sightings by mutableStateOf(emptyList<SightingEntity>())
+        private set
+
+    /** The "Catat temuan" sheet's entry; null while the sheet is closed. */
+    var sightingDraft by mutableStateOf<SightingDraft?>(null)
+        private set
+    var sightingErrors by mutableStateOf(emptyMap<SightingField, String>())
+        private set
+    var savingSighting by mutableStateOf(false)
+        private set
+    var processingSightingPhoto by mutableStateOf(false)
         private set
 
     val isDirty get() = form != original
@@ -144,7 +157,9 @@ class DiecastEditViewModel(
         } else if (isNew) {
             val status = DiecastStatus.fromKey(route.status) ?: DiecastStatus.Owned
             reset(DiecastForm.new(status, LocalDate.now()))
+            startAtRecentPlace()
         }
+        sightingDraft = saved.get<String>(SIGHTING)?.let { Json.decodeFromString<SightingDraft>(it) }
 
         if (route.scan && saved.get<Boolean>(CAMERA_OPENED) != true) {
             saved[CAMERA_OPENED] = true
@@ -163,7 +178,16 @@ class DiecastEditViewModel(
                 sightings = details.orderedSightings
                 if (restored == null) reset(DiecastForm.from(details, LocalDate.now()))
                 loading = false
+                repository.observeSightings(route.id).collect { sightings = it }
             }
+        }
+    }
+
+    /** A new diecast starts at the store chosen on the map under 3 hours ago, untouched (not "dirty"). */
+    private fun startAtRecentPlace() {
+        viewModelScope.launch {
+            val here = prefs.recentPlace() ?: return@launch
+            if (form == original) reset(form.at(here))
         }
     }
 
@@ -292,6 +316,107 @@ class DiecastEditViewModel(
         selectedPhoto = 0
     }
 
+    // Sightings ("Catatan temuan"): saved right away, apart from the form (web: `SightingController`)
+
+    fun openSighting() {
+        viewModelScope.launch {
+            storeSightingDraft(SightingDraft(place = prefs.recentPlace() ?: PlaceValue(), seenOn = LocalDate.now().toString()))
+            sightingErrors = emptyMap()
+        }
+    }
+
+    fun updateSighting(field: SightingField? = null, change: (SightingDraft) -> SightingDraft) {
+        val draft = sightingDraft ?: return
+        storeSightingDraft(change(draft))
+        if (field != null && field in sightingErrors) sightingErrors = sightingErrors - field
+    }
+
+    fun sightingCameraTarget(): Uri {
+        val (file, uri) = photos.newCameraTarget()
+        saved[SIGHTING_CAMERA] = file.path
+        return uri
+    }
+
+    fun onSightingCamera(success: Boolean) {
+        val file = saved.get<String>(SIGHTING_CAMERA)?.let(::File) ?: return
+        saved[SIGHTING_CAMERA] = null
+        if (success && file.length() > 0) setSightingPhoto { photos.addFromCamera(file) } else file.delete()
+    }
+
+    fun addSightingPhoto(uri: Uri) = setSightingPhoto { photos.addFromUri(uri) }
+
+    fun removeSightingPhoto() {
+        val draft = sightingDraft ?: return
+        photos.delete(draft.photo)
+        storeSightingDraft(draft.copy(photo = null))
+    }
+
+    private fun setSightingPhoto(load: () -> String) {
+        processingSightingPhoto = true
+        viewModelScope.launch {
+            try {
+                val name = withContext(Dispatchers.IO) { load() }
+                val draft = sightingDraft
+                if (draft == null) {
+                    photos.delete(name)
+                } else {
+                    photos.delete(draft.photo)
+                    storeSightingDraft(draft.copy(photo = name))
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                messages.show((e as? PhotoException)?.message ?: "Foto gagal diproses (${e.message ?: e::class.simpleName}).")
+            } finally {
+                processingSightingPhoto = false
+            }
+        }
+    }
+
+    fun saveSighting() {
+        val draft = sightingDraft ?: return
+        val diecast = existing ?: return
+        if (savingSighting || processingSightingPhoto) return
+
+        val today = LocalDate.now()
+        sightingErrors = draft.validate(today)
+        if (sightingErrors.isNotEmpty()) return
+
+        savingSighting = true
+        viewModelScope.launch {
+            try {
+                repository.addSighting(draft.toEntity(diecast.id, today, System.currentTimeMillis()))
+                storeSightingDraft(null)
+                messages.show("Temuan dicatat.")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                messages.show("Gagal menyimpan temuan: ${e.message ?: e::class.simpleName}")
+            } finally {
+                savingSighting = false
+            }
+        }
+    }
+
+    /** Closes the sheet without saving; its photo is thrown away. */
+    fun closeSighting() {
+        sightingDraft?.photo?.takeIf(photos::isPending)?.let(photos::delete)
+        storeSightingDraft(null)
+        sightingErrors = emptyMap()
+    }
+
+    fun deleteSighting(id: Long) {
+        viewModelScope.launch {
+            repository.deleteSighting(id)
+            messages.show("Temuan dihapus.")
+        }
+    }
+
+    private fun storeSightingDraft(draft: SightingDraft?) {
+        sightingDraft = draft
+        saved[SIGHTING] = draft?.let { Json.encodeToString(it) }
+    }
+
     // Saving
 
     fun save(addAnother: Boolean) {
@@ -321,6 +446,7 @@ class DiecastEditViewModel(
 
                 if (addAnother) {
                     reset(DiecastForm.new(form.status, today))
+                    startAtRecentPlace()
                     selectedPhoto = 0
                     _events.send(EditEvent.ScrollToTop)
                     // Scanning a pile of cars: straight on to the next one.
@@ -377,12 +503,14 @@ class DiecastEditViewModel(
         private const val CAMERA = "camera_file"
         private const val CAMERA_OPENED = "scan_camera_opened"
         private const val AI_FIELDS = "ai_fields"
+        private const val SIGHTING = "sighting_draft"
+        private const val SIGHTING_CAMERA = "sighting_camera_file"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 with(app.container) {
-                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher)
+                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher, prefs)
                 }
             }
         }

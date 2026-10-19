@@ -13,6 +13,7 @@ import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 
@@ -58,9 +59,24 @@ data class DiecastForm(
     val aiScanned: Boolean = false,
     // First sighting, only when adding a new "Ditemui" diecast.
     val sightingPlace: String = "",
+    val sightingLatitude: Double? = null,
+    val sightingLongitude: Double? = null,
     val sightingDate: String = "",
     val sightingPrice: String = "",
 ) {
+    val purchaseLocation get() = PlaceValue(purchasePlace, purchaseLatitude, purchaseLongitude)
+
+    val sightingLocation get() = PlaceValue(sightingPlace, sightingLatitude, sightingLongitude)
+
+    fun withPurchaseLocation(place: PlaceValue) =
+        copy(purchasePlace = place.name, purchaseLatitude = place.lat, purchaseLongitude = place.lng)
+
+    fun withSightingLocation(place: PlaceValue) =
+        copy(sightingPlace = place.name, sightingLatitude = place.lat, sightingLongitude = place.lng)
+
+    /** Just at a store (a point chosen under 3 hours ago)? That's probably where a new one is from (web: `recentSavedPlace`). */
+    fun at(here: PlaceValue) = withPurchaseLocation(here).withSightingLocation(here)
+
     /** Moving a new entry out of the wishlist: it was bought today unless told otherwise. */
     fun withStatus(status: DiecastStatus, isNew: Boolean, today: LocalDate) = copy(
         status = status,
@@ -180,6 +196,8 @@ data class DiecastForm(
     fun firstSighting(today: LocalDate) = SightingEntity(
         diecastId = 0,
         place = sightingPlace.clean(),
+        latitude = sightingLatitude.takeIf { sightingLongitude != null },
+        longitude = sightingLongitude.takeIf { sightingLatitude != null },
         seenOn = sightingDate.toLocalDateOrNull() ?: today,
         price = sightingPrice.toLongOrNull(),
     )

@@ -34,7 +34,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -75,7 +74,6 @@ import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.SCALES
 import io.github.caropeboka.diecasttracker.data.ai.MAX_SCAN_PHOTOS
-import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.DateInput
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
@@ -88,9 +86,8 @@ import io.github.caropeboka.diecasttracker.ui.components.SuggestInput
 import io.github.caropeboka.diecasttracker.ui.components.TagInput
 import io.github.caropeboka.diecasttracker.ui.components.TextInput
 import io.github.caropeboka.diecasttracker.ui.components.icon
+import io.github.caropeboka.diecasttracker.ui.places.LocationField
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
-import io.github.caropeboka.diecasttracker.util.formatDate
-import io.github.caropeboka.diecasttracker.util.formatRupiah
 import java.time.LocalDate
 
 private val SECTION_TITLES = mapOf(
@@ -184,9 +181,13 @@ fun DiecastEditScreen(
             PhotoSection(viewModel, scanEnabled, openCamera, onOpen)
             IdentitySection(viewModel, suggestions)
             OwnershipSection(viewModel, suggestions)
-            if (viewModel.sightings.isNotEmpty()) SightingsCard(viewModel.sightings)
+            if (viewModel.existing != null) {
+                SightingsCard(viewModel.sightings, viewModel::openSighting, viewModel::deleteSighting)
+            }
         }
     }
+
+    SightingSheet(viewModel, suggestions.places)
 
     if (confirmDiscard) {
         AlertDialog(
@@ -513,13 +514,13 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
 
         when {
             form.status == DiecastStatus.Spotted && !viewModel.isNew -> Text(
-                "Tempat, tanggal, dan harga setiap kali ditemui ada di Catatan temuan di bawah. Menambah temuan baru menyusul di tahap 3.",
+                "Tempat, tanggal, dan harga setiap kali ditemui ada di Catatan temuan di bawah.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
             form.status == DiecastStatus.Spotted -> {
-                SuggestInput(
-                    form.sightingPlace, { v -> set(Field.SightingPlace) { it.copy(sightingPlace = v) } }, suggestions.places,
+                LocationField(
+                    form.sightingLocation, { place -> set(Field.SightingPlace) { it.withSightingLocation(place) } }, suggestions.places,
                     "Ditemui di", placeholder = "Toys Kingdom GI, teman, event…", error = errors[Field.SightingPlace],
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -556,20 +557,10 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
                     { date -> viewModel.update { it.copy(purchaseDate = date?.toString()) } },
                     "Tanggal beli",
                 )
-                SuggestInput(
-                    form.purchasePlace, { v -> set(Field.PurchasePlace) { it.copy(purchasePlace = v) } }, suggestions.places,
+                LocationField(
+                    form.purchaseLocation, { place -> set(Field.PurchasePlace) { it.withPurchaseLocation(place) } }, suggestions.places,
                     "Beli di", placeholder = "Toko / marketplace / teman", error = errors[Field.PurchasePlace],
                 )
-                if (form.purchaseLatitude != null && form.purchaseLongitude != null) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(painterResource(R.drawable.ic_place), contentDescription = null, tint = Garage.MutedForeground, modifier = Modifier.size(16.dp))
-                        Text(
-                            "Titik GPS tempat beli tersimpan (peta menyusul di tahap 3).",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Garage.MutedForeground,
-                        )
-                    }
-                }
                 SuggestInput(
                     form.storageLocation, { v -> set(Field.StorageLocation) { it.copy(storageLocation = v) } },
                     suggestions.storageLocations, "Lokasi simpan", placeholder = "Rak A / Box 3", error = errors[Field.StorageLocation],
@@ -585,34 +576,6 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
             placeholder = "Varian, kondisi kartu, cerita dapetinnya…", error = errors[Field.Notes],
             singleLine = false, minLines = 3, highlighted = Field.Notes in viewModel.aiFields,
         )
-    }
-}
-
-/** Read-only in phase 1; adding and deleting sightings comes with the location picker (phase 3). */
-@Composable
-private fun SightingsCard(sightings: List<SightingEntity>) {
-    SectionCard("Catatan temuan") {
-        sightings.forEachIndexed { i, sighting ->
-            if (i > 0) HorizontalDivider(color = Garage.Border)
-            Row(verticalAlignment = Alignment.Top) {
-                Icon(
-                    painterResource(R.drawable.ic_visibility),
-                    contentDescription = null,
-                    tint = Garage.MutedForeground,
-                    modifier = Modifier.padding(top = 2.dp).size(16.dp),
-                )
-                Column(Modifier.weight(1f).padding(start = 8.dp)) {
-                    Text(sighting.place ?: "Tempat tidak dicatat", style = MaterialTheme.typography.bodyMedium)
-                    Text(formatDate(sighting.seenOn), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
-                    sighting.notes?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
-                    }
-                }
-                sighting.price?.let {
-                    Text(formatRupiah(it), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Garage.Brand)
-                }
-            }
-        }
     }
 }
 
