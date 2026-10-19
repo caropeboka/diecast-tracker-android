@@ -10,9 +10,9 @@ real-world fixtures.
 
 ## Status (2026-10-19)
 
-Phase 1 is committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). **Phase 2 done**, version
-0.2.0 (not yet committed — the user runs all git commands themselves; give them the commands and the commit
-messages). Next step: **phase 3** (sightings & location).
+Phases 1 and 2 are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). **Phase 3 done**,
+version 0.3.0 (not yet committed — the user runs all git commands themselves; give them the commands and the commit
+messages). Next step: **phase 4** (Dex).
 
 Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand/rarity/tag, 7 sorts, layout and
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
@@ -25,14 +25,23 @@ photos. AI-filled fields get ✦ and a brand border until edited; confidence not
 (tap opens the existing diecast). AI settings screen: key shown as `••••1234`, test key → live model list, remove key.
 The success path was verified with tests only — the emulator run used a fake key (error path).
 
+Phase 3 delivered: bottom navigation (Koleksi · Peta); "Catatan temuan" on every saved diecast (add with place, date,
+price, notes, photo in a bottom sheet; delete with confirm; "Termurah" badge); location fields with a map picker for
+"Beli di", "Ditemui di" and sightings (fixed centre pin, own places within 150 m before OpenStreetMap, search, recent
+places, "Lokasi saya" via GPS); the last picked place is remembered 3 hours and pre-fills new diecasts and sightings;
+"Peta jelajah" (type/range filters, 4 stats, markers filled = bought / ring = only seen, sized by count, place details,
+places list, timeline). Room schema v2 (`place_cache`, with migration).
+
 ## Build, test, run
 
 - Toolchain: Gradle 9.8.1 (wrapper), AGP 9.4.1 with built-in Kotlin, Kotlin 2.4.21, KSP 2.3.12, Compose BOM
-  2026.09.00, Room 2.8.5, Coil 3, Navigation Compose 2.10 (type-safe routes). compileSdk 37, targetSdk 36, minSdk 29.
-  Versions live in `gradle/libs.versions.toml`.
+  2026.09.00, Room 2.8.5, Coil 3, Navigation Compose 2.10 (type-safe routes), OkHttp 5.5, MapLibre Android 13.6.1,
+  Play Services Location 21.3. compileSdk 37, targetSdk 36, minSdk 29. Versions live in `gradle/libs.versions.toml`.
 - `./gradlew :app:testDebugUnitTest` — JVM + Robolectric tests (Room in memory, native graphics). The test JVM needs
   `--add-exports java.base/jdk.internal.access` on JBR 25; already set in `app/build.gradle.kts`.
-- `./gradlew :app:lintDebug`, `:app:assembleDebug`, `:app:assembleRelease` (R8, ~4 MB). Release is signed with
+- `./gradlew :app:lintDebug`, `:app:assembleDebug`, `:app:assembleRelease` (R8, ~17 MB). MapLibre's native code is
+  ~13 MB per ABI: release ships **arm64 only** (the phone), debug adds x86_64 for the emulator — so test a release
+  build on the emulator only by temporarily adding x86_64 to `abiFilters`. Release is signed with
   `signing.properties` (git-ignored) if present, otherwise with this laptop's debug key
   (`~/.android/debug.keystore`) — changing the key later means uninstalling the app on the phone (data loss).
 - Room schemas are exported to `app/schemas`; every schema change needs a real migration (no destructive fallback).
@@ -66,6 +75,25 @@ The success path was verified with tests only — the emulator run used a fake k
 - Tests fake Gemini with an OkHttp interceptor (`FakeGemini`) instead of MockWebServer; the web's Gemini tests are ported
   in `GeminiClientTest`.
 
+## Notes from phase 3
+
+- Maps: `ui/map/GarageMap` wraps MapLibre's `MapView` (texture mode, so it can sit in a scrolling, rounded card; it
+  grabs its own drags from scrolling parents) with OpenFreeMap's `dark` style. MapLibre pulls OkHttp 4.12; it runs fine
+  on our 5.5. Tiles show black for a moment while loading.
+- `PlaceLookup` / `Nominatim` port `PlaceLookup.php`: own spots (sightings + purchases) within 150 m first, then
+  Nominatim with an identifying User-Agent, ≥1.1 s between requests, answers cached in Room (`place_cache`, reverse
+  30 days per ~10 m cell, search 7 days; failures never cached, pruned at start-up). Coordinates are sent with
+  `Locale.ROOT` / plain decimals — the Indonesian locale would write commas.
+- `Exploration.build` ports `ExploreController` (grouping by lower-cased name or ~100 m cell, spelling typed first wins a
+  tie, timeline of 30 days); `ExplorationTest` and `PlaceLookupTest` port the web's `ExploreTest`.
+- GPS: `DeviceLocation` (fused provider, high accuracy, 15 s, 30 s max age). Permission is asked when the picker opens
+  without a point or on "Lokasi saya"; approximate is accepted. Emulator: `adb emu geo fix <lng> <lat>`.
+- Sightings are saved at once, apart from the form (like the web); a point older than 3 hours is dropped from a new
+  sighting (web: `freshCoordinates`). The "lokasi berburu" (last picked place) lives in `UserPrefs` and pre-fills a new
+  form without making it dirty.
+- `MigrationTest` builds a v1 database from `app/schemas/.../1.json` and opens it with the migrations — add a case for
+  every new version.
+
 ## Decisions (made with the user)
 
 | Topic | Decision |
@@ -73,7 +101,9 @@ The success path was verified with tests only — the emulator run used a fake k
 | Language / UI | Kotlin, Jetpack Compose, Material 3 with the "Garage" dark theme (below). UI text in **Bahasa Indonesia**, money in **Rupiah** (`id-ID`, no decimals). |
 | Data | Room (SQLite) on the device. Photos in app-private storage. |
 | Network | OkHttp + kotlinx.serialization (Gemini, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
-| Location / map | Fused Location Provider; **osmdroid** with OpenStreetMap tiles (no API key). |
+| Location / map | Fused Location Provider; **MapLibre** with **OpenFreeMap**'s dark style (OpenStreetMap data, no API key). osmdroid was dropped: archived Nov 2024. Nominatim for place names. |
+| Navigation | Bottom bar: Koleksi · Peta (Dex and Dashboard join in phases 4–5); other screens open from the ⋮ menu. |
+| Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
 | Settings | DataStore (Gemini/Claude API key, model). |
 | AI provider | Gemini only for now (phase 2); Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
