@@ -15,6 +15,7 @@ import io.github.caropeboka.diecasttracker.ui.collection.CollectionScreen
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
 import io.github.caropeboka.diecasttracker.ui.data.DataScreen
 import io.github.caropeboka.diecasttracker.ui.edit.DiecastEditScreen
+import io.github.caropeboka.diecasttracker.ui.explore.ExploreScreen
 import io.github.caropeboka.diecasttracker.ui.settings.AiSettingsScreen
 import kotlinx.serialization.Serializable
 
@@ -35,6 +36,10 @@ data object DataRoute
 @Serializable
 data class AiSettingsRoute(val fromScan: Boolean = false)
 
+/** "Peta jelajah". */
+@Serializable
+data object ExploreRoute
+
 @Composable
 fun DiecastTrackerRoot() {
     val nav = rememberNavController()
@@ -48,16 +53,34 @@ fun DiecastTrackerRoot() {
         }
     }
 
+    // Tabs keep their state (scroll, filters) and Back from any tab returns to the collection.
+    val openTab = { tab: MainTab ->
+        val route: Any = when (tab) {
+            MainTab.Collection -> CollectionRoute
+            MainTab.Explore -> ExploreRoute
+        }
+        nav.navigate(route) {
+            popUpTo<CollectionRoute> { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+    val openDiecast = { id: Long -> nav.navigate(DiecastEditRoute(id = id)) }
+
     CompositionLocalProvider(LocalSnackbar provides snackbar) {
         NavHost(nav, startDestination = CollectionRoute) {
             composable<CollectionRoute> {
                 CollectionScreen(
+                    onTab = openTab,
                     onAdd = dropUnlessResumed { nav.navigate(DiecastEditRoute()) },
                     onScan = dropUnlessResumed { nav.navigate(DiecastEditRoute(scan = true)) },
-                    onOpen = { id -> nav.navigate(DiecastEditRoute(id = id)) },
+                    onOpen = openDiecast,
                     onData = dropUnlessResumed { nav.navigate(DataRoute) },
                     onAiSettings = { fromScan -> nav.navigate(AiSettingsRoute(fromScan)) },
                 )
+            }
+            composable<ExploreRoute> {
+                ExploreScreen(onTab = openTab, onOpen = openDiecast)
             }
             composable<DiecastEditRoute> {
                 DiecastEditScreen(

@@ -1,0 +1,39 @@
+package io.github.caropeboka.diecasttracker.ui
+
+import androidx.annotation.DrawableRes
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.painterResource
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.ui.theme.Garage
+
+/** The main screens, one tap apart. Dex (phase 4) and the dashboard (phase 5) join later. */
+enum class MainTab(val label: String, @DrawableRes val icon: Int) {
+    Collection("Koleksi", R.drawable.ic_car),
+    Explore("Peta", R.drawable.ic_map),
+}
+
+@Composable
+fun MainNavigationBar(current: MainTab, onSelect: (MainTab) -> Unit) {
+    NavigationBar(containerColor = Garage.Card) {
+        MainTab.entries.forEach { tab ->
+            NavigationBarItem(
+                selected = tab == current,
+                onClick = { if (tab != current) onSelect(tab) },
+                icon = { Icon(painterResource(tab.icon), contentDescription = null) },
+                label = { Text(tab.label) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Garage.Brand,
+                    selectedTextColor = Garage.Foreground,
+                    indicatorColor = Garage.Brand.copy(alpha = 0.14f),
+                    unselectedIconColor = Garage.MutedForeground,
+                    unselectedTextColor = Garage.MutedForeground,
+                ),
+            )
+        }
+    }
+}

@@ -38,6 +38,15 @@ fun formatRupiahCompact(value: Long?): String {
 /** "18 Okt 2026" */
 fun formatDate(date: LocalDate?): String = date?.format(SHORT_DATE) ?: "-"
 
+/** "18 Okt" */
+fun formatDayMonth(date: LocalDate): String = date.format(DAY_MONTH)
+
+/** "Minggu, 18 Oktober 2026" */
+fun formatDayLong(date: LocalDate): String = date.format(LONG_DAY)
+
+private val DAY_MONTH = DateTimeFormatter.ofPattern("d MMM", INDONESIAN)
+private val LONG_DAY = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", INDONESIAN)
+
 /** Like PHP's SORT_NATURAL | SORT_FLAG_CASE: "Toko 2" before "toko 10". */
 val naturalCaseInsensitiveOrder: Comparator<String> = Comparator { a, b ->
     val chunk = Regex("\\d+|\\D+")

@@ -59,6 +59,8 @@ import io.github.caropeboka.diecasttracker.data.CollectionLayout
 import io.github.caropeboka.diecasttracker.data.CollectionSort
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.ui.MainNavigationBar
+import io.github.caropeboka.diecasttracker.ui.MainTab
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
@@ -68,6 +70,7 @@ import io.github.caropeboka.diecasttracker.ui.theme.Garage
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionScreen(
+    onTab: (MainTab) -> Unit,
     onAdd: () -> Unit,
     onScan: () -> Unit,
     onOpen: (Long) -> Unit,
@@ -149,6 +152,7 @@ fun CollectionScreen(
                 )
             }
         },
+        bottomBar = { MainNavigationBar(MainTab.Collection, onTab) },
         snackbarHost = { SnackbarHost(LocalSnackbar.current) },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
