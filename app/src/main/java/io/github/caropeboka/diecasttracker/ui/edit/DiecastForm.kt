@@ -9,6 +9,7 @@ import io.github.caropeboka.diecasttracker.data.MAX_TAGS
 import io.github.caropeboka.diecasttracker.data.MIN_YEAR
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
@@ -16,7 +17,7 @@ import kotlinx.serialization.Serializable
 import java.time.LocalDate
 
 enum class Field {
-    Name, Brand, Make, Series, CollectionNumber, Year, Scale, Color, Quantity,
+    Name, Brand, Make, Series, CollectionNumber, Year, Scale, Color, Rarity, Packaging, Condition, Quantity,
     PurchasePrice, MarketValue, TargetPrice, PurchasePlace, StorageLocation, Notes, Tags, Photos,
     SightingPlace, SightingDate, SightingPrice,
 }
@@ -65,6 +66,33 @@ data class DiecastForm(
         status = status,
         purchaseDate = if (isNew && status != DiecastStatus.Wishlist && purchaseDate == null) today.toString() else purchaseDate,
     )
+
+    /**
+     * The form with what the AI read filled in, and the fields it filled (web: `fieldsFromScan`). A "regular"
+     * rarity is applied but not marked: it is the default, not a finding.
+     */
+    fun withScan(fields: ScanFields): Pair<DiecastForm, Set<Field>> {
+        val filled = mutableSetOf<Field>()
+
+        fun <T : Any> take(value: T?, field: Field): T? = value?.also { filled += field }
+
+        val next = copy(
+            name = take(fields.name, Field.Name) ?: name,
+            brand = take(fields.brand, Field.Brand) ?: brand,
+            make = take(fields.make, Field.Make) ?: make,
+            series = take(fields.series, Field.Series) ?: series,
+            collectionNumber = take(fields.collectionNumber, Field.CollectionNumber) ?: collectionNumber,
+            year = take(fields.year, Field.Year)?.toString() ?: year,
+            scale = take(fields.scale, Field.Scale) ?: scale,
+            color = take(fields.color, Field.Color) ?: color,
+            rarity = fields.rarity?.also { if (it != Rarity.Regular) filled += Field.Rarity } ?: rarity,
+            packaging = take(fields.packaging, Field.Packaging) ?: packaging,
+            condition = take(fields.condition, Field.Condition) ?: condition,
+            notes = take(fields.notes, Field.Notes) ?: notes,
+            aiScanned = true,
+        )
+        return next to filled
+    }
 
     fun validate(today: LocalDate): Map<Field, String> = buildMap {
         fun length(field: Field, value: String, max: Int) {

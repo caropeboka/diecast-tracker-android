@@ -1,6 +1,10 @@
 package io.github.caropeboka.diecasttracker.ui.edit
 
+import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
+import io.github.caropeboka.diecasttracker.data.Packaging
+import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -63,5 +67,33 @@ class DiecastFormTest {
         // Ditemui entries have no quantity field.
         assertTrue(Field.Quantity !in DiecastForm(name = "X", status = DiecastStatus.Spotted, quantity = "").validate(today))
         assertTrue(DiecastForm(name = "X", year = "2027").validate(today).isEmpty())
+    }
+
+    @Test
+    fun `a scan fills what it read and marks it, keeping the rest`() {
+        val form = DiecastForm(name = "Typed", series = "Mine", status = DiecastStatus.Wishlist, targetPrice = "50000", rarity = Rarity.Chase)
+        val fields = ScanFields(
+            name = "'71 Datsun 510",
+            brand = "Hot Wheels",
+            year = 2024,
+            rarity = Rarity.Regular,
+            packaging = Packaging.Boxed,
+            condition = Condition.Mint,
+        )
+
+        val (next, filled) = form.withScan(fields)
+
+        assertEquals("'71 Datsun 510", next.name)
+        assertEquals("Hot Wheels", next.brand)
+        assertEquals("Mine", next.series)
+        assertEquals("2024", next.year)
+        assertEquals(Rarity.Regular, next.rarity)
+        assertEquals(Packaging.Boxed, next.packaging)
+        assertEquals(Condition.Mint, next.condition)
+        assertEquals("50000", next.targetPrice)
+        assertTrue(next.aiScanned)
+        // "Regular" is the default, not a finding.
+        assertEquals(setOf(Field.Name, Field.Brand, Field.Year, Field.Packaging, Field.Condition), filled)
+        assertTrue(Field.Rarity in form.withScan(ScanFields(rarity = Rarity.TreasureHunt)).second)
     }
 }

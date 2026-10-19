@@ -16,12 +16,18 @@ import androidx.navigation.toRoute
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
 import io.github.caropeboka.diecasttracker.data.COMMON_BRANDS
+import io.github.caropeboka.diecasttracker.data.CollectionMatcher
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MAX_PHOTOS
 import io.github.caropeboka.diecasttracker.data.PhotoException
 import io.github.caropeboka.diecasttracker.data.PhotoStore
+import io.github.caropeboka.diecasttracker.data.ai.AiException
+import io.github.caropeboka.diecasttracker.data.ai.AiRetryLaterException
+import io.github.caropeboka.diecasttracker.data.ai.Confidence
+import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
+import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.ui.DiecastEditRoute
 import kotlinx.coroutines.CancellationException
@@ -53,6 +59,21 @@ sealed interface EditEvent {
     data object Close : EditEvent
 
     data object ScrollToTop : EditEvent
+
+    /** Opened with the Scan button: take the photo right away. */
+    data object OpenCamera : EditEvent
+}
+
+sealed interface ScanState {
+    data object Idle : ScanState
+
+    data object Scanning : ScanState
+
+    /** [matches]: diecasts already in the collection that look like this one. */
+    data class Done(val confidence: Confidence, val matches: List<DiecastListItem>) : ScanState
+
+    /** [retryLater]: the AI is busy or out of quota, nothing is wrong with the photo. */
+    data class Failed(val message: String, val retryLater: Boolean) : ScanState
 }
 
 class DiecastEditViewModel(
@@ -60,6 +81,8 @@ class DiecastEditViewModel(
     private val repository: DiecastRepository,
     private val photos: PhotoStore,
     private val messages: Messages,
+    private val scanner: DiecastScanner,
+    private val matcher: CollectionMatcher,
 ) : ViewModel() {
     private val route = saved.toRoute<DiecastEditRoute>()
     val isNew = route.id == 0L
@@ -88,6 +111,18 @@ class DiecastEditViewModel(
 
     val isDirty get() = form != original
 
+    var scan by mutableStateOf<ScanState>(ScanState.Idle)
+        private set
+
+    /** Fields the AI filled in that haven't been changed since (marked ✦). */
+    var aiFields by mutableStateOf(emptySet<Field>())
+        private set
+
+    val scanning get() = scan == ScanState.Scanning
+
+    val scanEnabled: StateFlow<Boolean> =
+        scanner.enabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     private val _events = Channel<EditEvent>(Channel.BUFFERED)
     val events: Flow<EditEvent> = _events.receiveAsFlow()
 
@@ -105,9 +140,15 @@ class DiecastEditViewModel(
         if (restored != null) {
             form = restored
             original = saved.get<String>(ORIGINAL)?.let { Json.decodeFromString<DiecastForm>(it) } ?: restored
+            aiFields = saved.get<List<String>>(AI_FIELDS).orEmpty().mapNotNull { name -> Field.entries.find { it.name == name } }.toSet()
         } else if (isNew) {
             val status = DiecastStatus.fromKey(route.status) ?: DiecastStatus.Owned
             reset(DiecastForm.new(status, LocalDate.now()))
+        }
+
+        if (route.scan && saved.get<Boolean>(CAMERA_OPENED) != true) {
+            saved[CAMERA_OPENED] = true
+            _events.trySend(EditEvent.OpenCamera)
         }
 
         if (!isNew) {
@@ -136,6 +177,42 @@ class DiecastEditViewModel(
 
     fun clearError(field: Field) {
         if (field in errors) errors = errors - field
+    }
+
+    /** The user changed [field]: its error and its AI mark go. */
+    fun fieldEdited(field: Field) {
+        clearError(field)
+        if (field in aiFields) markAiFields(aiFields - field)
+    }
+
+    // AI scan
+
+    /** Lets the AI read the photos and fill the form, and looks for look-alikes already in the collection. */
+    fun runScan() {
+        if (scanning || form.photos.isEmpty()) return
+
+        scan = ScanState.Scanning
+        viewModelScope.launch {
+            scan = try {
+                val fields = scanner.scan(form.photos)
+                val (next, filled) = form.withScan(fields)
+                replaceForm(next)
+                markAiFields(filled)
+                errors = errors - filled
+                ScanState.Done(fields.confidence, matcher.find(fields).filter { it.id != existing?.id })
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: AiException) {
+                ScanState.Failed(e.message.orEmpty(), retryLater = e is AiRetryLaterException)
+            } catch (e: Exception) {
+                ScanState.Failed("Scan gagal (${e.message ?: e::class.simpleName}). Isi manual dulu atau coba lagi.", retryLater = false)
+            }
+        }
+    }
+
+    private fun markAiFields(fields: Set<Field>) {
+        aiFields = fields
+        saved[AI_FIELDS] = ArrayList(fields.map { it.name })
     }
 
     // Photos
@@ -177,6 +254,7 @@ class DiecastEditViewModel(
         val todo = loads.take(room)
         if (todo.isEmpty()) return
 
+        val firstPhotos = form.photos.isEmpty() && processingPhotos == 0
         processingPhotos += todo.size
         viewModelScope.launch {
             for (load in todo) {
@@ -194,6 +272,9 @@ class DiecastEditViewModel(
                     processingPhotos--
                 }
             }
+
+            // First photo(s) of a new diecast: let the AI fill the form straight away.
+            if (firstPhotos && isNew && form.photos.isNotEmpty() && scanner.isEnabled()) runScan()
         }
     }
 
@@ -214,7 +295,7 @@ class DiecastEditViewModel(
     // Saving
 
     fun save(addAnother: Boolean) {
-        if (saving || processingPhotos > 0 || loading) return
+        if (saving || processingPhotos > 0 || loading || scanning) return
 
         val today = LocalDate.now()
         errors = form.validate(today)
@@ -242,6 +323,8 @@ class DiecastEditViewModel(
                     reset(DiecastForm.new(form.status, today))
                     selectedPhoto = 0
                     _events.send(EditEvent.ScrollToTop)
+                    // Scanning a pile of cars: straight on to the next one.
+                    if (route.scan) _events.send(EditEvent.OpenCamera)
                 } else {
                     original = form
                     _events.send(EditEvent.Close)
@@ -284,17 +367,23 @@ class DiecastEditViewModel(
         saved[ORIGINAL] = saved.get<String>(FORM)
         errors = emptyMap()
         photoError = null
+        scan = ScanState.Idle
+        markAiFields(emptySet())
     }
 
     companion object {
         private const val FORM = "form"
         private const val ORIGINAL = "original"
         private const val CAMERA = "camera_file"
+        private const val CAMERA_OPENED = "scan_camera_opened"
+        private const val AI_FIELDS = "ai_fields"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                DiecastEditViewModel(createSavedStateHandle(), app.container.repository, app.container.photos, app.container.messages)
+                with(app.container) {
+                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher)
+                }
             }
         }
     }

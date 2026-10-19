@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
@@ -36,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
@@ -83,7 +85,7 @@ fun TextInput(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(label) },
+        label = { FieldLabel(label, highlighted) },
         placeholder = placeholder?.let { { Text(it) } },
         isError = error != null,
         supportingText = errorText(error),
@@ -99,13 +101,26 @@ fun TextInput(
     )
 }
 
-/** Fields the AI filled in (phase 2) get a brand-tinted border. */
+/** Fields the AI filled in get a brand-tinted border. */
 @Composable
 private fun highlightColors() = OutlinedTextFieldDefaults.colors(
     unfocusedContainerColor = Garage.Brand.copy(alpha = 0.08f),
     focusedContainerColor = Garage.Brand.copy(alpha = 0.08f),
     unfocusedBorderColor = Garage.Brand.copy(alpha = 0.6f),
 )
+
+/** The label, with ✦ when the AI filled the field in (never colour-only). */
+@Composable
+private fun FieldLabel(text: String, highlighted: Boolean) {
+    if (highlighted) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(text)
+            Icon(painterResource(R.drawable.ic_sparkles), contentDescription = "Diisi oleh AI", tint = Garage.Brand, modifier = Modifier.size(14.dp))
+        }
+    } else {
+        Text(text)
+    }
+}
 
 /** Whole Rupiah; [value] holds digits only and is shown grouped ("35.000"). */
 @Composable
@@ -169,6 +184,7 @@ fun <T> ChoiceInput(
     onSelect: (T) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -178,9 +194,9 @@ fun <T> ChoiceInput(
             onValueChange = {},
             readOnly = true,
             singleLine = true,
-            label = { Text(label) },
+            label = { FieldLabel(label, highlighted) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            colors = fieldColors(),
+            colors = if (highlighted) highlightColors() else fieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
@@ -216,6 +232,7 @@ fun SuggestInput(
     placeholder: String? = null,
     error: String? = null,
     capitalization: KeyboardCapitalization = KeyboardCapitalization.Words,
+    highlighted: Boolean = false,
 ) {
     var focused by remember { mutableStateOf(false) }
     var dismissed by remember { mutableStateOf(false) }
@@ -233,13 +250,13 @@ fun SuggestInput(
                 dismissed = false
                 onValueChange(it)
             },
-            label = { Text(label) },
+            label = { FieldLabel(label, highlighted) },
             placeholder = placeholder?.let { { Text(it) } },
             isError = error != null,
             supportingText = errorText(error),
             singleLine = true,
             keyboardOptions = KeyboardOptions(capitalization = capitalization, imeAction = ImeAction.Next),
-            colors = fieldColors(),
+            colors = if (highlighted) highlightColors() else fieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { focused = it.isFocused }

@@ -74,6 +74,7 @@ import io.github.caropeboka.diecasttracker.data.MAX_PHOTOS
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.SCALES
+import io.github.caropeboka.diecasttracker.data.ai.MAX_SCAN_PHOTOS
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.DateInput
@@ -110,18 +111,30 @@ private val STATUS_HINTS = mapOf(
 @Composable
 fun DiecastEditScreen(
     onClose: () -> Unit,
+    onOpen: (Long) -> Unit,
     viewModel: DiecastEditViewModel = viewModel(factory = DiecastEditViewModel.Factory),
 ) {
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
+    val scanEnabled by viewModel.scanEnabled.collectAsStateWithLifecycle()
     val scroll = rememberScrollState()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture(), viewModel::onCameraResult)
+    val openCamera = {
+        try {
+            camera.launch(viewModel.cameraTarget())
+        } catch (_: ActivityNotFoundException) {
+            viewModel.cameraUnavailable()
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
                 EditEvent.Close -> onClose()
                 EditEvent.ScrollToTop -> scroll.animateScrollTo(0)
+                EditEvent.OpenCamera -> openCamera()
             }
         }
     }
@@ -168,7 +181,7 @@ fun DiecastEditScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             StatusToggle(viewModel.form.status, viewModel::changeStatus)
-            PhotoSection(viewModel)
+            PhotoSection(viewModel, scanEnabled, openCamera, onOpen)
             IdentitySection(viewModel, suggestions)
             OwnershipSection(viewModel, suggestions)
             if (viewModel.sightings.isNotEmpty()) SightingsCard(viewModel.sightings)
@@ -261,13 +274,12 @@ private fun StatusToggle(value: DiecastStatus, onChange: (DiecastStatus) -> Unit
 }
 
 @Composable
-private fun PhotoSection(viewModel: DiecastEditViewModel) {
+private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, onCamera: () -> Unit, onOpen: (Long) -> Unit) {
     val photos = viewModel.form.photos
     val selected = viewModel.selectedPhoto.coerceAtMost((photos.size - 1).coerceAtLeast(0))
-    val busy = viewModel.processingPhotos > 0
+    val busy = viewModel.processingPhotos > 0 || viewModel.scanning
     val full = photos.size >= MAX_PHOTOS
 
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture(), viewModel::onCameraResult)
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS)) {
         viewModel.addFromGallery(it)
     }
@@ -294,7 +306,11 @@ private fun PhotoSection(viewModel: DiecastEditViewModel) {
                     Icon(painterResource(R.drawable.ic_add_photo), contentDescription = null, tint = Garage.MutedForeground, modifier = Modifier.size(40.dp))
                     Text("Foto diecast kamu", style = MaterialTheme.typography.titleSmall)
                     Text(
-                        "Foto depan kartunya. Bisa tambah foto belakang kartu atau mobilnya juga — foto pertama jadi cover.",
+                        if (scanEnabled) {
+                            "Foto depan kartunya agar AI bisa membaca nama, seri, dan nomornya. Bisa tambah foto belakang kartu juga — foto pertama jadi cover."
+                        } else {
+                            "Foto depan kartunya. Bisa tambah foto belakang kartu atau mobilnya juga — foto pertama jadi cover."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                         textAlign = TextAlign.Center,
@@ -309,7 +325,10 @@ private fun PhotoSection(viewModel: DiecastEditViewModel) {
                     verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
                 ) {
                     CircularProgressIndicator()
-                    Text("Memproses ${viewModel.processingPhotos} foto…", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        if (viewModel.processingPhotos > 0) "Memproses ${viewModel.processingPhotos} foto…" else "AI sedang membaca foto…",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             }
         }
@@ -368,13 +387,7 @@ private fun PhotoSection(viewModel: DiecastEditViewModel) {
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
-                onClick = {
-                    try {
-                        camera.launch(viewModel.cameraTarget())
-                    } catch (_: ActivityNotFoundException) {
-                        viewModel.cameraUnavailable()
-                    }
-                },
+                onClick = onCamera,
                 enabled = !busy && !full,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.weight(1f),
@@ -391,9 +404,23 @@ private fun PhotoSection(viewModel: DiecastEditViewModel) {
             }
         }
 
+        if (scanEnabled && photos.isNotEmpty()) {
+            OutlinedButton(
+                onClick = viewModel::runScan,
+                enabled = !busy,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                val label = if (viewModel.scan == ScanState.Idle) "Isi otomatis dengan AI" else "Baca ulang dengan AI"
+                IconLabel(R.drawable.ic_sparkles, if (photos.size > 1) "$label (${minOf(photos.size, MAX_SCAN_PHOTOS)} foto)" else label)
+            }
+        }
+
         viewModel.photoError?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.Loss)
         }
+
+        ScanFeedback(viewModel.scan, onOpen)
     }
 }
 
@@ -401,56 +428,66 @@ private fun PhotoSection(viewModel: DiecastEditViewModel) {
 private fun IdentitySection(viewModel: DiecastEditViewModel, suggestions: Suggestions) {
     val form = viewModel.form
     val errors = viewModel.errors
+    val ai = viewModel.aiFields
 
     fun set(field: Field, change: (DiecastForm) -> DiecastForm) {
         viewModel.update(change)
-        viewModel.clearError(field)
+        viewModel.fieldEdited(field)
     }
 
     SectionCard("Identitas") {
         TextInput(
             form.name, { v -> set(Field.Name) { it.copy(name = v) } }, "Nama model *",
             placeholder = "'71 Datsun 510", error = errors[Field.Name], capitalization = KeyboardCapitalization.Words,
+            highlighted = Field.Name in ai,
         )
         SuggestInput(
             form.brand, { v -> set(Field.Brand) { it.copy(brand = v) } }, suggestions.brands, "Merek",
-            placeholder = "Hot Wheels", error = errors[Field.Brand],
+            placeholder = "Hot Wheels", error = errors[Field.Brand], highlighted = Field.Brand in ai,
         )
         TextInput(
             form.make, { v -> set(Field.Make) { it.copy(make = v) } }, "Pabrikan mobil",
             placeholder = "Nissan", error = errors[Field.Make], capitalization = KeyboardCapitalization.Words,
+            highlighted = Field.Make in ai,
         )
         SuggestInput(
             form.series, { v -> set(Field.Series) { it.copy(series = v) } }, suggestions.series, "Seri",
-            placeholder = "HW J-Imports", error = errors[Field.Series],
+            placeholder = "HW J-Imports", error = errors[Field.Series], highlighted = Field.Series in ai,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextInput(
                 form.collectionNumber, { v -> set(Field.CollectionNumber) { it.copy(collectionNumber = v) } }, "Nomor koleksi",
                 placeholder = "123/250", error = errors[Field.CollectionNumber], modifier = Modifier.weight(1f),
+                highlighted = Field.CollectionNumber in ai,
             )
             TextInput(
                 form.color, { v -> set(Field.Color) { it.copy(color = v) } }, "Warna",
                 placeholder = "Metallic Blue", error = errors[Field.Color], modifier = Modifier.weight(1f),
-                capitalization = KeyboardCapitalization.Words,
+                capitalization = KeyboardCapitalization.Words, highlighted = Field.Color in ai,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextInput(
                 form.year, { v -> set(Field.Year) { it.copy(year = v.filter(Char::isDigit).take(4)) } }, "Tahun rilis",
                 placeholder = "${LocalDate.now().year}", error = errors[Field.Year], keyboardType = KeyboardType.Number,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f), highlighted = Field.Year in ai,
             )
             SuggestInput(
                 form.scale, { v -> set(Field.Scale) { it.copy(scale = v) } }, SCALES, "Skala",
-                error = errors[Field.Scale], modifier = Modifier.weight(1f),
+                error = errors[Field.Scale], modifier = Modifier.weight(1f), highlighted = Field.Scale in ai,
             )
         }
-        ChoiceInput(form.rarity, Rarity.entries, Rarity::label, { v -> viewModel.update { it.copy(rarity = v) } }, "Kelangkaan")
-        ChoiceInput(form.packaging, Packaging.entries, Packaging::label, { v -> viewModel.update { it.copy(packaging = v) } }, "Kemasan")
+        ChoiceInput(
+            form.rarity, Rarity.entries, Rarity::label, { v -> set(Field.Rarity) { it.copy(rarity = v) } }, "Kelangkaan",
+            highlighted = Field.Rarity in ai,
+        )
+        ChoiceInput(
+            form.packaging, Packaging.entries, Packaging::label, { v -> set(Field.Packaging) { it.copy(packaging = v) } }, "Kemasan",
+            highlighted = Field.Packaging in ai,
+        )
         ChoiceInput(
             form.condition, listOf<Condition?>(null) + Condition.entries, { it?.label ?: "Belum dinilai" },
-            { v -> viewModel.update { it.copy(condition = v) } }, "Kondisi",
+            { v -> set(Field.Condition) { it.copy(condition = v) } }, "Kondisi", highlighted = Field.Condition in ai,
         )
     }
 }
@@ -463,7 +500,7 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
 
     fun set(field: Field, change: (DiecastForm) -> DiecastForm) {
         viewModel.update(change)
-        viewModel.clearError(field)
+        viewModel.fieldEdited(field)
     }
 
     SectionCard(SECTION_TITLES.getValue(form.status)) {
@@ -546,7 +583,7 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
         TextInput(
             form.notes, { v -> set(Field.Notes) { it.copy(notes = v) } }, "Catatan",
             placeholder = "Varian, kondisi kartu, cerita dapetinnya…", error = errors[Field.Notes],
-            singleLine = false, minLines = 3,
+            singleLine = false, minLines = 3, highlighted = Field.Notes in viewModel.aiFields,
         )
     }
 }
@@ -581,7 +618,7 @@ private fun SightingsCard(sightings: List<SightingEntity>) {
 
 @Composable
 private fun SaveBar(viewModel: DiecastEditViewModel) {
-    val disabled = viewModel.saving || viewModel.processingPhotos > 0 || viewModel.loading
+    val disabled = viewModel.saving || viewModel.processingPhotos > 0 || viewModel.loading || viewModel.scanning
 
     Surface(color = Garage.Card, border = BorderStroke(1.dp, Garage.Border)) {
         Row(
