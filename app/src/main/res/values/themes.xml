@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws the UI; this only keeps the window dark while the app starts. -->
+    <style name="Theme.DiecastTracker" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/garage_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

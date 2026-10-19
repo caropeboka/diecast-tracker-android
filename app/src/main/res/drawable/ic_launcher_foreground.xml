@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The web app's logo (public/favicon.svg). Everything sits in one group so the gradient that fills the
+     background also fills the cut-outs (wheel arches, window) at exactly the same spot. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="22.65"
+        android:translateY="17.35">
+        <path android:pathData="M-22.65,-17.35h108v108h-108z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:endX="85.35"
+                    android:endY="90.65"
+                    android:startX="-22.65"
+                    android:startY="-17.35"
+                    android:type="linear">
+                    <item android:color="#FFFF6A1A" android:offset="0" />
+                    <item android:color="#FFFFB020" android:offset="1" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:fillColor="#FF160A03"
+            android:pathData="M3.3,29h5.4a1.3,1.3 0,0 1,0 2.6h-5.4a1.3,1.3 0,0 1,0 -2.6z" />
+        <path
+            android:fillColor="#FF160A03"
+            android:pathData="M5.3,34.5h3.4a1.3,1.3 0,0 1,0 2.6h-3.4a1.3,1.3 0,0 1,0 -2.6z" />
+        <path
+            android:fillColor="#FF160A03"
+            android:pathData="M12,39.6c0,-3.4 2.1,-5 5.1,-5.6l8.8,-1.8c2.6,-3.6 6.3,-5.9 10.9,-5.9h7.2c3.6,0 6.7,1.9 8.8,4.8l1.5,2.1c4.1,0.6 6.4,2.9 6.4,6.1v1.4a2,2 0,0 1,-2 2H14a2,2 0,0 1,-2 -2Z" />
+        <!-- Wheel arches and window, painted with the background gradient. -->
+        <path android:pathData="M21,42m-6.6,0a6.6,6.6 0,1 1,13.2 0a6.6,6.6 0,1 1,-13.2 0M48,42m-6.6,0a6.6,6.6 0,1 1,13.2 0a6.6,6.6 0,1 1,-13.2 0M28.6,32.2c2,-2.3 4.5,-3.5 7.4,-3.5h6.6c2.3,0 4.4,1.1 5.8,3l0.4,0.5Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:endX="85.35"
+                    android:endY="90.65"
+                    android:startX="-22.65"
+                    android:startY="-17.35"
+                    android:type="linear">
+                    <item android:color="#FFFF6A1A" android:offset="0" />
+                    <item android:color="#FFFFB020" android:offset="1" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:fillColor="#FF160A03"
+            android:fillType="evenOdd"
+            android:pathData="M21,37a5,5 0,1 1,0 10a5,5 0,0 1,0 -10Zm0,3a2,2 0,1 0,0 4a2,2 0,0 0,0 -4ZM48,37a5,5 0,1 1,0 10a5,5 0,0 1,0 -10Zm0,3a2,2 0,1 0,0 4a2,2 0,0 0,0 -4Z" />
+    </group>
+</vector>
