@@ -22,10 +22,15 @@ android {
         applicationId = "io.github.caropeboka.diecasttracker"
         minSdk = 29
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // MapLibre's native code (~13 MB per ABI): the phone's arm64 only; debug builds add the emulator's x86_64.
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     signingConfigs {
@@ -40,6 +45,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            ndk {
+                abiFilters += "x86_64"
+            }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -88,6 +98,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)
+    implementation(libs.maplibre.android)
+    implementation(libs.play.services.location)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
