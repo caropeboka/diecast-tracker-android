@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cloud backup keeps the database and settings (photos are too big for its 25 MB limit);
-     a phone-to-phone transfer copies everything. -->
+<!-- Cloud backup keeps the database and settings (photos are too big for its 25 MB limit), but not the
+     AI API key; a phone-to-phone transfer copies everything. -->
 <data-extraction-rules>
     <cloud-backup>
         <include domain="database" path="." />
         <include domain="file" path="datastore/" />
+        <exclude domain="file" path="datastore/ai.preferences_pb" />
     </cloud-backup>
     <device-transfer>
         <include domain="database" path="." />
