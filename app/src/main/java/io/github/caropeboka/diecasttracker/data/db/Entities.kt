@@ -178,6 +178,58 @@ data class DiecastListItem(
     @ColumnInfo(name = "sightings_min_price") val sightingsMinPrice: Long?,
 )
 
+/**
+ * An OpenStreetMap (Nominatim) answer kept for a while: its usage policy asks apps to cache, and the web caches
+ * reverse lookups for 30 days and searches for 7. Failures are never stored.
+ */
+@Entity(tableName = "place_cache")
+data class PlaceCacheEntity(
+    @PrimaryKey val key: String,
+    val body: String,
+    /** Epoch millis. */
+    @ColumnInfo(name = "fetched_at") val fetchedAt: Long,
+)
+
+/** A named place with a point: where something was spotted ([date] = seen on) or bought. */
+data class SpotRow(
+    val place: String,
+    val latitude: Double,
+    val longitude: Double,
+    @ColumnInfo(name = "seen_on") val seenOn: LocalDate?,
+    @ColumnInfo(name = "purchase_date") val purchaseDate: LocalDate?,
+    /** Epoch millis; dates a purchase without purchase date. */
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/** A sighting on the explore map; [photoFile] is the sighting's own photo, else the diecast's cover. */
+data class SightingEventRow(
+    val id: Long,
+    @ColumnInfo(name = "diecast_id") val diecastId: Long,
+    val name: String,
+    val brand: String?,
+    @ColumnInfo(name = "photo_file") val photoFile: String?,
+    val place: String?,
+    val latitude: Double?,
+    val longitude: Double?,
+    @ColumnInfo(name = "seen_on") val seenOn: LocalDate,
+    val price: Long?,
+)
+
+/** A diecast in the garage with a known purchase place, on the explore map. */
+data class PurchaseEventRow(
+    val id: Long,
+    val name: String,
+    val brand: String?,
+    @ColumnInfo(name = "photo_file") val photoFile: String?,
+    val place: String?,
+    val latitude: Double?,
+    val longitude: Double?,
+    @ColumnInfo(name = "purchase_date") val purchaseDate: LocalDate?,
+    /** Epoch millis. */
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    val price: Long?,
+)
+
 /** What the duplicate check compares a scanned diecast against. */
 data class MatchCandidate(
     val id: Long,

@@ -61,6 +61,26 @@ class DiecastRepositoryTest {
     }
 
     @Test
+    fun `sightings are added with a photo, listed newest first and removed with it`() = runBlocking {
+        val id = repository.save(diecast("RX-7") { it.copy(status = DiecastStatus.Wishlist) })
+        val photo = env.pendingPhoto()
+
+        val first = repository.addSighting(
+            SightingEntity(diecastId = id, place = "Toys Kingdom GI", seenOn = LocalDate.of(2026, 9, 1), price = 45_000, photoFile = photo),
+        )
+        repository.addSighting(SightingEntity(diecastId = id, place = "Pasar Gembrong", seenOn = LocalDate.of(2026, 10, 1)))
+
+        assertEquals(listOf("Pasar Gembrong", "Toys Kingdom GI"), repository.observeSightings(id).first().map { it.place })
+        assertEquals(setOf(photo), env.savedFiles)
+        assertTrue(env.pendingFiles.isEmpty())
+
+        repository.deleteSighting(first)
+
+        assertEquals(listOf("Pasar Gembrong"), repository.observeSightings(id).first().map { it.place })
+        assertTrue(env.savedFiles.isEmpty())
+    }
+
+    @Test
     fun `made-up photo names are ignored`() = runBlocking {
         val id = repository.save(diecast("Datsun"), listOf("../../evil.jpg", "${"a".repeat(36)}.jpg"), emptyList())
 

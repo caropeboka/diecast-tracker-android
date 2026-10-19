@@ -8,10 +8,13 @@ import io.github.caropeboka.diecasttracker.data.db.DiecastTagCrossRef
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.MatchCandidate
 import io.github.caropeboka.diecasttracker.data.db.PhotoEntity
+import io.github.caropeboka.diecasttracker.data.db.PurchaseEventRow
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.db.SightingEventRow
 import io.github.caropeboka.diecasttracker.data.db.TagEntity
 import io.github.caropeboka.diecasttracker.util.naturalCaseInsensitiveOrder
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 /**
@@ -101,6 +104,26 @@ class DiecastRepository(
         toDelete.forEach(photos::delete)
 
         return id
+    }
+
+    fun observeSightings(diecastId: Long): Flow<List<SightingEntity>> = sightingDao.observeFor(diecastId)
+
+    /** Everything the explore map shows, live. */
+    fun observeExploreEvents(): Flow<Pair<List<SightingEventRow>, List<PurchaseEventRow>>> =
+        combine(db.places().observeSightingEvents(), db.places().observePurchaseEvents(), ::Pair)
+
+    /** Records a "Ditemui" sighting (web: `SightingLog`); a pending photo moves into storage once it is saved. */
+    suspend fun addSighting(sighting: SightingEntity): Long {
+        val photo = sighting.photoFile?.takeIf(photos::isPending)
+        val id = sightingDao.insert(sighting.copy(id = 0, photoFile = photo, createdAt = clock()))
+        photo?.let(photos::promote)
+        return id
+    }
+
+    suspend fun deleteSighting(id: Long) {
+        val sighting = sightingDao.get(id) ?: return
+        sightingDao.delete(id)
+        photos.delete(sighting.photoFile)
     }
 
     /** Deletes a diecast with its photos, sightings and now-unused tags. */
