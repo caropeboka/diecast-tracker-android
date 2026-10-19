@@ -15,6 +15,7 @@ import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.UserPrefs
+import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -44,6 +45,7 @@ data class CollectionUiState(
 class CollectionViewModel(
     private val repository: DiecastRepository,
     private val prefs: UserPrefs,
+    scanner: DiecastScanner,
     private val saved: SavedStateHandle,
 ) : ViewModel() {
     /** What the search field shows right away; the query follows it after a short pause. */
@@ -79,6 +81,9 @@ class CollectionViewModel(
     ) { (items, filter), brands, tags, layout, total ->
         CollectionUiState(items, filter, brands, tags, layout, total)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CollectionUiState())
+
+    /** Without a key the Scan button leads to the AI settings instead. */
+    val scanEnabled: StateFlow<Boolean> = scanner.enabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     fun setSearch(text: String) {
         saved[SEARCH] = text
@@ -125,7 +130,7 @@ class CollectionViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                CollectionViewModel(app.container.repository, app.container.prefs, createSavedStateHandle())
+                CollectionViewModel(app.container.repository, app.container.prefs, app.container.scanner, createSavedStateHandle())
             }
         }
     }

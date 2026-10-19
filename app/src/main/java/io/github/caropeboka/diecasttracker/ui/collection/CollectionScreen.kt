@@ -69,12 +69,15 @@ import io.github.caropeboka.diecasttracker.ui.theme.Garage
 @Composable
 fun CollectionScreen(
     onAdd: () -> Unit,
+    onScan: () -> Unit,
     onOpen: (Long) -> Unit,
     onData: () -> Unit,
+    onAiSettings: (fromScan: Boolean) -> Unit,
     viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val search by viewModel.search.collectAsStateWithLifecycle()
+    val scanEnabled by viewModel.scanEnabled.collectAsStateWithLifecycle()
     var menuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -106,6 +109,14 @@ fun CollectionScreen(
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
+                                text = { Text("Pengaturan AI") },
+                                leadingIcon = { Icon(painterResource(R.drawable.ic_sparkles), contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    onAiSettings(false)
+                                },
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Data & backup") },
                                 leadingIcon = { Icon(painterResource(R.drawable.ic_folder_zip), contentDescription = null) },
                                 onClick = {
@@ -120,13 +131,23 @@ fun CollectionScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAdd,
-                icon = { Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null) },
-                text = { Text("Tambah") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            )
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ExtendedFloatingActionButton(
+                    onClick = onAdd,
+                    icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
+                    text = { Text("Tambah") },
+                    containerColor = Garage.Muted,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                )
+                // Camera first, the AI fills the form; without a key, it explains how to turn scanning on.
+                ExtendedFloatingActionButton(
+                    onClick = { if (scanEnabled) onScan() else onAiSettings(true) },
+                    icon = { Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null) },
+                    text = { Text("Scan") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
         },
         snackbarHost = { SnackbarHost(LocalSnackbar.current) },
     ) { padding ->
@@ -145,7 +166,7 @@ fun CollectionScreen(
                 items.isEmpty() -> NoMatches(viewModel::resetFilters)
                 state.layout == CollectionLayout.Grid -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 150.dp),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 160.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
@@ -155,7 +176,7 @@ fun CollectionScreen(
                     }
                 }
                 else -> LazyColumn(
-                    contentPadding = PaddingValues(bottom = 96.dp),
+                    contentPadding = PaddingValues(bottom = 160.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(items, key = { it.id }) { item ->
