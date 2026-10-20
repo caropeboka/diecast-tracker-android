@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.ui.edit
 
+import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DEFAULT_SCALE
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
@@ -13,6 +14,7 @@ import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.dex.DexPrefill
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
@@ -63,6 +65,8 @@ data class DiecastForm(
     val sightingLongitude: Double? = null,
     val sightingDate: String = "",
     val sightingPrice: String = "",
+    /** The dex entry a new diecast will be linked to (chosen in the Dex or from the scan's suggestion). */
+    val catalogItemId: Long? = null,
 ) {
     val purchaseLocation get() = PlaceValue(purchasePlace, purchaseLatitude, purchaseLongitude)
 
@@ -109,6 +113,18 @@ data class DiecastForm(
         )
         return next to filled
     }
+
+    /** Filled the way the entry's card prints it, and linked to it (web: the `dexItem` prefill). */
+    fun withDex(prefill: DexPrefill, itemId: Long) = copy(
+        name = prefill.name,
+        brand = prefill.brand,
+        series = prefill.series.orEmpty(),
+        collectionNumber = prefill.collectionNumber,
+        year = prefill.year?.toString().orEmpty(),
+        rarity = prefill.rarity,
+        scale = prefill.scale ?: scale,
+        catalogItemId = itemId,
+    )
 
     fun validate(today: LocalDate): Map<Field, String> = buildMap {
         fun length(field: Field, value: String, max: Int) {
@@ -159,11 +175,12 @@ data class DiecastForm(
 
     /**
      * The record to save. Wishlist and Ditemui entries are not in the garage, so they keep no purchase or
-     * storage details; only wishlist entries keep a target price (web: `diecast-form.tsx` submit).
+     * storage details; only wishlist entries keep a target price (web: `diecast-form.tsx` submit). A saved
+     * diecast's dex link is changed apart from the form, so only a new one takes [catalogItemId].
      */
     fun toEntity(existing: DiecastEntity?): DiecastEntity {
         val owned = status.isOwnedOrSold
-        val base = existing ?: DiecastEntity(name = "")
+        val base = existing ?: DiecastEntity(name = "", catalogItemId = catalogItemId, catalogMatch = catalogItemId?.let { CatalogMatch.Confirmed })
 
         return base.copy(
             name = name.trim(),

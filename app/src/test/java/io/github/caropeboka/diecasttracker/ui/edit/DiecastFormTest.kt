@@ -1,10 +1,12 @@
 package io.github.caropeboka.diecasttracker.ui.edit
 
+import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ai.ScanFields
+import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -95,5 +97,20 @@ class DiecastFormTest {
         // "Regular" is the default, not a finding.
         assertEquals(setOf(Field.Name, Field.Brand, Field.Year, Field.Packaging, Field.Condition), filled)
         assertTrue(Field.Rarity in form.withScan(ScanFields(rarity = Rarity.TreasureHunt)).second)
+    }
+
+    @Test
+    fun `only a new diecast takes its dex entry from the form`() {
+        val form = DiecastForm(name = "Mazda RX-7", catalogItemId = 7)
+
+        val added = form.toEntity(null)
+        assertEquals(7L, added.catalogItemId)
+        assertEquals(CatalogMatch.Confirmed, added.catalogMatch)
+        assertNull(form.copy(catalogItemId = null).toEntity(null).catalogMatch)
+
+        // A saved one's link is changed right away from its Dex panel, never by saving the form.
+        val saved = DiecastEntity(id = 3, name = "Mazda RX-7", catalogItemId = 9, catalogMatch = CatalogMatch.Auto)
+        assertEquals(9L, form.toEntity(saved).catalogItemId)
+        assertEquals(CatalogMatch.Auto, form.toEntity(saved).catalogMatch)
     }
 }

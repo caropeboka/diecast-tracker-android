@@ -12,6 +12,7 @@ import io.github.caropeboka.diecasttracker.data.db.PurchaseEventRow
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEventRow
 import io.github.caropeboka.diecasttracker.data.db.TagEntity
+import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
 import io.github.caropeboka.diecasttracker.util.naturalCaseInsensitiveOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -24,6 +25,7 @@ class DiecastRepository(
     private val db: AppDatabase,
     private val photos: PhotoStore,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val dexMatcher: DexMatcher = DexMatcher(db.dex()),
 ) {
     private val dao = db.diecasts()
     private val sightingDao = db.sightings()
@@ -61,6 +63,10 @@ class DiecastRepository(
      * @param tagNames null leaves tags untouched.
      * @param firstSighting recorded with a new "Ditemui" diecast.
      * @return the diecast's id
+     *
+     * A new diecast may come with its Dex entry (chosen on the form); an existing one keeps its link, which changes only
+     * through [io.github.caropeboka.diecasttracker.data.dex.DexRepository.link]. Unless the collector checked it, the
+     * link is worked out again when the diecast is new or what identifies it changed (web: `DiecastWriter`).
      */
     suspend fun save(
         diecast: DiecastEntity,
@@ -70,6 +76,7 @@ class DiecastRepository(
     ): Long {
         val toPromote = mutableListOf<String>()
         val toDelete = mutableListOf<String>()
+        var rematch = false
 
         val id = db.withTransaction {
             val now = clock()
@@ -81,9 +88,12 @@ class DiecastRepository(
             val record = diecast.copy(
                 marketValueSource = if (valueChanged && !sourceGiven) diecast.marketValue?.let { ValueSource.Manual } else diecast.marketValueSource,
                 marketValueUpdatedAt = if (valueChanged && !sourceGiven) diecast.marketValue?.let { now } else diecast.marketValueUpdatedAt,
+                catalogItemId = if (existing != null) existing.catalogItemId else diecast.catalogItemId,
+                catalogMatch = if (existing != null) existing.catalogMatch else diecast.catalogMatch,
                 createdAt = existing?.createdAt ?: now,
                 updatedAt = now,
             )
+            rematch = existing == null || existing.identity() != record.identity()
 
             val id = if (existing == null) dao.insert(record) else record.id.also { dao.update(record) }
 
@@ -103,8 +113,13 @@ class DiecastRepository(
         toPromote.forEach(photos::promote)
         toDelete.forEach(photos::delete)
 
+        if (rematch) dao.get(id)?.let { dexMatcher.autoLink(it) }
+
         return id
     }
+
+    /** What decides which Dex entry a diecast is. */
+    private fun DiecastEntity.identity() = listOf(name, brand, series, collectionNumber, year, rarity)
 
     fun observeSightings(diecastId: Long): Flow<List<SightingEntity>> = sightingDao.observeFor(diecastId)
 

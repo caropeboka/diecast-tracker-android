@@ -11,12 +11,18 @@ import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
 import io.github.caropeboka.diecasttracker.data.backup.BackupImporter
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
+import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
+import io.github.caropeboka.diecasttracker.data.dex.DexRepository
+import io.github.caropeboka.diecasttracker.data.dex.DexSync
+import io.github.caropeboka.diecasttracker.data.dex.DexWork
+import io.github.caropeboka.diecasttracker.data.dex.WikiCatalog
 import io.github.caropeboka.diecasttracker.data.places.DeviceLocation
 import io.github.caropeboka.diecasttracker.data.places.Nominatim
 import io.github.caropeboka.diecasttracker.data.places.PlaceLookup
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 
@@ -27,7 +33,8 @@ class AppContainer(context: Context) {
 
     val database = AppDatabase.build(context)
     val photos = PhotoStore(context)
-    val repository = DiecastRepository(database, photos)
+    val dexMatcher = DexMatcher(database.dex())
+    val repository = DiecastRepository(database, photos, dexMatcher = dexMatcher)
     val prefs = UserPrefs(context)
     val backupImporter = BackupImporter(context, database, repository, photos, scope)
     val messages = Messages()
@@ -38,9 +45,15 @@ class AppContainer(context: Context) {
     val scanner = DiecastScanner(aiSettings.gemini, gemini, photos)
     val matcher = CollectionMatcher(repository)
 
+    private val userAgent = "DiecastTracker-Android/${versionName(context)} (personal diecast collection tracker)"
+
     val location = DeviceLocation(context)
-    val nominatim = Nominatim(http, database.places(), userAgent = "DiecastTracker-Android/${versionName(context)} (personal diecast collection tracker)")
+    val nominatim = Nominatim(http, database.places(), userAgent)
     val places = PlaceLookup(database.places(), nominatim)
+
+    val wiki = WikiCatalog(http, userAgent)
+    val dexSync = DexSync(database, wiki, dexMatcher, context.filesDir)
+    val dex = DexRepository(database, dexMatcher)
 
     private fun versionName(context: Context): String =
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "1"
@@ -56,6 +69,10 @@ class DiecastTrackerApp : Application() {
         container.scope.launch(Dispatchers.IO) {
             container.repository.housekeeping()
             container.database.places().pruneCache(before = System.currentTimeMillis() - Nominatim.REVERSE_TTL_MS)
+            // Thumbnails left from an earlier sync: carry on when the network allows.
+            if (container.dex.countMissingImages() > 0) {
+                DexWork.downloadImages(this@DiecastTrackerApp, container.prefs.dexCellular.first())
+            }
         }
     }
 }
