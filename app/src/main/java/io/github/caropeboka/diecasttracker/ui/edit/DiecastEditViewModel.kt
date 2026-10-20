@@ -30,6 +30,10 @@ import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.dex.DexLinkState
+import io.github.caropeboka.diecasttracker.data.dex.DexRef
+import io.github.caropeboka.diecasttracker.data.dex.DexRepository
+import io.github.caropeboka.diecasttracker.data.dex.LinkAction
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.ui.DiecastEditRoute
 import kotlinx.coroutines.CancellationException
@@ -71,8 +75,8 @@ sealed interface ScanState {
 
     data object Scanning : ScanState
 
-    /** [matches]: diecasts already in the collection that look like this one. */
-    data class Done(val confidence: Confidence, val matches: List<DiecastListItem>) : ScanState
+    /** [matches]: diecasts already in the collection that look like this one; [dex]: the entry it most likely is (new diecasts). */
+    data class Done(val confidence: Confidence, val matches: List<DiecastListItem>, val dex: DexRef? = null) : ScanState
 
     /** [retryLater]: the AI is busy or out of quota, nothing is wrong with the photo. */
     data class Failed(val message: String, val retryLater: Boolean) : ScanState
@@ -86,6 +90,7 @@ class DiecastEditViewModel(
     private val scanner: DiecastScanner,
     private val matcher: CollectionMatcher,
     private val prefs: UserPrefs,
+    private val dex: DexRepository,
 ) : ViewModel() {
     private val route = saved.toRoute<DiecastEditRoute>()
     val isNew = route.id == 0L
@@ -133,6 +138,16 @@ class DiecastEditViewModel(
 
     val scanning get() = scan == ScanState.Scanning
 
+    /** Edit: the diecast's dex entry or suggestions; changed right away, apart from the form. */
+    var dexLink by mutableStateOf<DexLinkState?>(null)
+        private set
+    var dexBusy by mutableStateOf(false)
+        private set
+
+    /** New: the entry [DiecastForm.catalogItemId] points at. */
+    var dexChosen by mutableStateOf<DexRef?>(null)
+        private set
+
     val scanEnabled: StateFlow<Boolean> =
         scanner.enabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
@@ -154,9 +169,11 @@ class DiecastEditViewModel(
             form = restored
             original = saved.get<String>(ORIGINAL)?.let { Json.decodeFromString<DiecastForm>(it) } ?: restored
             aiFields = saved.get<List<String>>(AI_FIELDS).orEmpty().mapNotNull { name -> Field.entries.find { it.name == name } }.toSet()
+            restored.catalogItemId?.let { id -> viewModelScope.launch { dexChosen = dex.item(id)?.let(::DexRef) } }
         } else if (isNew) {
             val status = DiecastStatus.fromKey(route.status) ?: DiecastStatus.Owned
             reset(DiecastForm.new(status, LocalDate.now()))
+            if (route.dexItem != 0L) startFromDex(route.dexItem)
             startAtRecentPlace()
         }
         sightingDraft = saved.get<String>(SIGHTING)?.let { Json.decodeFromString<SightingDraft>(it) }
@@ -177,6 +194,7 @@ class DiecastEditViewModel(
                 existing = details.diecast
                 sightings = details.orderedSightings
                 if (restored == null) reset(DiecastForm.from(details, LocalDate.now()))
+                dexLink = dex.linkState(details.diecast)
                 loading = false
                 repository.observeSightings(route.id).collect { sightings = it }
             }
@@ -188,6 +206,15 @@ class DiecastEditViewModel(
         viewModelScope.launch {
             val here = prefs.recentPlace() ?: return@launch
             if (form == original) reset(form.at(here))
+        }
+    }
+
+    /** Added from a dex entry: the form starts the way its card prints it, linked to it. */
+    private fun startFromDex(itemId: Long) {
+        viewModelScope.launch {
+            val row = dex.item(itemId) ?: return@launch
+            reset(form.withDex(dex.prefill(row), itemId))
+            dexChosen = DexRef(row)
         }
     }
 
@@ -223,13 +250,52 @@ class DiecastEditViewModel(
                 replaceForm(next)
                 markAiFields(filled)
                 errors = errors - filled
-                ScanState.Done(fields.confidence, matcher.find(fields).filter { it.id != existing?.id })
+                ScanState.Done(
+                    fields.confidence,
+                    matcher.find(fields).filter { it.id != existing?.id },
+                    if (isNew) dex.suggestFor(next.toEntity(null)) else null,
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: AiException) {
                 ScanState.Failed(e.message.orEmpty(), retryLater = e is AiRetryLaterException)
             } catch (e: Exception) {
                 ScanState.Failed("Scan gagal (${e.message ?: e::class.simpleName}). Isi manual dulu atau coba lagi.", retryLater = false)
+            }
+        }
+    }
+
+    // Dex (web: `dex-link-panel.tsx`)
+
+    /** New diecast: link it to [ref] on save (or not, with null). */
+    fun chooseDex(ref: DexRef?) {
+        dexChosen = ref
+        update { it.copy(catalogItemId = ref?.row?.item?.id) }
+    }
+
+    /** Takes the entry's release year (the card's year is usually the casting's copyright year). */
+    fun useDexYear(year: Int) {
+        update { it.copy(year = year.toString()) }
+        fieldEdited(Field.Year)
+    }
+
+    /** Saved diecast: confirms, changes or drops its entry right away. */
+    fun linkDex(action: LinkAction, itemId: Long? = null) {
+        val diecast = existing ?: return
+        if (dexBusy) return
+
+        dexBusy = true
+        viewModelScope.launch {
+            try {
+                val linked = dex.link(diecast.id, action, itemId) ?: return@launch
+                existing = linked
+                dexLink = dex.linkState(linked)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                messages.show("Gagal mengubah tautan Dex: ${e.message ?: e::class.simpleName}")
+            } finally {
+                dexBusy = false
             }
         }
     }
@@ -446,6 +512,7 @@ class DiecastEditViewModel(
 
                 if (addAnother) {
                     reset(DiecastForm.new(form.status, today))
+                    dexChosen = null
                     startAtRecentPlace()
                     selectedPhoto = 0
                     _events.send(EditEvent.ScrollToTop)
@@ -510,7 +577,7 @@ class DiecastEditViewModel(
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 with(app.container) {
-                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher, prefs)
+                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher, prefs, dex)
                 }
             }
         }

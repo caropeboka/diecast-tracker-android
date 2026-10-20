@@ -11,10 +11,11 @@ import androidx.compose.ui.res.painterResource
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 
-/** The main screens, one tap apart. Dex (phase 4) and the dashboard (phase 5) join later. */
+/** The main screens, one tap apart. The dashboard (phase 5) joins later. */
 enum class MainTab(val label: String, @DrawableRes val icon: Int) {
     Collection("Koleksi", R.drawable.ic_car),
     Explore("Peta", R.drawable.ic_map),
+    Dex("Dex", R.drawable.ic_collections_bookmark),
 }
 
 @Composable

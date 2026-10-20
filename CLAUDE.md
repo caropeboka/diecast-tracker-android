@@ -8,11 +8,12 @@ behaviour and logic**. It keeps working on the laptop until the Android app catc
 rather than re-inventing; its feature tests (`tests/Feature/*`) describe the expected behaviour and contain
 real-world fixtures.
 
-## Status (2026-10-19)
+## Status (2026-10-20)
 
-Phases 1 and 2 are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). **Phase 3 done**,
-version 0.3.0 (not yet committed — the user runs all git commands themselves; give them the commands and the commit
-messages). Next step: **phase 4** (Dex).
+Phases 1–3 are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). **Phase 4a (Dex) is
+done**, version 0.4.0, verified on the emulator against the live wikis (HW 2026, Matchbox 2026). Not yet committed
+(the user runs all git commands themselves; give them the commands and the commit messages). Next: **phase 4b** (own
+dex lists). The scan's Dex suggestion is covered by tests only (no real Gemini key on the emulator).
 
 Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand/rarity/tag, 7 sorts, layout and
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
@@ -32,11 +33,21 @@ places, "Lokasi saya" via GPS); the last picked place is remembered 3 hours and 
 "Peta jelajah" (type/range filters, 4 stats, markers filled = bought / ring = only seen, sized by count, place details,
 places list, timeline). Room schema v2 (`place_cache`, with migration).
 
+Phase 4a delivered: a Dex tab (Koleksi · Peta · Dex) — sync Hot Wheels Mainline (2015+) / Matchbox years from the
+Fandom wikis via WorkManager (progress per year, re-sync/delete per dex), auto-linking of the collection after every
+sync and on save, progress meters (seen/caught/wanted) per brand, dex and series, a dex screen (grid or per series,
+filters, search, entry sheet with variants and "Tambah ke koleksi / Ditemui / Wishlist"), "Cocokkan Dex" (confirm
+automatic links with the release-year fix, pick a suggestion, or mark "not in the Dex"), a Dex panel in the diecast
+form (edit: confirm / drop / pick, applied at once; new: linked entry from the Dex or the scan's suggestion), and
+thumbnails downloaded in the background — Wi-Fi only unless "Pakai data seluler juga" is switched on. Room schema v3
+(`catalogs`, `catalog_items`, `diecasts.catalog_item_id/catalog_match`, with migration).
+
 ## Build, test, run
 
 - Toolchain: Gradle 9.8.1 (wrapper), AGP 9.4.1 with built-in Kotlin, Kotlin 2.4.21, KSP 2.3.12, Compose BOM
   2026.09.00, Room 2.8.5, Coil 3, Navigation Compose 2.10 (type-safe routes), OkHttp 5.5, MapLibre Android 13.6.1,
-  Play Services Location 21.3. compileSdk 37, targetSdk 36, minSdk 29. Versions live in `gradle/libs.versions.toml`.
+  Play Services Location 21.3, WorkManager 2.11. compileSdk 37, targetSdk 36, minSdk 29. Versions live in
+  `gradle/libs.versions.toml`.
 - `./gradlew :app:testDebugUnitTest` — JVM + Robolectric tests (Room in memory, native graphics). The test JVM needs
   `--add-exports java.base/jdk.internal.access` on JBR 25; already set in `app/build.gradle.kts`.
 - `./gradlew :app:lintDebug`, `:app:assembleDebug`, `:app:assembleRelease` (R8, ~17 MB). MapLibre's native code is
@@ -91,8 +102,30 @@ places list, timeline). Room schema v2 (`place_cache`, with migration).
 - Sightings are saved at once, apart from the form (like the web); a point older than 3 hours is dropped from a new
   sighting (web: `freshCoordinates`). The "lokasi berburu" (last picked place) lives in `UserPrefs` and pre-fills a new
   form without making it dirty.
-- `MigrationTest` builds a v1 database from `app/schemas/.../1.json` and opens it with the migrations — add a case for
-  every new version.
+- `MigrationTest` builds a database of every older version from `app/schemas/...` and opens it with the migrations;
+  bump its range for every new version.
+
+## Notes from phase 4
+
+- `data/dex` ports `app/Services/Dex/*`: `WikiTableParser`, `WikiCatalog` (MediaWiki API, 400 ms pacing, 3 attempts
+  2 s apart on dropped connections), `DexMatcher` (scores and thresholds as the web: auto at ≥90 with a 20-point
+  margin, across years with a year fix), `DexProgress`, `DexSync`, `DexRepository`. `DexTest` ports the web's
+  `DexTest` with its wiki fixtures (`FakeWiki`).
+- Thumbnails: `DexWork.downloadImages` (unique work, `UNMETERED` or `CONNECTED` per the `dex_cellular` pref,
+  exponential back-off from 30 s) fetches 12 at a time into `files/dex/<catalogId>/`; started after a sync, at
+  start-up when some are missing, and when the setting changes. 5xx/429/IO errors retry, other failures drop the photo
+  until the next sync. `ImageWork.Retrying` (enqueued with `runAttemptCount > 0`) is the back-off, not "waiting for
+  Wi-Fi". Photo URLs are looked up during the sync (50 per API call), so the missing count grows while it runs.
+- A year's sync catches any exception and reports it per year; otherwise a bug fails the worker and the screen just
+  goes back to idle.
+- A saved diecast's dex link is changed only through `DexRepository.link` (panel or "Cocokkan Dex"); saving the form
+  keeps it, and re-runs auto-linking only when the identity fields (name, brand, series, number, year, rarity) changed.
+  A new diecast takes `DiecastForm.catalogItemId` as a confirmed link.
+- Kotlin gotcha: `/*` inside a KDoc comment (e.g. a path like `Services/Dex/*`) opens a nested comment and silently
+  comments out the rest of the file — KSP then reports `[MissingType]` on `AppDatabase`.
+- Regex gotcha: Android's regex engine is ICU, the unit tests run the JVM's. `(?U)` (UNICODE_CHARACTER_CLASS) passes
+  every Robolectric test but throws `PatternSyntaxException` on a device — use explicit classes (`[\s\p{Z}]`). Check
+  new patterns on the emulator.
 
 ## Decisions (made with the user)
 
@@ -102,7 +135,8 @@ places list, timeline). Room schema v2 (`place_cache`, with migration).
 | Data | Room (SQLite) on the device. Photos in app-private storage. |
 | Network | OkHttp + kotlinx.serialization (Gemini, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
 | Location / map | Fused Location Provider; **MapLibre** with **OpenFreeMap**'s dark style (OpenStreetMap data, no API key). osmdroid was dropped: archived Nov 2024. Nominatim for place names. |
-| Navigation | Bottom bar: Koleksi · Peta (Dex and Dashboard join in phases 4–5); other screens open from the ⋮ menu. |
+| Navigation | Bottom bar: Koleksi · Peta · Dex (Dashboard joins in phase 5); other screens open from the ⋮ menu. |
+| Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. |
 | Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
 | Settings | DataStore (Gemini/Claude API key, model). |
@@ -146,8 +180,8 @@ Zip produced by `app/Services/CollectionBackup.php`:
   each record has the Diecast fields above (dates `Y-m-d`), `tags: [name]`, `photos: ["photos/<file>"]`,
   `sightings: [{ place, latitude, longitude, seen_on, price, notes, photo }]`.
 - `photos/…` — every photo; `koleksi.xlsx` — human copy, ignore.
-- Dex links are **not** in v1. Plan for phase 4: add a dex reference (source, year, number, variant) to the
-  web backup so confirmed matches carry over.
+- Dex links are **not** in v1, and won't be: the user chose to build the Dex from scratch on the phone (sync +
+  auto-linking + "Cocokkan Dex").
 
 ## Where the logic lives in the web app
 
@@ -203,6 +237,10 @@ Status is never colour-only: pair it with an icon/label (✓ owned, 👁 seen, �
 - `ANDROID_HOME` and `Path` (platform-tools, cmdline-tools\latest\bin, JBR\bin) are set at user level.
   cmdline-tools may not be installed yet (SDK Manager → SDK Tools).
 - Verify UI on the emulator: `adb install`, `adb shell am start`, `adb exec-out screencap -p > shot.png`.
+- `emulator` is not on the Git Bash `PATH`: use `C:/Users/user/AppData/Local/Android/Sdk/emulator/emulator.exe`.
+- The laptop has 15 GB RAM and runs low with Gradle + Kotlin daemons + the emulator; the emulator has been killed
+  for low memory. Check free memory first, stop the daemons (`./gradlew --stop`) before starting it, and **ask the
+  user before (re)starting the emulator**.
 
 ## Working with the user
 

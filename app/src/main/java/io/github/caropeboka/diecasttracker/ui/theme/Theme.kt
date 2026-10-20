@@ -34,6 +34,11 @@ object Garage {
     val Gain = Color(0xFF0CA30C)
     val Loss = Color(0xFFE66767)
 
+    // Meters (validated for the card surface): owned · seen only (OKLab 50/50 of the two, always labelled) · the rest.
+    val MeterBar = Color(0xFFE8590C)
+    val MeterSoft = Color(0xFF8E3C17)
+    val MeterTrack = Color(0xFF3D2012)
+
     /** Badge fill per rarity; text on them is dark ([OnBrand]) for contrast. */
     fun rarityColor(rarity: Rarity): Color? = when (rarity) {
         Rarity.Regular -> null

@@ -109,6 +109,7 @@ private val STATUS_HINTS = mapOf(
 fun DiecastEditScreen(
     onClose: () -> Unit,
     onOpen: (Long) -> Unit,
+    onOpenCatalog: (Long) -> Unit,
     viewModel: DiecastEditViewModel = viewModel(factory = DiecastEditViewModel.Factory),
 ) {
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
@@ -179,6 +180,7 @@ fun DiecastEditScreen(
         ) {
             StatusToggle(viewModel.form.status, viewModel::changeStatus)
             PhotoSection(viewModel, scanEnabled, openCamera, onOpen)
+            DexSection(viewModel, onOpenCatalog)
             IdentitySection(viewModel, suggestions)
             OwnershipSection(viewModel, suggestions)
             if (viewModel.existing != null) {
@@ -422,6 +424,24 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
         }
 
         ScanFeedback(viewModel.scan, onOpen)
+    }
+}
+
+@Composable
+private fun DexSection(viewModel: DiecastEditViewModel, onOpenCatalog: (Long) -> Unit) {
+    val year = viewModel.form.year
+    if (viewModel.isNew) {
+        DexCreatePanel(
+            chosen = viewModel.dexChosen?.takeIf { it.row.item.id == viewModel.form.catalogItemId },
+            suggestion = (viewModel.scan as? ScanState.Done)?.dex,
+            year = year,
+            onChoose = viewModel::chooseDex,
+            onYear = viewModel::useDexYear,
+            onOpenCatalog = onOpenCatalog,
+        )
+    } else {
+        val state = viewModel.dexLink ?: return
+        DexEditPanel(state, year, viewModel.dexBusy, viewModel::linkDex, viewModel::useDexYear, onOpenCatalog)
     }
 }
 
