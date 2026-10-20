@@ -210,6 +210,10 @@ interface DexDao {
     @Query("SELECT id FROM catalogs WHERE lower(brand) = lower(:brand)")
     suspend fun catalogIdsForBrand(brand: String): List<Long>
 
+    /** Own dexes are told apart by name. */
+    @Query("SELECT COUNT(*) FROM catalogs WHERE source = 'custom' AND lower(name) = lower(:name) AND id != :exceptId")
+    suspend fun countCustomNamed(name: String, exceptId: Long): Int
+
     @Insert
     suspend fun insertCatalog(catalog: CatalogEntity): Long
 
@@ -301,6 +305,13 @@ interface DexDao {
     /** What automatic linking may (re)consider: not checked by the collector yet. */
     @Query("SELECT * FROM diecasts WHERE brand IS NOT NULL AND (catalog_match IS NULL OR catalog_match = 'auto') ORDER BY id")
     suspend fun linkable(): List<DiecastEntity>
+
+    /** A brand's diecasts not confirmed in a dex yet, with their covers: what can seed an own dex. */
+    @Query(
+        "SELECT d.*, (SELECT p.file_name FROM diecast_photos p WHERE p.diecast_id = d.id ORDER BY p.position, p.id LIMIT 1) AS cover_file " +
+            "FROM diecasts d WHERE lower(d.brand) = lower(:brand) AND (d.catalog_match IS NULL OR d.catalog_match != 'confirmed') ORDER BY d.id",
+    )
+    suspend fun brandDiecasts(brand: String): List<ReviewRow>
 
     // Progress
 

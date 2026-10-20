@@ -34,6 +34,8 @@ class DexRepository(db: AppDatabase, private val matcher: DexMatcher) {
 
     fun observeCatalog(id: Long): Flow<CatalogEntity?> = dao.observeCatalog(id)
 
+    suspend fun catalog(id: Long): CatalogEntity? = dao.catalog(id)
+
     fun observeEntries(catalogId: Long): Flow<List<DexEntry>> =
         combine(dao.observeItems(catalogId), dao.observeLinked(catalogId), DexProgress::entries)
 

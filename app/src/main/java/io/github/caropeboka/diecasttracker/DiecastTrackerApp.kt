@@ -11,6 +11,8 @@ import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
 import io.github.caropeboka.diecasttracker.data.backup.BackupImporter
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
+import io.github.caropeboka.diecasttracker.data.dex.ChecklistReader
+import io.github.caropeboka.diecasttracker.data.dex.DexCustom
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
 import io.github.caropeboka.diecasttracker.data.dex.DexRepository
 import io.github.caropeboka.diecasttracker.data.dex.DexSync
@@ -54,6 +56,8 @@ class AppContainer(context: Context) {
     val wiki = WikiCatalog(http, userAgent)
     val dexSync = DexSync(database, wiki, dexMatcher, context.filesDir)
     val dex = DexRepository(database, dexMatcher)
+    val dexCustom = DexCustom(database, dexMatcher, photos, context.filesDir)
+    val checklist = ChecklistReader(aiSettings.gemini, gemini)
 
     private fun versionName(context: Context): String =
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "1"

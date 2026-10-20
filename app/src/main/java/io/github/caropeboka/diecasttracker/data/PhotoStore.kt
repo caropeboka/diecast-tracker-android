@@ -9,6 +9,7 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -50,6 +51,21 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
     fun addFromCamera(file: File): String {
         try {
             return normalize(ImageDecoder.createSource(file))
+        } finally {
+            file.delete()
+        }
+    }
+
+    /**
+     * A screenshot or a photo of a printed list as JPEG bytes for the AI, sharper than a photo so small text stays
+     * legible, and not kept (web: `SCREENSHOT_MAX_EDGE`).
+     */
+    fun screenshot(uri: Uri): ByteArray = jpeg(decode(ImageDecoder.createSource(context.contentResolver, uri), SCREENSHOT_MAX_EDGE))
+
+    /** [screenshot] for a photo the camera wrote into [newCameraTarget]; the camera's original is removed. */
+    fun screenshot(file: File): ByteArray {
+        try {
+            return jpeg(decode(ImageDecoder.createSource(file), SCREENSHOT_MAX_EDGE))
         } finally {
             file.delete()
         }
@@ -109,12 +125,24 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
     }
 
     private fun normalize(source: ImageDecoder.Source): String {
+        val name = newName()
+        File(tmpDir.apply { mkdirs() }, name).outputStream().use {
+            decode(source, MAX_EDGE).compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it)
+        }
+        return name
+    }
+
+    private fun jpeg(image: Bitmap): ByteArray =
+        ByteArrayOutputStream().also { image.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }.toByteArray()
+
+    /** EXIF rotation applied, at most [maxEdge] px on the longest side, transparency on white. */
+    private fun decode(source: ImageDecoder.Source, maxEdge: Int): Bitmap {
         val decoded = try {
             ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
                 decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
                 val width = info.size.width
                 val height = info.size.height
-                val scale = MAX_EDGE.toFloat() / max(width, height)
+                val scale = maxEdge.toFloat() / max(width, height)
                 if (scale < 1f) {
                     decoder.setTargetSize(
                         max(1, (width * scale).roundToInt()),
@@ -127,7 +155,7 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
         }
 
         // JPEG has no transparency: put transparent PNGs on white instead of black.
-        val image = if (decoded.hasAlpha()) {
+        return if (decoded.hasAlpha()) {
             createBitmap(decoded.width, decoded.height).also {
                 Canvas(it).apply {
                     drawColor(Color.WHITE)
@@ -137,12 +165,6 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
         } else {
             decoded
         }
-
-        val name = newName()
-        File(tmpDir.apply { mkdirs() }, name).outputStream().use {
-            image.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it)
-        }
-        return name
     }
 
     private fun looksLikeJpeg(bytes: ByteArray): Boolean {
@@ -157,6 +179,7 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
 
     companion object {
         const val MAX_EDGE = 1600
+        const val SCREENSHOT_MAX_EDGE = 2400
         private const val JPEG_QUALITY = 85
         private const val DAY_MILLIS = 24 * 60 * 60 * 1000L
         private val NAME = Regex("[0-9a-f-]{36}\\.jpg")
