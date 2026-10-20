@@ -10,10 +10,11 @@ real-world fixtures.
 
 ## Status (2026-10-20)
 
-Phases 1–3 are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). **Phase 4a (Dex) is
-done**, version 0.4.0, verified on the emulator against the live wikis (HW 2026, Matchbox 2026). Not yet committed
-(the user runs all git commands themselves; give them the commands and the commit messages). Next: **phase 4b** (own
-dex lists). The scan's Dex suggestion is covered by tests only (no real Gemini key on the emulator).
+Phases 1–3 and 4a are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). **Phase 4b
+(own dex lists) is done**, version 0.4.1, tried on the emulator; not yet committed (the user runs all git commands
+themselves; give them the commands and the commit messages). Next: **phase 5** (discuss the order with the user first).
+Covered by tests only, as there is no real Gemini key on the emulator: the scan's Dex suggestion and the checklist
+screenshots read by the AI (including its review sheet).
 
 Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand/rarity/tag, 7 sorts, layout and
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
@@ -41,6 +42,13 @@ automatic links with the release-year fix, pick a suggestion, or mark "not in th
 form (edit: confirm / drop / pick, applied at once; new: linked entry from the Dex or the scan's suggestion), and
 thumbnails downloaded in the background — Wi-Fi only unless "Pakai data seluler juga" is switched on. Room schema v3
 (`catalogs`, `catalog_items`, `diecasts.catalog_item_id/catalog_match`, with migration).
+
+Phase 4b delivered: own dexes ("Dex sendiri") for brands without a wiki list — create/rename/delete (brand, unique
+name, optional year; the brand is prefilled with a collection brand that has no wiki list); entries by hand with a
+photo (camera/gallery; the sheet stays open for the next one), corrected later ("Ubah"), another colour ("Tambah
+varian"), deleted with a confirm that names linked diecasts; "Isi banyak sekaligus" from Excel (.xlsx) / CSV, from
+checklist screenshots or a photo of a printed list read by the AI (max 6, reviewed and ticked before they're added),
+or from the collection. The collection is auto-matched after every addition. No schema change.
 
 ## Build, test, run
 
@@ -123,6 +131,18 @@ thumbnails downloaded in the background — Wi-Fi only unless "Pakai data selule
   A new diecast takes `DiecastForm.catalogItemId` as a confirmed link.
 - Kotlin gotcha: `/*` inside a KDoc comment (e.g. a path like `Services/Dex/*`) opens a nested comment and silently
   comments out the rest of the file — KSP then reports `[MissingType]` on `AppDatabase`.
+- Own dexes: `DexCustom` ports `CatalogImport.php` + `CustomDexController.php` (numbering: same number = variant, no
+  number = next in order, exact duplicates skipped; wiki lists refuse manual edits). Differences from the web, chosen
+  with the user or found while testing: entries can be edited (`edit` keeps links; another number makes it a variant
+  of that entry), the AI's rows are reviewed first (`ChecklistReader` only reads; `DexCustom.known` flags rows already
+  there), and "Dari koleksiku" links a number-less diecast to an entry of the same model already on the list (or adds
+  it as another colour) instead of doubling it. Entry photos live in `files/dex/<catalog id>/` (moved out of
+  `photos-tmp`), so deleting a dex removes them. `CustomDexTest` ports the web's `CustomDexTest`.
+- `SheetReader` reads .xlsx itself (zip + XmlPullParser: first tab via workbook rels, shared/rich/inline strings,
+  skipped cells, `x:` prefixes) and CSV (`,` `;` or tab from the first line, quotes, BOM) — Apache POI would weigh more
+  than the app. Fixtures `dex-list-{inline,shared}.xlsx` come from OpenSpout: `php tools/make-dex-xlsx-fixture.php`.
+- Screenshots for the AI are decoded at 2400 px (`PhotoStore.screenshot`, web: `SCREENSHOT_MAX_EDGE`) and not kept.
+- Sheets cover the snackbar: messages for a sheet that stays open are shown inside it (`lastAdded`, `importNote`).
 - Regex gotcha: Android's regex engine is ICU, the unit tests run the JVM's. `(?U)` (UNICODE_CHARACTER_CLASS) passes
   every Robolectric test but throws `PatternSyntaxException` on a device — use explicit classes (`[\s\p{Z}]`). Check
   new patterns on the emulator.
@@ -136,7 +156,7 @@ thumbnails downloaded in the background — Wi-Fi only unless "Pakai data selule
 | Network | OkHttp + kotlinx.serialization (Gemini, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
 | Location / map | Fused Location Provider; **MapLibre** with **OpenFreeMap**'s dark style (OpenStreetMap data, no API key). osmdroid was dropped: archived Nov 2024. Nominatim for place names. |
 | Navigation | Bottom bar: Koleksi · Peta · Dex (Dashboard joins in phase 5); other screens open from the ⋮ menu. |
-| Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. |
+| Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. Own dexes: the AI's checklist rows are reviewed before they're added; entries can be edited (both unlike the web). |
 | Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
 | Settings | DataStore (Gemini/Claude API key, model). |
@@ -240,7 +260,10 @@ Status is never colour-only: pair it with an icon/label (✓ owned, 👁 seen, �
 - `emulator` is not on the Git Bash `PATH`: use `C:/Users/user/AppData/Local/Android/Sdk/emulator/emulator.exe`.
 - The laptop has 15 GB RAM and runs low with Gradle + Kotlin daemons + the emulator; the emulator has been killed
   for low memory. Check free memory first, stop the daemons (`./gradlew --stop`) before starting it, and **ask the
-  user before (re)starting the emulator**.
+  user before (re)starting the emulator**. While it runs, build lean: `./gradlew --no-daemon
+  -Dorg.gradle.jvmargs="-Xmx1536m -XX:MaxMetaspaceSize=512m" -Pkotlin.compiler.execution.strategy=in-process …`.
+- Test files for the emulator: `adb push` into `/sdcard/Download` shows in the file picker; for the photo picker push
+  into `/sdcard/Pictures` and run `adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/<file>`.
 
 ## Working with the user
 
