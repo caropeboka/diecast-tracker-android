@@ -106,6 +106,7 @@ fun DiecastTrackerRoot() {
                     onBack = dropUnlessResumed { nav.popBackStack() },
                     onAdd = { item, status -> nav.navigate(DiecastEditRoute(status = status.key, dexItem = item)) },
                     onOpenDiecast = openDiecast,
+                    onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
                 )
             }
             composable<DexMatchesRoute> {

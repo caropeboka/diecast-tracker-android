@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
@@ -38,6 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,7 +88,10 @@ fun DexScreen(
     val images by viewModel.images.collectAsStateWithLifecycle()
     val cellular by viewModel.cellular.collectAsStateWithLifecycle()
     val sync by viewModel.sync.collectAsStateWithLifecycle()
+    val brandSuggestions by viewModel.brandSuggestions.collectAsStateWithLifecycle()
     var deleting by remember { mutableStateOf<CatalogEntity?>(null) }
+
+    LaunchedEffect(viewModel) { viewModel.opened.collect(onOpen) }
 
     Scaffold(
         topBar = {
@@ -132,14 +137,32 @@ fun DexScreen(
                         DexLegend(group.counts)
                         group.catalogs.forEach { summary ->
                             HorizontalDivider(color = Garage.Border)
-                            CatalogRow(summary, onOpen = { onOpen(summary.catalog.id) }, onResync = { viewModel.resync(summary.catalog) }, onDelete = { deleting = summary.catalog })
+                            CatalogRow(
+                                summary,
+                                onOpen = { onOpen(summary.catalog.id) },
+                                onResync = { viewModel.resync(summary.catalog) },
+                                onEdit = { viewModel.editCatalog(summary.catalog) },
+                                onDelete = { deleting = summary.catalog },
+                            )
                         }
                     }
                 }
             }
 
+            item { OwnDexCard(viewModel::newCatalog) }
             item { SyncCard(viewModel) }
         }
+    }
+
+    viewModel.catalogDraft?.let { draft ->
+        CatalogSheet(
+            draft,
+            viewModel.catalogErrors,
+            brandSuggestions,
+            onChange = viewModel::updateCatalogDraft,
+            onSave = viewModel::saveCatalog,
+            onDismiss = viewModel::closeCatalog,
+        )
     }
 
     deleting?.let { catalog ->
@@ -229,8 +252,8 @@ private fun EmptyDex() {
         Icon(painterResource(R.drawable.ic_collections_bookmark), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(40.dp))
         SubHeading("Dex masih kosong")
         Text(
-            "Sinkronkan daftar rilisan Hot Wheels atau Matchbox di bawah. Koleksimu langsung dicocokkan, dan kamu bisa melihat " +
-                "berapa yang sudah ditemui dan dimiliki.",
+            "Sinkronkan daftar rilisan Hot Wheels atau Matchbox di bawah, atau buat dex sendiri untuk merek lain. Koleksimu " +
+                "langsung dicocokkan, dan kamu bisa melihat berapa yang sudah ditemui dan dimiliki.",
             style = MaterialTheme.typography.bodyMedium,
             color = Garage.MutedForeground,
             textAlign = TextAlign.Center,
@@ -239,7 +262,7 @@ private fun EmptyDex() {
 }
 
 @Composable
-private fun CatalogRow(summary: CatalogSummary, onOpen: () -> Unit, onResync: () -> Unit, onDelete: () -> Unit) {
+private fun CatalogRow(summary: CatalogSummary, onOpen: () -> Unit, onResync: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     val counts = summary.counts
 
@@ -267,6 +290,15 @@ private fun CatalogRow(summary: CatalogSummary, onOpen: () -> Unit, onResync: ()
                             onResync()
                         },
                     )
+                } else {
+                    DropdownMenuItem(
+                        text = { Text("Ubah dex") },
+                        leadingIcon = { Icon(painterResource(R.drawable.ic_edit), contentDescription = null) },
+                        onClick = {
+                            menu = false
+                            onEdit()
+                        },
+                    )
                 }
                 DropdownMenuItem(
                     text = { Text("Hapus dari Dex", color = Garage.Loss) },
@@ -277,6 +309,22 @@ private fun CatalogRow(summary: CatalogSummary, onOpen: () -> Unit, onResync: ()
                     },
                 )
             }
+        }
+    }
+}
+
+/** "Dex sendiri" (web: `CreateDexPanel`). */
+@Composable
+private fun OwnDexCard(onCreate: () -> Unit) {
+    SectionCard("Dex sendiri") {
+        Text(
+            "Untuk merek yang tidak punya daftar di wiki (Mini GT, Tarmac, Inno64, Roll Speed…). Isi daftarnya manual, dari Excel, " +
+                "dari screenshot checklist (dibaca AI), atau dari koleksimu.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Garage.MutedForeground,
+        )
+        OutlinedButton(onClick = onCreate, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+            IconLabel(R.drawable.ic_add, "Buat dex sendiri")
         }
     }
 }

@@ -25,8 +25,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -39,12 +43,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,7 +72,9 @@ import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
+import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexEntry
+import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
 import io.github.caropeboka.diecasttracker.data.dex.DexProgress
 import io.github.caropeboka.diecasttracker.data.dex.WikiSource
 import io.github.caropeboka.diecasttracker.ui.components.Badge
@@ -83,7 +93,9 @@ fun DexCatalogScreen(
     onBack: () -> Unit,
     onAdd: (itemId: Long, status: DiecastStatus) -> Unit,
     onOpenDiecast: (Long) -> Unit,
+    onAiSettings: () -> Unit,
     viewModel: DexCatalogViewModel = viewModel(factory = DexCatalogViewModel.Factory),
+    custom: CustomDexViewModel = viewModel(factory = CustomDexViewModel.Factory),
 ) {
     val catalog by viewModel.catalog.collectAsStateWithLifecycle()
     val entries by viewModel.entries.collectAsStateWithLifecycle()
@@ -93,6 +105,11 @@ fun DexCatalogScreen(
     val openNumber by viewModel.open.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
     val filter = EntryFilter.valueOf(filterKey)
+    val isCustom = catalog?.source == DexMatcher.CUSTOM
+    var menu by remember { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(custom) { custom.closed.collect { onBack() } }
 
     Scaffold(
         topBar = {
@@ -112,6 +129,31 @@ fun DexCatalogScreen(
                     if (wiki != null && page != null) {
                         IconButton(onClick = { uriHandler.openUri(wiki.wikiUrl(page)) }) {
                             Icon(painterResource(R.drawable.ic_open_in_new), contentDescription = "Buka di wiki")
+                        }
+                    }
+                    if (isCustom) {
+                        Box {
+                            IconButton(onClick = { menu = true }) {
+                                Icon(painterResource(R.drawable.ic_more_vert), contentDescription = "Menu dex")
+                            }
+                            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Ubah dex") },
+                                    leadingIcon = { Icon(painterResource(R.drawable.ic_edit), contentDescription = null) },
+                                    onClick = {
+                                        menu = false
+                                        custom.editCatalog()
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Hapus dex", color = Garage.Loss) },
+                                    leadingIcon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null, tint = Garage.Loss) },
+                                    onClick = {
+                                        menu = false
+                                        confirmDelete = true
+                                    },
+                                )
+                            }
                         }
                     }
                 },
@@ -144,7 +186,9 @@ fun DexCatalogScreen(
                     }
                 }
             }
-            full {
+            if (isCustom) full { CustomDexTools(custom) }
+            // Nothing to filter or search in an empty dex.
+            if (all.isNotEmpty()) full {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     EntryFilter.entries.forEach { option ->
                         FilterChip(
@@ -156,7 +200,7 @@ fun DexCatalogScreen(
                     }
                 }
             }
-            full {
+            if (all.isNotEmpty()) full {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = query,
@@ -178,6 +222,9 @@ fun DexCatalogScreen(
             }
 
             when {
+                all.isEmpty() && isCustom -> full {
+                    EmptyNote("Belum ada entri. Tambah satu per satu, atau isi banyak sekaligus dari Excel/CSV, screenshot checklist, atau koleksimu.")
+                }
                 all.isEmpty() -> full { EmptyNote("Dex ini masih kosong.") }
                 visible.isEmpty() -> full { EmptyNote("Tidak ada entri yang cocok.") }
                 bySeries -> visible.groupBy { it.series ?: "Lainnya" }.forEach { (series, group) ->
@@ -204,10 +251,56 @@ fun DexCatalogScreen(
                     onAdd(itemId, status)
                 },
                 onOpenDiecast = onOpenDiecast,
+                tools = if (isCustom) {
+                    EntryTools(
+                        onEdit = { item ->
+                            viewModel.open(null)
+                            custom.editEntry(item)
+                        },
+                        onAddVariant = {
+                            viewModel.open(null)
+                            custom.addVariant(entry)
+                        },
+                        onDelete = custom::deleteEntry,
+                    )
+                } else {
+                    null
+                },
             )
         }
+
+        if (isCustom) {
+            EntryEditorSheet(custom, seriesSuggestions = all.mapNotNull { it.series }.distinct())
+            ImportSheet(custom, brand = catalog!!.brand, onAiSettings = onAiSettings)
+            ChecklistReviewSheet(custom)
+            custom.catalogDraft?.let { draft ->
+                CatalogSheet(draft, custom.catalogErrors, brands = emptyList(), onChange = custom::updateCatalogDraft, onSave = custom::saveCatalog, onDismiss = custom::closeCatalog)
+            }
+        }
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Hapus ${catalog?.name}?") },
+            text = { Text("Daftarnya dan foto-fotonya dihapus dari HP. Diecast di koleksimu tetap ada, hanya tautannya ke dex ini yang lepas.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    custom.deleteCatalog()
+                }) { Text("Hapus", color = Garage.Loss) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Batal") } },
+        )
     }
 }
+
+/** What an own dex's entry sheet adds: correcting, another colour, removing. */
+private class EntryTools(
+    val onEdit: (CatalogItemEntity) -> Unit,
+    val onAddVariant: () -> Unit,
+    val onDelete: (CatalogItemEntity) -> Unit,
+)
 
 private fun LazyGridScope.full(content: @Composable () -> Unit) = item(span = { GridItemSpan(maxLineSpan) }) { content() }
 
@@ -262,10 +355,12 @@ private fun EntrySheet(
     onDismiss: () -> Unit,
     onAdd: (Long, DiecastStatus) -> Unit,
     onOpenDiecast: (Long) -> Unit,
+    tools: EntryTools?,
 ) {
     var variantId by rememberSaveable(entry.number) { mutableLongStateOf(entry.variants.first().item.id) }
     val variant = entry.variants.find { it.item.id == variantId } ?: entry.variants.first()
     val item = variant.item
+    var confirmDelete by rememberSaveable(entry.number) { mutableStateOf(false) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Garage.Card) {
         Column(
@@ -342,6 +437,18 @@ private fun EntrySheet(
                 }
             }
 
+            if (tools != null) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { tools.onEdit(item) }, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_edit, "Ubah") }
+                    TextButton(onClick = tools.onAddVariant, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_add, "Tambah varian") }
+                    TextButton(
+                        onClick = { confirmDelete = true },
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.textButtonColors(contentColor = Garage.Loss),
+                    ) { IconLabel(R.drawable.ic_delete, "Hapus") }
+                }
+            }
+
             if (entry.diecasts.isNotEmpty()) {
                 Text("Di koleksimu", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 entry.diecasts.forEach { diecast ->
@@ -367,5 +474,26 @@ private fun EntrySheet(
                 }
             }
         }
+    }
+
+    if (confirmDelete && tools != null) {
+        val linked = entry.diecasts.count { it.catalogItemId == item.id }
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Hapus #${item.number} ${item.name}" + (item.variantLabel?.let { " ($it)" } ?: "") + "?") },
+            text = {
+                Text(
+                    if (linked > 0) "$linked diecast di koleksimu tertaut ke entri ini; tautannya lepas, diecastnya tetap ada." else "Entri ini dihapus dari dex.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    if (entry.variants.size == 1) onDismiss()
+                    tools.onDelete(item)
+                }) { Text("Hapus", color = Garage.Loss) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Batal") } },
+        )
     }
 }
