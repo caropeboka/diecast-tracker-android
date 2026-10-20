@@ -20,8 +20,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         DiecastTagCrossRef::class,
         SightingEntity::class,
         PlaceCacheEntity::class,
+        CatalogEntity::class,
+        CatalogItemEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -31,6 +33,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sightings(): SightingDao
 
     abstract fun places(): PlaceDao
+
+    abstract fun dex(): DexDao
 
     companion object {
         const val NAME = "diecast-tracker.db"
@@ -45,7 +49,38 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2)
+        /** Phase 4: the Dex (catalogs, their items) and each diecast's link to an item. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `diecasts` ADD COLUMN `catalog_item_id` INTEGER")
+                db.execSQL("ALTER TABLE `diecasts` ADD COLUMN `catalog_match` TEXT")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_diecasts_catalog_item_id` ON `diecasts` (`catalog_item_id`)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `catalogs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`brand` TEXT NOT NULL, `name` TEXT NOT NULL, `year` INTEGER, `source` TEXT NOT NULL, " +
+                        "`source_page` TEXT, `synced_at` INTEGER, `created_at` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_catalogs_source_year_name` ON `catalogs` (`source`, `year`, `name`)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `catalog_items` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`catalog_id` INTEGER NOT NULL, `number` TEXT NOT NULL, `sort` INTEGER NOT NULL, `variant` INTEGER NOT NULL, " +
+                        "`variant_label` TEXT, `name` TEXT NOT NULL, `series` TEXT, `series_number` TEXT, `toy_code` TEXT, " +
+                        "`flag_new` INTEGER NOT NULL DEFAULT 0, `flag_th` INTEGER NOT NULL DEFAULT 0, " +
+                        "`flag_sth` INTEGER NOT NULL DEFAULT 0, `exclusive` TEXT, `image_file` TEXT, `image_url` TEXT, " +
+                        "`image_path` TEXT, FOREIGN KEY(`catalog_id`) REFERENCES `catalogs`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_catalog_items_catalog_id_sort` ON `catalog_items` (`catalog_id`, `sort`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_catalog_items_catalog_id_number` ON `catalog_items` (`catalog_id`, `number`)",
+                )
+            }
+        }
+
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NAME).addMigrations(*MIGRATIONS).build()

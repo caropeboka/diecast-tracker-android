@@ -8,6 +8,7 @@ import androidx.room.Index
 import androidx.room.Junction
 import androidx.room.PrimaryKey
 import androidx.room.Relation
+import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DEFAULT_SCALE
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
@@ -22,7 +23,7 @@ import java.time.LocalDate
  */
 @Entity(
     tableName = "diecasts",
-    indices = [Index("brand"), Index("series"), Index("status")],
+    indices = [Index("brand"), Index("series"), Index("status"), Index("catalog_item_id")],
 )
 data class DiecastEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -54,10 +55,69 @@ data class DiecastEntity(
     @ColumnInfo(name = "storage_location") val storageLocation: String? = null,
     val notes: String? = null,
     @ColumnInfo(name = "ai_scanned", defaultValue = "0") val aiScanned: Boolean = false,
+    /** The Dex entry (variant) this diecast is; kept in sync by the code, not a foreign key (web: `CatalogSync::forget`). */
+    @ColumnInfo(name = "catalog_item_id") val catalogItemId: Long? = null,
+    @ColumnInfo(name = "catalog_match") val catalogMatch: CatalogMatch? = null,
     /** Epoch millis. */
     @ColumnInfo(name = "created_at") val createdAt: Long = 0,
     /** Epoch millis. */
     @ColumnInfo(name = "updated_at") val updatedAt: Long = 0,
+)
+
+/** A "dex": the full list of releases of a line (e.g. Hot Wheels mainline 2026), from a wiki or built by hand. */
+@Entity(
+    tableName = "catalogs",
+    indices = [Index(value = ["source", "year", "name"], unique = true)],
+)
+data class CatalogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val brand: String,
+    val name: String,
+    val year: Int? = null,
+    /** `hotwheels_wiki`, `matchbox_wiki` or `custom`. */
+    val source: String,
+    @ColumnInfo(name = "source_page") val sourcePage: String? = null,
+    /** Epoch millis. */
+    @ColumnInfo(name = "synced_at") val syncedAt: Long? = null,
+    /** Epoch millis. */
+    @ColumnInfo(name = "created_at") val createdAt: Long = 0,
+)
+
+/** One release in a dex. Rows sharing a [number] (colour variants, TH/STH, exclusives) form one entry. */
+@Entity(
+    tableName = "catalog_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = CatalogEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["catalog_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("catalog_id", "sort"), Index("catalog_id", "number")],
+)
+data class CatalogItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "catalog_id") val catalogId: Long,
+    /** "061", "MB12", "MGT00512". */
+    val number: String,
+    val sort: Int = 0,
+    /** 1 = the main release. */
+    val variant: Int = 1,
+    @ColumnInfo(name = "variant_label") val variantLabel: String? = null,
+    val name: String,
+    val series: String? = null,
+    @ColumnInfo(name = "series_number") val seriesNumber: String? = null,
+    @ColumnInfo(name = "toy_code") val toyCode: String? = null,
+    @ColumnInfo(name = "flag_new", defaultValue = "0") val isNew: Boolean = false,
+    @ColumnInfo(name = "flag_th", defaultValue = "0") val isTh: Boolean = false,
+    @ColumnInfo(name = "flag_sth", defaultValue = "0") val isSth: Boolean = false,
+    /** The store, e.g. "Walmart". */
+    val exclusive: String? = null,
+    /** The wiki's file name, the thumbnail URL to fetch, and the downloaded file (under `files/`). */
+    @ColumnInfo(name = "image_file") val imageFile: String? = null,
+    @ColumnInfo(name = "image_url") val imageUrl: String? = null,
+    @ColumnInfo(name = "image_path") val imagePath: String? = null,
 )
 
 /** Photos of a diecast, in order; the first one is the cover. [fileName] lives in the photo folder. */
@@ -235,4 +295,36 @@ data class MatchCandidate(
     val id: Long,
     val name: String,
     @ColumnInfo(name = "collection_number") val collectionNumber: String?,
+)
+
+/** A dex item with what the UI and the matcher need of its catalog. */
+data class DexItemRow(
+    @Embedded val item: CatalogItemEntity,
+    @ColumnInfo(name = "catalog_name") val catalogName: String,
+    @ColumnInfo(name = "catalog_year") val catalogYear: Int?,
+    @ColumnInfo(name = "catalog_source") val catalogSource: String,
+    @ColumnInfo(name = "catalog_brand") val catalogBrand: String,
+)
+
+/** One dex item and the status of one diecast linked to it (null: none). */
+data class ProgressRow(
+    @ColumnInfo(name = "catalog_id") val catalogId: Long,
+    val number: String,
+    val status: DiecastStatus?,
+)
+
+/** A diecast linked to one of a dex's items. */
+data class LinkedDiecastRow(
+    val id: Long,
+    val name: String,
+    val status: DiecastStatus,
+    @ColumnInfo(name = "catalog_item_id") val catalogItemId: Long,
+    @ColumnInfo(name = "catalog_match") val catalogMatch: CatalogMatch?,
+    @ColumnInfo(name = "cover_file") val coverFile: String?,
+)
+
+/** A diecast to check against the Dex, with its cover. */
+data class ReviewRow(
+    @Embedded val diecast: DiecastEntity,
+    @ColumnInfo(name = "cover_file") val coverFile: String?,
 )

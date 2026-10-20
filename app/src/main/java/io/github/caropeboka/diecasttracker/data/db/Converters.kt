@@ -1,6 +1,7 @@
 package io.github.caropeboka.diecasttracker.data.db
 
 import androidx.room.TypeConverter
+import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Packaging
@@ -29,6 +30,10 @@ class Converters {
     @TypeConverter fun sourceToKey(value: ValueSource?): String? = value?.key
 
     @TypeConverter fun sourceFromKey(key: String?): ValueSource? = ValueSource.fromKey(key)
+
+    @TypeConverter fun matchToKey(value: CatalogMatch?): String? = value?.key
+
+    @TypeConverter fun matchFromKey(key: String?): CatalogMatch? = CatalogMatch.fromKey(key)
 
     @TypeConverter fun dateToText(value: LocalDate?): String? = value?.toString()
 

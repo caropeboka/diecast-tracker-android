@@ -64,6 +64,17 @@ enum class ValueSource(val key: String) {
     }
 }
 
+/** How a diecast got its Dex entry: by the matcher, checked by the collector, or "not in the Dex". */
+enum class CatalogMatch(val key: String) {
+    Auto("auto"),
+    Confirmed("confirmed"),
+    Ignored("ignored");
+
+    companion object {
+        fun fromKey(key: String?): CatalogMatch? = entries.find { it.key == key }
+    }
+}
+
 val SCALES = listOf("1:64", "1:43", "1:32", "1:24", "1:18", "1:87", "1:100")
 
 const val DEFAULT_SCALE = "1:64"

@@ -51,24 +51,37 @@ class MigrationTest {
     }
 
     @Test
-    fun `version 1 migrates to 2 and keeps the collection`() = runBlocking {
-        createFromSchema(1) { db ->
-            db.execSQL(
-                "INSERT INTO diecasts (id, name, rarity, packaging, status, quantity, ai_scanned, created_at, updated_at) " +
-                    "VALUES (1, 'Datsun 510', 'regular', 'carded', 'owned', 1, 0, 1, 1)",
-            )
-            db.execSQL("INSERT INTO sightings (diecast_id, place, seen_on, created_at) VALUES (1, 'Toys Kingdom GI', '2026-10-01', 1)")
-        }
+    fun `every older version migrates to the latest and keeps the collection`() = runBlocking {
+        for (version in 1 until LATEST) {
+            createFromSchema(version) { db ->
+                db.execSQL(
+                    "INSERT INTO diecasts (id, name, brand, rarity, packaging, status, quantity, ai_scanned, created_at, updated_at) " +
+                        "VALUES (1, 'Datsun 510', 'Hot Wheels', 'regular', 'carded', 'owned', 1, 0, 1, 1)",
+                )
+                db.execSQL("INSERT INTO sightings (diecast_id, place, seen_on, created_at) VALUES (1, 'Toys Kingdom GI', '2026-10-01', 1)")
+            }
 
-        val db = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(*AppDatabase.MIGRATIONS).build()
-        try {
-            assertEquals("Datsun 510", db.diecasts().get(1)?.name)
-            assertEquals(listOf("Toys Kingdom GI"), db.sightings().observeFor(1).first().map { it.place })
+            val db = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(*AppDatabase.MIGRATIONS).build()
+            try {
+                assertEquals("v$version", "Datsun 510", db.diecasts().get(1)?.name)
+                assertEquals(listOf("Toys Kingdom GI"), db.sightings().observeFor(1).first().map { it.place })
 
-            db.places().cache(PlaceCacheEntity("osm-reverse:1,2", "{}", 5))
-            assertEquals("{}", db.places().cached("osm-reverse:1,2", since = 0)?.body)
-        } finally {
-            db.close()
+                // What later versions added works on the migrated database.
+                db.places().cache(PlaceCacheEntity("osm-reverse:1,2", "{}", 5))
+                assertEquals("{}", db.places().cached("osm-reverse:1,2", since = 0)?.body)
+
+                val catalog = db.dex().insertCatalog(CatalogEntity(brand = "Hot Wheels", name = "Hot Wheels Mainline 2026", year = 2026, source = "hotwheels_wiki"))
+                val item = db.dex().insertItem(CatalogItemEntity(catalogId = catalog, number = "061", sort = 61, name = "Datsun 510"))
+                db.dex().setLink(1, item, "confirmed")
+                assertEquals(item, db.diecasts().get(1)?.catalogItemId)
+            } finally {
+                db.close()
+                context.deleteDatabase(name)
+            }
         }
+    }
+
+    private companion object {
+        const val LATEST = 3
     }
 }

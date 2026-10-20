@@ -188,3 +188,145 @@ interface PlaceDao {
     @Query("DELETE FROM place_cache WHERE fetched_at < :before")
     suspend fun pruneCache(before: Long)
 }
+
+/** The Dex: catalogs, their items, and which diecast is which item (web: the `Services/Dex` classes). */
+@Dao
+interface DexDao {
+    // Catalogs
+
+    @Query("SELECT * FROM catalogs ORDER BY brand COLLATE NOCASE, year DESC, name COLLATE NOCASE")
+    fun observeCatalogs(): Flow<List<CatalogEntity>>
+
+    @Query("SELECT * FROM catalogs WHERE id = :id")
+    suspend fun catalog(id: Long): CatalogEntity?
+
+    @Query("SELECT * FROM catalogs WHERE id = :id")
+    fun observeCatalog(id: Long): Flow<CatalogEntity?>
+
+    @Query("SELECT * FROM catalogs WHERE source = :source AND year = :year")
+    suspend fun catalogFor(source: String, year: Int): CatalogEntity?
+
+    /** Catalog ids of a brand, any spelling. */
+    @Query("SELECT id FROM catalogs WHERE lower(brand) = lower(:brand)")
+    suspend fun catalogIdsForBrand(brand: String): List<Long>
+
+    @Insert
+    suspend fun insertCatalog(catalog: CatalogEntity): Long
+
+    @Update
+    suspend fun updateCatalog(catalog: CatalogEntity)
+
+    @Query("DELETE FROM catalogs WHERE id = :id")
+    suspend fun deleteCatalog(id: Long)
+
+    // Items
+
+    @Query("SELECT * FROM catalog_items WHERE catalog_id = :catalogId ORDER BY sort, variant, id")
+    suspend fun items(catalogId: Long): List<CatalogItemEntity>
+
+    @Query("SELECT * FROM catalog_items WHERE catalog_id = :catalogId ORDER BY sort, variant, id")
+    fun observeItems(catalogId: Long): Flow<List<CatalogItemEntity>>
+
+    @Query("SELECT * FROM catalog_items WHERE id = :id")
+    suspend fun item(id: Long): CatalogItemEntity?
+
+    @Query(
+        "SELECT ci.*, c.name AS catalog_name, c.year AS catalog_year, c.source AS catalog_source, c.brand AS catalog_brand " +
+            "FROM catalog_items ci JOIN catalogs c ON c.id = ci.catalog_id WHERE ci.id = :id",
+    )
+    suspend fun itemRow(id: Long): DexItemRow?
+
+    /** See [io.github.caropeboka.diecasttracker.data.dex.DexMatcher]: candidates found by number, series number or name. */
+    @RawQuery(observedEntities = [CatalogItemEntity::class, CatalogEntity::class])
+    suspend fun itemRows(query: SupportSQLiteQuery): List<DexItemRow>
+
+    @Query("SELECT MAX(sort) FROM catalog_items WHERE catalog_id = :catalogId")
+    suspend fun maxSort(catalogId: Long): Int?
+
+    @Insert
+    suspend fun insertItem(item: CatalogItemEntity): Long
+
+    @Update
+    suspend fun updateItem(item: CatalogItemEntity)
+
+    @Query("DELETE FROM catalog_items WHERE id IN (:ids)")
+    suspend fun deleteItems(ids: List<Long>)
+
+    // Thumbnails
+
+    @Query(
+        "SELECT DISTINCT image_file FROM catalog_items " +
+            "WHERE catalog_id = :catalogId AND image_file IS NOT NULL AND image_url IS NULL AND image_path IS NULL",
+    )
+    suspend fun filesWithoutUrl(catalogId: Long): List<String>
+
+    @Query("UPDATE catalog_items SET image_url = :url WHERE catalog_id = :catalogId AND image_file = :file")
+    suspend fun setImageUrl(catalogId: Long, file: String, url: String)
+
+    /** Thumbnails still to download, the preferred dex first. */
+    @Query(
+        "SELECT * FROM catalog_items WHERE image_url IS NOT NULL AND image_path IS NULL " +
+            "ORDER BY CASE WHEN catalog_id = :prefer THEN 0 ELSE 1 END, catalog_id, sort, variant LIMIT :limit",
+    )
+    suspend fun missingImages(limit: Int, prefer: Long): List<CatalogItemEntity>
+
+    @Query("SELECT COUNT(*) FROM catalog_items WHERE image_url IS NOT NULL AND image_path IS NULL")
+    suspend fun countMissingImages(): Int
+
+    @Query("SELECT COUNT(*) FROM catalog_items WHERE image_url IS NOT NULL AND image_path IS NULL")
+    fun observeMissingImages(): Flow<Int>
+
+    @Query("UPDATE catalog_items SET image_path = :path WHERE id = :id")
+    suspend fun setImagePath(id: Long, path: String)
+
+    /** Not on the image CDN: don't ask again (a re-sync looks it up anew). */
+    @Query("UPDATE catalog_items SET image_url = NULL WHERE id = :id")
+    suspend fun clearImageUrl(id: Long)
+
+    @Query("SELECT image_path FROM catalog_items WHERE image_path IS NOT NULL")
+    suspend fun allImagePaths(): List<String>
+
+    // Links
+
+    /** Diecasts linked to items that are going away become unmatched, so they can be matched again. */
+    @Query("UPDATE diecasts SET catalog_item_id = NULL, catalog_match = NULL WHERE catalog_item_id IN (:itemIds)")
+    suspend fun unlink(itemIds: List<Long>)
+
+    @Query("UPDATE diecasts SET catalog_item_id = :itemId, catalog_match = :match WHERE id = :diecastId")
+    suspend fun setLink(diecastId: Long, itemId: Long?, match: String?)
+
+    @Query("UPDATE diecasts SET year = :year WHERE id = :diecastId")
+    suspend fun setYear(diecastId: Long, year: Int?)
+
+    /** What automatic linking may (re)consider: not checked by the collector yet. */
+    @Query("SELECT * FROM diecasts WHERE brand IS NOT NULL AND (catalog_match IS NULL OR catalog_match = 'auto') ORDER BY id")
+    suspend fun linkable(): List<DiecastEntity>
+
+    // Progress
+
+    @Query("SELECT ci.catalog_id, ci.number, d.status FROM catalog_items ci LEFT JOIN diecasts d ON d.catalog_item_id = ci.id")
+    fun observeProgressRows(): Flow<List<ProgressRow>>
+
+    @Query(
+        "SELECT d.id, d.name, d.status, d.catalog_item_id, d.catalog_match, " +
+            "(SELECT p.file_name FROM diecast_photos p WHERE p.diecast_id = d.id ORDER BY p.position, p.id LIMIT 1) AS cover_file " +
+            "FROM diecasts d JOIN catalog_items ci ON ci.id = d.catalog_item_id WHERE ci.catalog_id = :catalogId ORDER BY d.id",
+    )
+    fun observeLinked(catalogId: Long): Flow<List<LinkedDiecastRow>>
+
+    // Review ("Cocokkan Dex"): diecasts of a brand that has a dex, auto-linked or not linked yet
+
+    @Query(
+        "SELECT d.*, (SELECT p.file_name FROM diecast_photos p WHERE p.diecast_id = d.id ORDER BY p.position, p.id LIMIT 1) AS cover_file " +
+            "FROM diecasts d WHERE lower(d.brand) IN (SELECT lower(brand) FROM catalogs) " +
+            "AND (d.catalog_match IS NULL OR d.catalog_match = 'auto') " +
+            "ORDER BY CASE WHEN d.catalog_match = 'auto' THEN 0 ELSE 1 END, d.id DESC LIMIT :limit",
+    )
+    fun observeReview(limit: Int): Flow<List<ReviewRow>>
+
+    @Query(
+        "SELECT COUNT(*) FROM diecasts d WHERE lower(d.brand) IN (SELECT lower(brand) FROM catalogs) " +
+            "AND (d.catalog_match IS NULL OR d.catalog_match = 'auto')",
+    )
+    fun observeReviewCount(): Flow<Int>
+}
