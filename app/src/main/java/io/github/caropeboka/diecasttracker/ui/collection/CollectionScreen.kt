@@ -60,6 +60,7 @@ import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.CollectionLayout
 import io.github.caropeboka.diecasttracker.data.CollectionSort
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
+import io.github.caropeboka.diecasttracker.data.MissingField
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.ui.MainNavigationBar
 import io.github.caropeboka.diecasttracker.ui.MainTab
@@ -224,6 +225,16 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
 @Composable
 private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) {
     val filter = state.filter
+    val missingChip = @Composable {
+        MenuChip(
+            label = filter.missing?.let { "Belum ada ${it.label.lowercase()}" } ?: "Semua kelengkapan",
+            active = filter.missing != null,
+            options = listOf<MissingField?>(null) + MissingField.entries,
+            optionLabel = { it?.let { field -> "Belum ada ${field.label.lowercase()}" } ?: "Semua kelengkapan" },
+            current = filter.missing,
+            onSelect = viewModel::setMissing,
+        )
+    }
 
     Row(
         Modifier
@@ -240,6 +251,8 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
             current = filter.status,
             onSelect = viewModel::setStatus,
         )
+        // Set from the dashboard's "Lengkapi": in view, or the shorter list would look unexplained.
+        if (filter.missing != null) missingChip()
         if (state.brands.isNotEmpty()) {
             MenuChip(
                 label = filter.brand ?: "Semua merek",
@@ -268,6 +281,7 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
                 onSelect = viewModel::setTag,
             )
         }
+        if (filter.missing == null) missingChip()
         MenuChip(
             label = filter.sort.label,
             active = false,

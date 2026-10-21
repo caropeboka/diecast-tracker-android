@@ -13,6 +13,7 @@ import io.github.caropeboka.diecasttracker.data.CollectionLayout
 import io.github.caropeboka.diecasttracker.data.CollectionSort
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
+import io.github.caropeboka.diecasttracker.data.MissingField
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
@@ -45,6 +46,16 @@ data class CollectionUiState(
 /** [daysSinceLast]: null when this phone never made a backup. */
 data class BackupDue(val daysSinceLast: Long?)
 
+/** The collection with these filters (others cleared), opened from elsewhere; [sort] null keeps the remembered one. */
+data class CollectionLink(
+    val search: String = "",
+    val brand: String? = null,
+    val status: DiecastStatus? = null,
+    val rarity: Rarity? = null,
+    val missing: MissingField? = null,
+    val sort: CollectionSort? = null,
+)
+
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class CollectionViewModel(
     private val repository: DiecastRepository,
@@ -60,14 +71,15 @@ class CollectionViewModel(
         saved.getStateFlow<String?>(BRAND, null),
         saved.getStateFlow<String?>(STATUS, null),
         saved.getStateFlow<String?>(RARITY, null),
-        combine(saved.getStateFlow<String?>(TAG, null), prefs.sort, ::Pair),
-    ) { search, brand, status, rarity, (tag, sort) ->
+        combine(saved.getStateFlow<String?>(TAG, null), saved.getStateFlow<String?>(MISSING, null), prefs.sort, ::Triple),
+    ) { search, brand, status, rarity, (tag, missing, sort) ->
         CollectionFilter(
             search = search,
             brand = brand,
             status = DiecastStatus.fromKey(status),
             rarity = Rarity.fromKey(rarity),
             tag = tag,
+            missing = MissingField.fromKey(missing),
             sort = sort,
         )
     }.distinctUntilChanged()
@@ -121,6 +133,10 @@ class CollectionViewModel(
         saved[TAG] = tag
     }
 
+    fun setMissing(missing: MissingField?) {
+        saved[MISSING] = missing?.key
+    }
+
     fun setSort(sort: CollectionSort) {
         viewModelScope.launch { prefs.setSort(sort) }
     }
@@ -130,10 +146,18 @@ class CollectionViewModel(
         viewModelScope.launch { prefs.setLayout(next) }
     }
 
-    fun resetFilters() {
+    fun resetFilters() = show(CollectionLink())
+
+    /** Replaces the search and filters, e.g. from a link on the dashboard; a [CollectionLink.sort] is remembered. */
+    fun show(link: CollectionLink) {
         // Set, not remove(): removing a key detaches the StateFlows above.
-        saved[SEARCH] = ""
-        listOf(BRAND, STATUS, RARITY, TAG).forEach { saved[it] = null }
+        saved[SEARCH] = link.search
+        saved[BRAND] = link.brand
+        saved[STATUS] = link.status?.key
+        saved[RARITY] = link.rarity?.key
+        saved[TAG] = null
+        saved[MISSING] = link.missing?.key
+        link.sort?.let(::setSort)
     }
 
     companion object {
@@ -142,6 +166,7 @@ class CollectionViewModel(
         private const val STATUS = "status"
         private const val RARITY = "rarity"
         private const val TAG = "tag"
+        private const val MISSING = "missing"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

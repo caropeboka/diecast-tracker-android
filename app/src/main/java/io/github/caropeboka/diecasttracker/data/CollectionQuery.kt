@@ -17,6 +17,19 @@ enum class CollectionSort(val key: String, val label: String, internal val order
     }
 }
 
+/** A piece of data a diecast may still lack: the dashboard's "Kelengkapan data" (web: the `missing` filter). */
+enum class MissingField(val key: String, val label: String, internal val condition: String) {
+    Photo("photo", "Foto", "NOT EXISTS (SELECT 1 FROM diecast_photos p WHERE p.diecast_id = d.id)"),
+    PurchasePrice("purchase_price", "Harga beli", "d.purchase_price IS NULL"),
+    MarketValue("market_value", "Harga pasaran", "d.market_value IS NULL"),
+    StorageLocation("storage_location", "Lokasi simpan", "d.storage_location IS NULL"),
+    Tags("tags", "Tag", "NOT EXISTS (SELECT 1 FROM diecast_tag dt WHERE dt.diecast_id = d.id)");
+
+    companion object {
+        fun fromKey(key: String?): MissingField? = entries.find { it.key == key }
+    }
+}
+
 /**
  * Search, filters and sort of the collection screen (web: `DiecastController::index`).
  * Without a [status], "Ditemui" entries stay out: they are seen, not collected.
@@ -27,9 +40,11 @@ data class CollectionFilter(
     val status: DiecastStatus? = null,
     val rarity: Rarity? = null,
     val tag: String? = null,
+    val missing: MissingField? = null,
     val sort: CollectionSort = CollectionSort.Newest,
 ) {
-    val isFiltered get() = search.isNotBlank() || brand != null || status != null || rarity != null || tag != null
+    val isFiltered get() =
+        search.isNotBlank() || brand != null || status != null || rarity != null || tag != null || missing != null
 }
 
 object CollectionQuery {
@@ -73,6 +88,8 @@ object CollectionQuery {
             where += "${HAS_TAG}t.name = ?)"
             args += it
         }
+
+        filter.missing?.let { where += it.condition }
 
         val sql = "$SELECT_ITEMS WHERE ${where.joinToString(" AND ")} ORDER BY ${filter.sort.orderBy}"
 
