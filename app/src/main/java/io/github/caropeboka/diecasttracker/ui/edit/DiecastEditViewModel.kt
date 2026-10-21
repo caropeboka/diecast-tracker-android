@@ -300,6 +300,19 @@ class DiecastEditViewModel(
         }
     }
 
+    /**
+     * A price check set the market value; it is saved already, so the form shows it without counting it as an
+     * unsaved change.
+     */
+    fun marketValueApplied(diecast: DiecastEntity) {
+        existing = diecast
+        val value = diecast.marketValue?.toString().orEmpty()
+        original = original.copy(marketValue = value)
+        saved[ORIGINAL] = Json.encodeToString(original)
+        replaceForm(form.copy(marketValue = value))
+        clearError(Field.MarketValue)
+    }
+
     private fun markAiFields(fields: Set<Field>) {
         aiFields = fields
         saved[AI_FIELDS] = ArrayList(fields.map { it.name })

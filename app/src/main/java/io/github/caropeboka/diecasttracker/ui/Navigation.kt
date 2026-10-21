@@ -147,6 +147,7 @@ fun DiecastTrackerRoot() {
                     onClose = { nav.popBackStack<DiecastEditRoute>(inclusive = true) },
                     onOpen = { id -> nav.navigate(DiecastEditRoute(id = id)) },
                     onOpenCatalog = openCatalog,
+                    onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
                 )
             }
             composable<DataRoute> {

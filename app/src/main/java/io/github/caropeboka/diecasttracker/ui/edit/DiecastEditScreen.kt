@@ -73,6 +73,7 @@ import io.github.caropeboka.diecasttracker.data.MAX_PHOTOS
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.SCALES
+import io.github.caropeboka.diecasttracker.data.ValueSource
 import io.github.caropeboka.diecasttracker.data.ai.MAX_SCAN_PHOTOS
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.DateInput
@@ -110,6 +111,7 @@ fun DiecastEditScreen(
     onClose: () -> Unit,
     onOpen: (Long) -> Unit,
     onOpenCatalog: (Long) -> Unit,
+    onAiSettings: () -> Unit,
     viewModel: DiecastEditViewModel = viewModel(factory = DiecastEditViewModel.Factory),
 ) {
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
@@ -183,8 +185,9 @@ fun DiecastEditScreen(
             DexSection(viewModel, onOpenCatalog)
             IdentitySection(viewModel, suggestions)
             OwnershipSection(viewModel, suggestions)
-            if (viewModel.existing != null) {
+            viewModel.existing?.let { existing ->
                 SightingsCard(viewModel.sightings, viewModel::openSighting, viewModel::deleteSighting)
+                PriceCheckPanel(existing, viewModel::marketValueApplied, onAiSettings)
             }
         }
     }
@@ -572,6 +575,10 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
                     form.marketValue, { v -> set(Field.MarketValue) { it.copy(marketValue = v) } }, "Harga pasaran sekarang (per pcs)",
                     placeholder = "Opsional", error = errors[Field.MarketValue],
                 )
+                val existing = viewModel.existing
+                if (existing?.marketValueSource == ValueSource.PriceCheck && form.marketValue == existing.marketValue?.toString()) {
+                    Text("Dari cek harga screenshot marketplace", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                }
                 DateInput(
                     form.purchaseDate?.toLocalDateOrNull(),
                     { date -> viewModel.update { it.copy(purchaseDate = date?.toString()) } },

@@ -434,7 +434,7 @@ private fun MostValuable(items: List<DiecastListItem>, onOpen: (Long) -> Unit, o
     SectionCard("Paling berharga", action = if (items.isNotEmpty()) ({ SeeAll(onAll) }) else null) {
         if (items.isEmpty()) {
             Text(
-                "Belum ada harga pasaran. Isi kolom Harga pasaran di form diecast untuk melihat nilai koleksimu.",
+                "Belum ada harga pasaran. Buka diecast → Cek harga pasaran untuk menghitungnya dari screenshot Tokopedia/Shopee.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Garage.MutedForeground,
             )
