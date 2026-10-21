@@ -35,6 +35,21 @@ fun formatRupiahCompact(value: Long?): String {
     return "Rp ${groupThousands(whole)}${if (fraction != 0L) ",$fraction" else ""} $unit"
 }
 
+/** "850 KB", "12,3 MB" (1 KB = 1024 bytes). */
+fun formatBytes(bytes: Long): String {
+    if (bytes < 1024) return "$bytes B"
+
+    val units = listOf("KB", "MB", "GB")
+    var value = bytes / 1024.0
+    var unit = 0
+    while (value >= 1024 && unit < units.lastIndex) {
+        value /= 1024
+        unit++
+    }
+    val tenths = (value * 10).roundToLong()
+    return if (value >= 100 || tenths % 10 == 0L) "${value.roundToLong()} ${units[unit]}" else "${tenths / 10},${tenths % 10} ${units[unit]}"
+}
+
 /** "18 Okt 2026" */
 fun formatDate(date: LocalDate?): String = date?.format(SHORT_DATE) ?: "-"
 

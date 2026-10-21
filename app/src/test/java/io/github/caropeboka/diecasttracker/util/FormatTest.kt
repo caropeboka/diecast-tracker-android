@@ -36,4 +36,12 @@ class FormatTest {
             listOf("toko 10", "Toys Kingdom", "Toko 2", "Alfamart").sortedWith(naturalCaseInsensitiveOrder),
         )
     }
+
+    @Test
+    fun `file sizes use a decimal comma`() {
+        assertEquals(
+            listOf("512 B", "1 KB", "850 KB", "12,3 MB", "250 MB", "1,5 GB"),
+            listOf(512L, 1024L, 850L * 1024, 12_900_000L, 262_144_000L, 1_610_612_736L).map(::formatBytes),
+        )
+    }
 }

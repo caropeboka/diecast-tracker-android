@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="camera" path="camera/" />
+    <!-- BackupExporter.SHARE_DIR: backups and Excel files handed to the share sheet. -->
+    <cache-path name="exports" path="exports/" />
 </paths>

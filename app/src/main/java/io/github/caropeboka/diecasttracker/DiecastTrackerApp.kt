@@ -9,6 +9,7 @@ import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.AiSettings
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
+import io.github.caropeboka.diecasttracker.data.backup.BackupExporter
 import io.github.caropeboka.diecasttracker.data.backup.BackupImporter
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
 import io.github.caropeboka.diecasttracker.data.dex.ChecklistReader
@@ -38,7 +39,10 @@ class AppContainer(context: Context) {
     val dexMatcher = DexMatcher(database.dex())
     val repository = DiecastRepository(database, photos, dexMatcher = dexMatcher)
     val prefs = UserPrefs(context)
-    val backupImporter = BackupImporter(context, database, repository, photos, scope)
+    val backupImporter = BackupImporter(context, database, repository, photos, scope) {
+        if (dex.countMissingImages() > 0) DexWork.downloadImages(context, prefs.dexCellular.first())
+    }
+    val backupExporter = BackupExporter(context, database, photos, scope, onBackup = prefs::setLastBackup)
     val messages = Messages()
 
     val http = OkHttpClient()
@@ -72,6 +76,7 @@ class DiecastTrackerApp : Application() {
         container = AppContainer(this)
         container.scope.launch(Dispatchers.IO) {
             container.repository.housekeeping()
+            container.backupExporter.housekeeping()
             container.database.places().pruneCache(before = System.currentTimeMillis() - Nominatim.REVERSE_TTL_MS)
             // Thumbnails left from an earlier sync: carry on when the network allows.
             if (container.dex.countMissingImages() > 0) {
