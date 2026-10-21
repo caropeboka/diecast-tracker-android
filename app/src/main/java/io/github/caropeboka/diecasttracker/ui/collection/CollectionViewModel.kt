@@ -16,6 +16,7 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
+import io.github.caropeboka.diecasttracker.data.backup.BackupReminder
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -40,6 +41,9 @@ data class CollectionUiState(
     /** Everything in the database, Ditemui included: tells "empty collection" from "nothing matches". */
     val total: Int = 0,
 )
+
+/** [daysSinceLast]: null when this phone never made a backup. */
+data class BackupDue(val daysSinceLast: Long?)
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class CollectionViewModel(
@@ -84,6 +88,18 @@ class CollectionViewModel(
 
     /** Without a key the Scan button leads to the AI settings instead. */
     val scanEnabled: StateFlow<Boolean> = scanner.enabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** Null while no backup reminder is due. */
+    val backupDue: StateFlow<BackupDue?> = combine(prefs.backupTimes, repository.observeCount()) { times, count ->
+        val now = System.currentTimeMillis()
+        BackupDue(times.last?.let { BackupReminder.daysSince(it, now) }).takeIf { BackupReminder.isDue(count, times, now) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun snoozeBackupReminder() {
+        viewModelScope.launch {
+            prefs.snoozeBackupReminder(System.currentTimeMillis() + BackupReminder.SNOOZE_DAYS * BackupReminder.DAY_MILLIS)
+        }
+    }
 
     fun setSearch(text: String) {
         saved[SEARCH] = text

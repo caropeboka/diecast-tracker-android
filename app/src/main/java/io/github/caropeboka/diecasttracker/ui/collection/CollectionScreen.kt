@@ -1,6 +1,7 @@
 package io.github.caropeboka.diecasttracker.ui.collection
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +38,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -81,6 +83,7 @@ fun CollectionScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val search by viewModel.search.collectAsStateWithLifecycle()
     val scanEnabled by viewModel.scanEnabled.collectAsStateWithLifecycle()
+    val backupDue by viewModel.backupDue.collectAsStateWithLifecycle()
     var menuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -156,6 +159,7 @@ fun CollectionScreen(
         snackbarHost = { SnackbarHost(LocalSnackbar.current) },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
+            backupDue?.let { BackupReminderCard(it, onBackup = onData, onLater = viewModel::snoozeBackupReminder) }
             if (state.total > 0) {
                 SearchField(search, viewModel::setSearch)
                 FilterBar(state, viewModel)
@@ -327,12 +331,49 @@ private fun <T> MenuChip(
     }
 }
 
+/** The collection lives only on this phone: now and then it asks for a backup (see `BackupReminder`). */
+@Composable
+private fun BackupReminderCard(due: BackupDue, onBackup: () -> Unit, onLater: () -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = Garage.Brand2.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, Garage.Brand2.copy(alpha = 0.45f)),
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+    ) {
+        Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 12.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    painterResource(R.drawable.ic_history),
+                    contentDescription = null,
+                    tint = Garage.Brand2,
+                    modifier = Modifier.padding(top = 2.dp).size(18.dp),
+                )
+                Column(Modifier.weight(1f).padding(start = 8.dp, end = 8.dp)) {
+                    Text(
+                        due.daysSinceLast?.let { "Backup terakhir $it hari lalu" } ?: "Koleksimu belum pernah di-backup dari HP ini",
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        "Simpan backup ke Google Drive atau laptop supaya aman kalau HP hilang atau aplikasinya terhapus.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Garage.MutedForeground,
+                    )
+                }
+            }
+            Row(Modifier.align(Alignment.End)) {
+                TextButton(onClick = onLater) { Text("Nanti") }
+                TextButton(onClick = onBackup) { Text("Backup sekarang") }
+            }
+        }
+    }
+}
+
 @Composable
 private fun EmptyCollection(onAdd: () -> Unit, onData: () -> Unit) {
     EmptyState(
         icon = R.drawable.ic_photo_camera,
         title = "Koleksimu masih kosong",
-        text = "Tambah diecast pertamamu, atau pulihkan koleksi dari backup web app.",
+        text = "Tambah diecast pertamamu, atau pulihkan koleksi dari file backup.",
     ) {
         Button(onClick = onAdd, shape = MaterialTheme.shapes.medium) {
             IconLabel(R.drawable.ic_photo_camera, "Tambah diecast pertama")
