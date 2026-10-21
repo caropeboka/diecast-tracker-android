@@ -34,6 +34,15 @@ interface DiecastDao {
     @Query("SELECT * FROM diecasts WHERE id = :id")
     suspend fun get(id: Long): DiecastEntity?
 
+    /** Everything, for a backup. */
+    @Transaction
+    @Query("SELECT * FROM diecasts ORDER BY id")
+    suspend fun allDetails(): List<DiecastWithDetails>
+
+    /** A restored diecast keeps the times it was added and last changed. */
+    @Query("UPDATE diecasts SET created_at = :createdAt, updated_at = :updatedAt WHERE id = :id")
+    suspend fun setTimestamps(id: Long, createdAt: Long, updatedAt: Long)
+
     @Insert
     suspend fun insert(diecast: DiecastEntity): Long
 
@@ -205,6 +214,15 @@ interface DexDao {
 
     @Query("SELECT * FROM catalogs WHERE source = :source AND year = :year")
     suspend fun catalogFor(source: String, year: Int): CatalogEntity?
+
+    @Query("SELECT * FROM catalogs ORDER BY id")
+    suspend fun allCatalogs(): List<CatalogEntity>
+
+    @Query("SELECT * FROM catalogs WHERE source = 'custom' AND lower(name) = lower(:name) LIMIT 1")
+    suspend fun customNamed(name: String): CatalogEntity?
+
+    @Query("SELECT id FROM catalogs WHERE source = 'custom'")
+    suspend fun customCatalogIds(): List<Long>
 
     /** Catalog ids of a brand, any spelling. */
     @Query("SELECT id FROM catalogs WHERE lower(brand) = lower(:brand)")

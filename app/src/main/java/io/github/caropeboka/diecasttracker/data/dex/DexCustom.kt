@@ -328,12 +328,7 @@ class DexCustom(
     /** Moves a pending photo into the dex's folder; returns its path under [root]. */
     private suspend fun keep(catalogId: Long, pendingName: String): String = withContext(Dispatchers.IO) {
         val path = "dex/$catalogId/$pendingName"
-        val source = photos.file(pendingName)
-        val target = File(root, path).apply { parentFile?.mkdirs() }
-        if (!source.renameTo(target)) {
-            source.copyTo(target, overwrite = true)
-            source.delete()
-        }
+        photos.moveTo(pendingName, File(root, path))
         path
     }
 

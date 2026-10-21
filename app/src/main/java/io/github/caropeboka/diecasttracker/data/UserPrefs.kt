@@ -3,8 +3,10 @@ package io.github.caropeboka.diecasttracker.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import io.github.caropeboka.diecasttracker.data.backup.BackupTimes
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -40,6 +42,17 @@ class UserPrefs(context: Context) {
         store.edit { it[DEX_CELLULAR] = allowed }
     }
 
+    /** When the last backup was written on this phone (epoch millis), and until when its reminder is put off. */
+    val backupTimes: Flow<BackupTimes> = store.data.map { BackupTimes(it[LAST_BACKUP], it[BACKUP_SNOOZED_UNTIL]) }
+
+    suspend fun setLastBackup(at: Long) {
+        store.edit { it[LAST_BACKUP] = at }
+    }
+
+    suspend fun snoozeBackupReminder(until: Long) {
+        store.edit { it[BACKUP_SNOOZED_UNTIL] = until }
+    }
+
     /** The last place chosen on the map or by GPS: "where I'm hunting now" (web: Cek koleksi's saved place). */
     suspend fun rememberPlace(place: PlaceValue) {
         store.edit { it[HUNT_PLACE] = Json.encodeToString(place) }
@@ -57,5 +70,7 @@ class UserPrefs(context: Context) {
         val SORT = stringPreferencesKey("collection_sort")
         val HUNT_PLACE = stringPreferencesKey("hunt_place")
         val DEX_CELLULAR = booleanPreferencesKey("dex_cellular")
+        val LAST_BACKUP = longPreferencesKey("last_backup_at")
+        val BACKUP_SNOOZED_UNTIL = longPreferencesKey("backup_snoozed_until")
     }
 }

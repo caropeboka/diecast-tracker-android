@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.data.backup
 
+import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MAX_MONEY
@@ -8,7 +9,9 @@ import io.github.caropeboka.diecasttracker.data.MAX_TAG_LENGTH
 import io.github.caropeboka.diecasttracker.data.MIN_YEAR
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.data.ValueSource
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
+import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.util.groupThousands
 import kotlinx.serialization.json.Json
@@ -17,23 +20,115 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
 class BackupException(message: String) : Exception(message)
 
 /**
- * Reads `diecasts.json` of the web app's backup zip (`app/Services/CollectionBackup.php`, format version 1)
- * and validates every record the way the web's restore does (`DiecastRequest` rules, `SightingLog::rules`).
+ * `diecasts.json` of the backup zip, format version 1, as the web app writes it (`app/Services/CollectionBackup.php`).
+ * Reading validates every record the way the web's restore does (`DiecastRequest` rules, `SightingLog::rules`).
+ *
+ * Backups made on the phone add keys the web's restore ignores (it keeps only the fields it validates): the market
+ * value's source, timestamps, and the Dex link as `dex_item` / `dex_match` (see [DexBackup]). The link is never
+ * `catalog_item_id`, which the web would check against its own Dex.
  */
 object WebBackupFormat {
     const val FORMAT = "diecast-tracker-backup"
     const val MANIFEST = "diecasts.json"
     const val NOT_A_BACKUP = "Ini bukan file backup Diecast Tracker."
+    const val MAX_PHOTO_BYTES = 15L * 1024 * 1024
+
+    private val PRETTY = Json { prettyPrint = true }
+    private val TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX")
+
+    /** "2026-10-21T14:05:00+07:00", like the web's `exported_at`. */
+    fun timestamp(millis: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+        Instant.ofEpochMilli(millis).atZone(zone).format(TIMESTAMP)
+
+    fun parseTimestamp(text: String): Long? = try {
+        OffsetDateTime.parse(text).toInstant().toEpochMilli()
+    } catch (_: DateTimeParseException) {
+        null
+    }
+
+    fun manifest(records: List<JsonObject>, exportedAt: Long): String = PRETTY.encodeToString(
+        JsonElement.serializer(),
+        buildJsonObject {
+            put("format", FORMAT)
+            put("version", 1)
+            put("exported_at", timestamp(exportedAt))
+            put("diecasts", JsonArray(records))
+        },
+    )
+
+    /**
+     * One diecast with the web's fields in its order, then the phone's own keys. [photos] are the zip entries of its
+     * photos that exist; [sightingPhoto] gives a sighting's entry, if its photo exists.
+     */
+    fun record(details: DiecastWithDetails, photos: List<String>, sightingPhoto: (SightingEntity) -> String?): JsonObject =
+        buildJsonObject {
+            val diecast = details.diecast
+            put("name", diecast.name)
+            put("brand", diecast.brand)
+            put("make", diecast.make)
+            put("series", diecast.series)
+            put("collection_number", diecast.collectionNumber)
+            put("year", diecast.year)
+            put("scale", diecast.scale)
+            put("color", diecast.color)
+            put("rarity", diecast.rarity.key)
+            put("packaging", diecast.packaging.key)
+            put("condition", diecast.condition?.key)
+            put("status", diecast.status.key)
+            put("quantity", diecast.quantity)
+            put("purchase_price", diecast.purchasePrice)
+            put("market_value", diecast.marketValue)
+            put("target_price", diecast.targetPrice)
+            put("purchase_date", diecast.purchaseDate?.toString())
+            put("purchase_place", diecast.purchasePlace)
+            put("purchase_latitude", diecast.purchaseLatitude)
+            put("purchase_longitude", diecast.purchaseLongitude)
+            put("storage_location", diecast.storageLocation)
+            put("notes", diecast.notes)
+            put("ai_scanned", diecast.aiScanned)
+
+            put("market_value_source", diecast.marketValueSource?.key)
+            put("market_value_updated_at", diecast.marketValueUpdatedAt?.let(::timestamp))
+            put("created_at", diecast.createdAt.takeIf { it > 0 }?.let(::timestamp))
+            put("updated_at", diecast.updatedAt.takeIf { it > 0 }?.let(::timestamp))
+            put("dex_item", diecast.catalogItemId)
+            put("dex_match", diecast.catalogMatch?.key)
+
+            putJsonArray("tags") { details.orderedTags.forEach { add(it.name) } }
+            putJsonArray("photos") { photos.forEach { add(it) } }
+            putJsonArray("sightings") {
+                details.sightings.sortedBy { it.id }.forEach { sighting ->
+                    addJsonObject {
+                        put("place", sighting.place)
+                        put("latitude", sighting.latitude)
+                        put("longitude", sighting.longitude)
+                        put("seen_on", sighting.seenOn.toString())
+                        put("price", sighting.price)
+                        put("notes", sighting.notes)
+                        put("photo", sightingPhoto(sighting))
+                        put("created_at", sighting.createdAt.takeIf { it > 0 }?.let(::timestamp))
+                    }
+                }
+            }
+        }
 
     /**
      * Only images stored under photos/ are taken from the zip. Wider than the web's own restore (JPEG only),
@@ -45,11 +140,16 @@ object WebBackupFormat {
 
     sealed interface Record {
         data class Valid(
+            /** With its market value source and Dex match when the backup has them; ids and timestamps unset. */
             val diecast: DiecastEntity,
             val tags: List<String>,
             /** Zip entry names, e.g. "photos/abc.jpg". */
             val photos: List<String>,
             val sightings: List<Sighting>,
+            /** Phone backups: the Dex item's id in `dex.json`. */
+            val dexItem: Long? = null,
+            val createdAt: Long? = null,
+            val updatedAt: Long? = null,
         ) : Record
 
         data class Invalid(val reason: String) : Record
@@ -104,9 +204,16 @@ object WebBackupFormat {
             storageLocation = fields.text("storage_location", "Lokasi simpan", 255),
             notes = fields.text("notes", "Catatan", 5000),
             aiScanned = fields.boolean("ai_scanned", "ai_scanned"),
+            catalogMatch = fields.extra("dex_match")?.let(CatalogMatch::fromKey),
         ).let { record ->
             val (latitude, longitude) = fields.coordinates("purchase_latitude", "purchase_longitude", "Koordinat tempat beli")
-            record.copy(purchaseLatitude = latitude, purchaseLongitude = longitude)
+            val valued = record.marketValue != null
+            record.copy(
+                purchaseLatitude = latitude,
+                purchaseLongitude = longitude,
+                marketValueSource = fields.extra("market_value_source")?.let(ValueSource::fromKey)?.takeIf { valued },
+                marketValueUpdatedAt = fields.extra("market_value_updated_at")?.let(::parseTimestamp)?.takeIf { valued },
+            )
         }
         val tags = fields.tags()
 
@@ -118,7 +225,15 @@ object WebBackupFormat {
         val sightings = (fields.json["sightings"] as? JsonArray).orEmpty()
             .mapNotNull { parseSighting(it, today) }
 
-        return Record.Valid(diecast, tags, photos, sightings)
+        return Record.Valid(
+            diecast,
+            tags,
+            photos,
+            sightings,
+            dexItem = fields.extra("dex_item")?.toLongOrNull(),
+            createdAt = fields.extra("created_at")?.let(::parseTimestamp),
+            updatedAt = fields.extra("updated_at")?.let(::parseTimestamp),
+        )
     }
 
     /** Invalid sightings are left out, like the web's restore does. */
@@ -135,6 +250,7 @@ object WebBackupFormat {
             seenOn = seenOn ?: today,
             price = fields.money("price", "Harga"),
             notes = fields.text("notes", "Catatan", 500),
+            createdAt = fields.extra("created_at")?.let(::parseTimestamp) ?: 0,
         )
 
         if (fields.error != null) return null
@@ -161,6 +277,9 @@ object WebBackupFormat {
             }
             return value.content.trim().ifEmpty { null }
         }
+
+        /** A key only phone backups have: a value that doesn't fit is left out instead of failing the record. */
+        fun extra(key: String): String? = (json[key] as? JsonPrimitive)?.contentOrNull?.trim()?.ifEmpty { null }
 
         fun text(key: String, label: String, max: Int, required: Boolean = false): String? {
             val value = raw(key, label)

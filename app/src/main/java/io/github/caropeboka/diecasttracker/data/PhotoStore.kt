@@ -101,6 +101,16 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
         }
     }
 
+    /** Moves a pending photo out of the photo folders, e.g. into a dex's folder. */
+    fun moveTo(name: String, target: File) {
+        val source = file(name)
+        target.parentFile?.mkdirs()
+        if (!source.renameTo(target)) {
+            source.copyTo(target, overwrite = true)
+            source.delete()
+        }
+    }
+
     fun delete(name: String?) {
         if (name == null || !NAME.matches(name)) return
         File(dir, name).delete()
