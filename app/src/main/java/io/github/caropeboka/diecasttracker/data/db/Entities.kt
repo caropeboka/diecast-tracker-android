@@ -238,6 +238,17 @@ data class DiecastListItem(
     @ColumnInfo(name = "sightings_min_price") val sightingsMinPrice: Long?,
 )
 
+/** A diecast with what the dashboard adds up; [item] doubles as its card. */
+data class DashboardRow(
+    @Embedded val item: DiecastListItem,
+    val make: String?,
+    val scale: String?,
+    @ColumnInfo(name = "storage_location") val storageLocation: String?,
+    /** Epoch millis. */
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "has_tags") val hasTags: Boolean,
+)
+
 /**
  * An OpenStreetMap (Nominatim) answer kept for a while: its usage policy asks apps to cache, and the web caches
  * reverse lookups for 30 days and searches for 7. Failures are never stored.

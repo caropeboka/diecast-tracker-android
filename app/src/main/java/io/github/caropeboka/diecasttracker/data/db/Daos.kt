@@ -34,6 +34,21 @@ interface DiecastDao {
     @Query("SELECT * FROM diecasts WHERE id = :id")
     suspend fun get(id: Long): DiecastEntity?
 
+    /** Every diecast as the dashboard adds it up (see [io.github.caropeboka.diecasttracker.data.dashboard.Dashboard]). */
+    @Query(
+        """
+        SELECT d.id, d.name, d.brand, d.series, d.color, d.year, d.rarity, d.status, d.quantity,
+            d.purchase_price, d.market_value, d.target_price,
+            (SELECT p.file_name FROM diecast_photos p WHERE p.diecast_id = d.id ORDER BY p.position, p.id LIMIT 1) AS cover_file,
+            (SELECT COUNT(*) FROM sightings s WHERE s.diecast_id = d.id) AS sightings_count,
+            (SELECT MIN(s.price) FROM sightings s WHERE s.diecast_id = d.id) AS sightings_min_price,
+            d.make, d.scale, d.storage_location, d.created_at,
+            EXISTS (SELECT 1 FROM diecast_tag dt WHERE dt.diecast_id = d.id) AS has_tags
+        FROM diecasts d ORDER BY d.id
+        """,
+    )
+    fun observeDashboard(): Flow<List<DashboardRow>>
+
     /** Everything, for a backup. */
     @Transaction
     @Query("SELECT * FROM diecasts ORDER BY id")

@@ -2,6 +2,7 @@ package io.github.caropeboka.diecasttracker.data
 
 import androidx.room.withTransaction
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
+import io.github.caropeboka.diecasttracker.data.db.DashboardRow
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.db.DiecastTagCrossRef
@@ -34,6 +35,8 @@ class DiecastRepository(
         dao.observeList(CollectionQuery.build(filter))
 
     fun observeCount(): Flow<Int> = dao.observeCount()
+
+    fun observeDashboard(): Flow<List<DashboardRow>> = dao.observeDashboard()
 
     fun observePhotoCount(): Flow<Int> = dao.observePhotoCount()
 
