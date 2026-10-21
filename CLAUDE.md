@@ -10,12 +10,12 @@ real-world fixtures.
 
 ## Status (2026-10-21)
 
-Phases 1–4 are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5 order, agreed
-with the user: **5a backup/export** → dashboard → market value from screenshots → bulk scan → in-store check. **5a is
-done**, version 0.5.0, tried on the emulator; not yet committed (the user runs all git commands themselves; give them
-the commands and the commit messages). Next: **the dashboard** (discuss it with the user first). Covered by tests only,
-as there is no real Gemini key on the emulator: the scan's Dex suggestion and the checklist screenshots read by the AI
-(including its review sheet).
+Phases 1–4 and 5a are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5 order,
+agreed with the user: 5a backup/export → **5b dashboard** → market value from screenshots → bulk scan → in-store check.
+**5b is done**, version 0.5.1, tried on the emulator; not yet committed (the user runs all git commands themselves;
+give them the commands and the commit messages). Next: **market value from marketplace screenshots** (discuss it with
+the user first). Covered by tests only, as there is no real Gemini key on the emulator: the scan's Dex suggestion and
+the checklist screenshots read by the AI (including its review sheet).
 
 Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand/rarity/tag, 7 sorts, layout and
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
@@ -56,6 +56,13 @@ wiki lists as text), saved through the system file picker ("Simpan": Download, D
 ("Bagikan"); "Data & backup" shows the last backup; a reminder card on Koleksi when the collection was never backed up
 or not in 30 days ("Nanti" = 7 days). "Pulihkan dari backup" takes phone and web backups (phone backups restore the
 Dex too). "Export Excel" (.xlsx, the web's columns; save or share). No schema change.
+
+Phase 5b delivered: the "Garasi" tab (bottom bar Koleksi · Garasi · Peta · Dex; the app still opens on Koleksi) with
+everything the web's dashboard has: collection value with gain against purchase price and a photo collage, 4 stat
+tiles, Dex lists furthest along, most valuable, data completeness ("Lengkapi →" opens Koleksi filtered), per brand
+(count/value), rarity, makes, release years, scales, price gainers, wishlist, recently added. Taps open the diecast,
+the dex list or the collection filtered to match. Koleksi got a "Belum ada …" filter (photo, purchase price, market
+value, storage location, tags). No schema change.
 
 ## Build, test, run
 
@@ -177,6 +184,18 @@ Dex too). "Export Excel" (.xlsx, the web's columns; save or share). No schema ch
   the stream, so it nests inside the backup zip); `CollectionSheet` has the web's columns and labels ("Carded").
 - Emulator: if everything stays black (Home too) while `uiautomator dump` shows the UI, the host GPU renderer failed —
   restart it with `-gpu swiftshader_indirect`. `uiautomator` dumps escape `&` as `&amp;`.
+- Dashboard: `Dashboard.build` (pure, like `Exploration.build`) ports `DashboardController` plus the sums in
+  `dashboard.tsx` from one live query (`DiecastDao.observeDashboard`, `DashboardRow` = the card row + make, scale,
+  storage, created_at, has_tags) and the Dex summaries. Owned diecasts only, except wishlist/spotted counts, showcase
+  and recent (owned + sold). Brands and makes group regardless of case (the web's MySQL collation), first spelling
+  wins. Differences from the web: the gain % is measured against the purchase price of the diecasts that have both
+  prices (the web divides by total value minus gain); the collage stays low on a phone (6 → 3×2, 3–5 → one row of 3,
+  2 → side by side, 1 → wide). `DashboardTest` ports the web's Dex test and covers the sums.
+- Opening Koleksi filtered from another tab: the collection stays at the bottom of the back stack, and its filters live
+  in `CollectionViewModel`'s own `SavedStateHandle` — **not** the back stack entry's `savedStateHandle` (a different
+  instance; writing there does nothing). `Navigation.openCollection` gets that view model with
+  `ViewModelProvider.create(entry, CollectionViewModel.Factory, entry.defaultViewModelCreationExtras)` and calls
+  `show(CollectionLink)`; a link's sort is saved as the remembered sort.
 
 ## Decisions (made with the user)
 
@@ -186,7 +205,7 @@ Dex too). "Export Excel" (.xlsx, the web's columns; save or share). No schema ch
 | Data | Room (SQLite) on the device. Photos in app-private storage. |
 | Network | OkHttp + kotlinx.serialization (Gemini, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
 | Location / map | Fused Location Provider; **MapLibre** with **OpenFreeMap**'s dark style (OpenStreetMap data, no API key). osmdroid was dropped: archived Nov 2024. Nominatim for place names. |
-| Navigation | Bottom bar: Koleksi · Peta · Dex (Dashboard joins in phase 5); other screens open from the ⋮ menu. |
+| Navigation | Bottom bar: Koleksi · Garasi (dashboard) · Peta · Dex; the app opens on Koleksi. Other screens open from the ⋮ menu. |
 | Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. Own dexes: the AI's checklist rows are reviewed before they're added; entries can be edited (both unlike the web). |
 | Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
@@ -303,6 +322,8 @@ Status is never colour-only: pair it with an icon/label (✓ owned, 👁 seen, �
   ("anyak" = banyak).
 - They like to discuss bigger features before building, and to pick between clear options.
 - **Git:** they run every git command themselves — provide the commands and professional English
-  Conventional Commit messages, split per feature. Never commit, stage or `git rm` for them.
+  Conventional Commit messages, split per feature. Never commit, stage or `git rm` for them. One code block per
+  commit, every line under ~90 characters (one path per `git add`; the terminal's wrapping turns long lines into
+  broken ones when copied), the body as short lines inside the quotes, no `Co-Authored-By` trailer.
 - System setup: default to giving steps; when they ask you to do it (e.g. environment variables), back up
   what you change first.
