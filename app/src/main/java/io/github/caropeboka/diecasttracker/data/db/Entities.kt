@@ -15,6 +15,9 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ValueSource
+import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
+import io.github.caropeboka.diecasttracker.data.price.PriceListing
+import io.github.caropeboka.diecasttracker.data.price.PriceStats
 import java.time.LocalDate
 
 /**
@@ -196,6 +199,41 @@ data class SightingEntity(
     @ColumnInfo(name = "photo_file") val photoFile: String? = null,
     /** Epoch millis. */
     @ColumnInfo(name = "created_at") val createdAt: Long = 0,
+)
+
+/**
+ * A market price worked out from marketplace screenshots (web: `price_checks`). The screenshots themselves aren't kept,
+ * only what was read from them.
+ */
+@Entity(
+    tableName = "price_checks",
+    foreignKeys = [
+        ForeignKey(
+            entity = DiecastEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["diecast_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("diecast_id")],
+)
+data class PriceCheckEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "diecast_id") val diecastId: Long,
+    /** How many screenshots were read. */
+    val screenshots: Int,
+    /** Every listing read, counted or not; stored as JSON. */
+    val listings: List<PriceListing>,
+    /** Null when no listing counts. */
+    val stats: PriceStats?,
+    val accuracy: PriceAccuracy,
+    val reasons: List<String>,
+    val tips: List<String>,
+    @ColumnInfo(name = "ai_note") val aiNote: String?,
+    /** Epoch millis: its price became the market value. */
+    @ColumnInfo(name = "applied_at") val appliedAt: Long? = null,
+    /** Epoch millis. */
+    @ColumnInfo(name = "created_at") val createdAt: Long,
 )
 
 /** A diecast with everything the edit screen shows. */

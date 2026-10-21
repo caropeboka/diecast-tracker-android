@@ -22,6 +22,7 @@ import io.github.caropeboka.diecasttracker.data.dex.WikiCatalog
 import io.github.caropeboka.diecasttracker.data.places.DeviceLocation
 import io.github.caropeboka.diecasttracker.data.places.Nominatim
 import io.github.caropeboka.diecasttracker.data.places.PlaceLookup
+import io.github.caropeboka.diecasttracker.data.price.PriceChecker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -62,6 +63,7 @@ class AppContainer(context: Context) {
     val dex = DexRepository(database, dexMatcher)
     val dexCustom = DexCustom(database, dexMatcher, photos, context.filesDir)
     val checklist = ChecklistReader(aiSettings.gemini, gemini)
+    val priceChecker = PriceChecker(aiSettings.gemini, gemini, database)
 
     private fun versionName(context: Context): String =
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "1"

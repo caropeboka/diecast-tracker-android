@@ -7,9 +7,16 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ValueSource
+import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
+import io.github.caropeboka.diecasttracker.data.price.PriceListing
+import io.github.caropeboka.diecasttracker.data.price.PriceStats
+import kotlinx.serialization.json.Json
 import java.time.LocalDate
 
-/** Enums are stored by the web app's keys, dates as ISO `yyyy-MM-dd` (sorts correctly as text). */
+/**
+ * Enums are stored by the web app's keys, dates as ISO `yyyy-MM-dd` (sorts correctly as text), a price check's
+ * readings as JSON.
+ */
 class Converters {
     @TypeConverter fun rarityToKey(value: Rarity): String = value.key
 
@@ -38,4 +45,29 @@ class Converters {
     @TypeConverter fun dateToText(value: LocalDate?): String? = value?.toString()
 
     @TypeConverter fun dateFromText(text: String?): LocalDate? = text?.let(LocalDate::parse)
+
+    // Price checks: what was read from the screenshots, as JSON (web: JSON columns too).
+
+    @TypeConverter fun accuracyToKey(value: PriceAccuracy): String = value.key
+
+    @TypeConverter fun accuracyFromKey(key: String): PriceAccuracy = PriceAccuracy.fromKey(key)
+
+    @TypeConverter fun listingsToJson(value: List<PriceListing>): String = JSON.encodeToString(value)
+
+    @TypeConverter fun listingsFromJson(text: String): List<PriceListing> = JSON.decodeFromString(text)
+
+    @TypeConverter fun statsToJson(value: PriceStats?): String? = value?.let { JSON.encodeToString(it) }
+
+    @TypeConverter fun statsFromJson(text: String?): PriceStats? = text?.let { JSON.decodeFromString<PriceStats>(it) }
+
+    @TypeConverter fun textsToJson(value: List<String>): String = JSON.encodeToString(value)
+
+    @TypeConverter fun textsFromJson(text: String): List<String> = JSON.decodeFromString(text)
+
+    private companion object {
+        val JSON = Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
+        }
+    }
 }

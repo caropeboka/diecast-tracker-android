@@ -158,6 +158,37 @@ interface SightingDao {
     suspend fun allPhotoFiles(): List<String>
 }
 
+/** Market prices from marketplace screenshots (web: `PriceChecker`). */
+@Dao
+interface PriceCheckDao {
+    @Insert
+    suspend fun insert(check: PriceCheckEntity): Long
+
+    @Query("SELECT * FROM price_checks WHERE id = :id")
+    suspend fun get(id: Long): PriceCheckEntity?
+
+    /** Newest first. */
+    @Query("SELECT * FROM price_checks WHERE diecast_id = :diecastId ORDER BY created_at DESC, id DESC")
+    fun observeFor(diecastId: Long): Flow<List<PriceCheckEntity>>
+
+    /** Everything, for a backup. */
+    @Query("SELECT * FROM price_checks ORDER BY diecast_id, created_at, id")
+    suspend fun all(): List<PriceCheckEntity>
+
+    @Query("UPDATE price_checks SET applied_at = :at WHERE id = :id")
+    suspend fun markApplied(id: Long, at: Long)
+
+    @Query("DELETE FROM price_checks WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    /** The diecast's market value now comes from a price check. */
+    @Query(
+        "UPDATE diecasts SET market_value = :value, market_value_source = 'price_check', market_value_updated_at = :at, " +
+            "updated_at = :at WHERE id = :diecastId",
+    )
+    suspend fun setMarketValue(diecastId: Long, value: Long, at: Long)
+}
+
 /** Places: where things were spotted and bought (web: `PlaceLookup`, `ExploreController`), and the OpenStreetMap cache. */
 @Dao
 interface PlaceDao {

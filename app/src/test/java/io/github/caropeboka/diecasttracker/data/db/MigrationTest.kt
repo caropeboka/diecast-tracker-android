@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -74,6 +75,14 @@ class MigrationTest {
                 val item = db.dex().insertItem(CatalogItemEntity(catalogId = catalog, number = "061", sort = 61, name = "Datsun 510"))
                 db.dex().setLink(1, item, "confirmed")
                 assertEquals(item, db.diecasts().get(1)?.catalogItemId)
+
+                db.priceChecks().insert(
+                    PriceCheckEntity(
+                        diecastId = 1, screenshots = 1, listings = emptyList(), stats = null, accuracy = PriceAccuracy.Insufficient,
+                        reasons = listOf("Tidak ada listing yang cocok dengan diecast ini."), tips = emptyList(), aiNote = null, createdAt = 5,
+                    ),
+                )
+                assertEquals(PriceAccuracy.Insufficient, db.priceChecks().observeFor(1).first().single().accuracy)
             } finally {
                 db.close()
                 context.deleteDatabase(name)
@@ -82,6 +91,6 @@ class MigrationTest {
     }
 
     private companion object {
-        const val LATEST = 3
+        const val LATEST = 4
     }
 }

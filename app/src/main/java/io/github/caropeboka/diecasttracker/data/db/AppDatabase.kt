@@ -22,8 +22,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PlaceCacheEntity::class,
         CatalogEntity::class,
         CatalogItemEntity::class,
+        PriceCheckEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -35,6 +36,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun places(): PlaceDao
 
     abstract fun dex(): DexDao
+
+    abstract fun priceChecks(): PriceCheckDao
 
     companion object {
         const val NAME = "diecast-tracker.db"
@@ -80,7 +83,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        /** Phase 5: market prices read from marketplace screenshots. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `price_checks` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`diecast_id` INTEGER NOT NULL, `screenshots` INTEGER NOT NULL, `listings` TEXT NOT NULL, `stats` TEXT, " +
+                        "`accuracy` TEXT NOT NULL, `reasons` TEXT NOT NULL, `tips` TEXT NOT NULL, `ai_note` TEXT, " +
+                        "`applied_at` INTEGER, `created_at` INTEGER NOT NULL, " +
+                        "FOREIGN KEY(`diecast_id`) REFERENCES `diecasts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_price_checks_diecast_id` ON `price_checks` (`diecast_id`)")
+            }
+        }
+
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NAME).addMigrations(*MIGRATIONS).build()
