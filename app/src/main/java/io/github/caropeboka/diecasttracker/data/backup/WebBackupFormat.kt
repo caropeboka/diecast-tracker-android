@@ -12,8 +12,13 @@ import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ValueSource
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
+import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
+import io.github.caropeboka.diecasttracker.data.price.PriceListing
+import io.github.caropeboka.diecasttracker.data.price.PriceStats
 import io.github.caropeboka.diecasttracker.util.groupThousands
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -42,8 +47,9 @@ class BackupException(message: String) : Exception(message)
  * Reading validates every record the way the web's restore does (`DiecastRequest` rules, `SightingLog::rules`).
  *
  * Backups made on the phone add keys the web's restore ignores (it keeps only the fields it validates): the market
- * value's source, timestamps, and the Dex link as `dex_item` / `dex_match` (see [DexBackup]). The link is never
- * `catalog_item_id`, which the web would check against its own Dex.
+ * value's source, timestamps, the Dex link as `dex_item` / `dex_match` (see [DexBackup]) and the price checks
+ * (`price_checks`, what was read from the screenshots). The link is never `catalog_item_id`, which the web would check
+ * against its own Dex.
  */
 object WebBackupFormat {
     const val FORMAT = "diecast-tracker-backup"
@@ -78,7 +84,12 @@ object WebBackupFormat {
      * One diecast with the web's fields in its order, then the phone's own keys. [photos] are the zip entries of its
      * photos that exist; [sightingPhoto] gives a sighting's entry, if its photo exists.
      */
-    fun record(details: DiecastWithDetails, photos: List<String>, sightingPhoto: (SightingEntity) -> String?): JsonObject =
+    fun record(
+        details: DiecastWithDetails,
+        photos: List<String>,
+        sightingPhoto: (SightingEntity) -> String?,
+        priceChecks: List<PriceCheckEntity> = emptyList(),
+    ): JsonObject =
         buildJsonObject {
             val diecast = details.diecast
             put("name", diecast.name)
@@ -128,7 +139,46 @@ object WebBackupFormat {
                     }
                 }
             }
+            putJsonArray("price_checks") {
+                priceChecks.forEach { check ->
+                    addJsonObject {
+                        put("screenshots", check.screenshots)
+                        put("listings", PRICE_JSON.encodeToJsonElement(ListSerializer(PriceListing.serializer()), check.listings))
+                        put("stats", check.stats?.let { PRICE_JSON.encodeToJsonElement(PriceStats.serializer(), it) } ?: JsonNull)
+                        put("accuracy", check.accuracy.key)
+                        putJsonArray("reasons") { check.reasons.forEach { add(it) } }
+                        putJsonArray("tips") { check.tips.forEach { add(it) } }
+                        put("ai_note", check.aiNote)
+                        put("applied_at", check.appliedAt?.let(::timestamp))
+                        put("created_at", timestamp(check.createdAt))
+                    }
+                }
+            }
         }
+
+    /** A price check of a phone backup, for no diecast yet; null when it can't be read (it is left out). */
+    private fun parsePriceCheck(element: JsonElement): PriceCheckEntity? = runCatching {
+        val json = element as JsonObject
+        fun texts(key: String) = (json[key] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+
+        PriceCheckEntity(
+            diecastId = 0,
+            screenshots = (json["screenshots"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 0,
+            listings = PRICE_JSON.decodeFromJsonElement(ListSerializer(PriceListing.serializer()), json["listings"] ?: JsonArray(emptyList())),
+            stats = json["stats"]?.takeIf { it !is JsonNull }?.let { PRICE_JSON.decodeFromJsonElement(PriceStats.serializer(), it) },
+            accuracy = PriceAccuracy.fromKey((json["accuracy"] as? JsonPrimitive)?.contentOrNull),
+            reasons = texts("reasons"),
+            tips = texts("tips"),
+            aiNote = (json["ai_note"] as? JsonPrimitive)?.contentOrNull,
+            appliedAt = (json["applied_at"] as? JsonPrimitive)?.contentOrNull?.let(::parseTimestamp),
+            createdAt = (json["created_at"] as? JsonPrimitive)?.contentOrNull?.let(::parseTimestamp) ?: return@runCatching null,
+        )
+    }.getOrNull()
+
+    private val PRICE_JSON = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     /**
      * Only images stored under photos/ are taken from the zip. Wider than the web's own restore (JPEG only),
@@ -150,6 +200,8 @@ object WebBackupFormat {
             val dexItem: Long? = null,
             val createdAt: Long? = null,
             val updatedAt: Long? = null,
+            /** Phone backups: for no diecast yet. */
+            val priceChecks: List<PriceCheckEntity> = emptyList(),
         ) : Record
 
         data class Invalid(val reason: String) : Record
@@ -233,6 +285,7 @@ object WebBackupFormat {
             dexItem = fields.extra("dex_item")?.toLongOrNull(),
             createdAt = fields.extra("created_at")?.let(::parseTimestamp),
             updatedAt = fields.extra("updated_at")?.let(::parseTimestamp),
+            priceChecks = (fields.json["price_checks"] as? JsonArray).orEmpty().mapNotNull(::parsePriceCheck),
         )
     }
 

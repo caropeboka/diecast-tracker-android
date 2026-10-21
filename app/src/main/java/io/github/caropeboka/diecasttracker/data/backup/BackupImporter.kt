@@ -169,6 +169,7 @@ class BackupImporter(
                     val id = repository.save(diecast, photoNames, record.tags)
                     record.createdAt?.let { dao.setTimestamps(id, it, record.updatedAt ?: it) }
 
+                    record.priceChecks.forEach { db.priceChecks().insert(it.copy(diecastId = id)) }
                     record.sightings.forEach { sighting ->
                         val photo = sighting.photo?.let { extractPhoto(zip, it) }?.also { created += it }
                         val createdAt = sighting.entity.createdAt.takeIf { it > 0 } ?: System.currentTimeMillis()

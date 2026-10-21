@@ -8,6 +8,7 @@ import androidx.core.content.FileProvider
 import androidx.room.withTransaction
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
+import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -158,8 +159,12 @@ class BackupExporter(
     suspend fun writeBackup(out: OutputStream, onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): ExportSummary =
         withContext(Dispatchers.IO) {
             val dexDao = db.dex()
-            val (diecasts, catalogs) = db.withTransaction {
-                db.diecasts().allDetails() to dexDao.allCatalogs().map { it to dexDao.items(it.id) }
+            val (diecasts, catalogs, priceChecks) = db.withTransaction {
+                Triple(
+                    db.diecasts().allDetails(),
+                    dexDao.allCatalogs().map { it to dexDao.items(it.id) },
+                    db.priceChecks().all().groupBy { it.diecastId },
+                )
             }
 
             // Zip entry → file, for every photo that is really there (the web skips missing ones too).
@@ -172,7 +177,8 @@ class BackupExporter(
             var sightingPhotoCount = 0
             val records = diecasts.map { details ->
                 val own = details.orderedPhotos.mapNotNull { photo(it.fileName) }.also { photoCount += it.size }
-                WebBackupFormat.record(details, own) { sighting -> photo(sighting.photoFile)?.also { sightingPhotoCount++ } }
+                val sightingPhoto = { sighting: SightingEntity -> photo(sighting.photoFile)?.also { sightingPhotoCount++ } }
+                WebBackupFormat.record(details, own, sightingPhoto, priceChecks[details.diecast.id].orEmpty())
             }
             val dex = catalogs.map { (catalog, items) ->
                 DexBackup.catalog(catalog, items) { item ->

@@ -12,11 +12,17 @@ import io.github.caropeboka.diecasttracker.data.ValueSource
 import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
 import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
+import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexCustom
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
 import io.github.caropeboka.diecasttracker.data.dex.DexRow
 import io.github.caropeboka.diecasttracker.data.dex.SheetReader
+import io.github.caropeboka.diecasttracker.data.price.ListingMatch
+import io.github.caropeboka.diecasttracker.data.price.ListingStatus
+import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
+import io.github.caropeboka.diecasttracker.data.price.PriceListing
+import io.github.caropeboka.diecasttracker.data.price.PriceStats
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -108,6 +114,23 @@ class BackupExporterTest {
             listOf("JDM", "Favorit"),
         )
         dao.setLink(datsun, datsunItem, CatalogMatch.Confirmed.key)
+        env.db.priceChecks().insert(
+            PriceCheckEntity(
+                diecastId = datsun,
+                screenshots = 3,
+                listings = listOf(
+                    PriceListing("Hot Wheels Datsun 510 TH", 150_000, sold = 4, match = ListingMatch.Match, status = ListingStatus.Included),
+                    PriceListing("Datsun loose", 20_000, match = ListingMatch.DifferentCondition, excludedReason = "Kondisi berbeda"),
+                ),
+                stats = PriceStats(1, 150_000, 150_000, 150_000, 150_000, 150_000, 150_000, 0.0),
+                accuracy = PriceAccuracy.Insufficient,
+                reasons = listOf("Hanya 1 listing yang cocok — belum bisa disebut harga pasaran."),
+                tips = listOf("Coba kata kunci lain."),
+                aiNote = "Sedikit listing.",
+                appliedAt = VALUED,
+                createdAt = VALUED,
+            ),
+        )
         env.repository.addSighting(
             SightingEntity(
                 diecastId = datsun, place = "Gramedia", latitude = -6.21, longitude = 106.81,
@@ -190,6 +213,18 @@ class BackupExporterTest {
         }
         assertEquals(listOf("Favorit", "JDM"), datsun.orderedTags.map { it.name })
         assertEquals(2, datsun.photos.size)
+
+        // Its price checks come along (what was read; screenshots aren't kept).
+        val check = other.db.priceChecks().all().single()
+        assertEquals(datsun.diecast.id, check.diecastId)
+        assertEquals(3, check.screenshots)
+        assertEquals(listOf(ListingStatus.Included, ListingStatus.Excluded), check.listings.map { it.status })
+        assertEquals("Kondisi berbeda", check.listings[1].excludedReason)
+        assertEquals(150_000L, check.stats!!.suggested)
+        assertEquals(PriceAccuracy.Insufficient, check.accuracy)
+        assertEquals("Sedikit listing.", check.aiNote)
+        assertEquals(VALUED, check.appliedAt)
+        assertEquals(VALUED, check.createdAt)
 
         val sighting = datsun.sightings.single()
         assertEquals("Gramedia", sighting.place)
