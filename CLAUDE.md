@@ -8,13 +8,14 @@ behaviour and logic**. It keeps working on the laptop until the Android app catc
 rather than re-inventing; its feature tests (`tests/Feature/*`) describe the expected behaviour and contain
 real-world fixtures.
 
-## Status (2026-10-20)
+## Status (2026-10-21)
 
-Phases 1–3 and 4a are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). **Phase 4b
-(own dex lists) is done**, version 0.4.1, tried on the emulator; not yet committed (the user runs all git commands
-themselves; give them the commands and the commit messages). Next: **phase 5** (discuss the order with the user first).
-Covered by tests only, as there is no real Gemini key on the emulator: the scan's Dex suggestion and the checklist
-screenshots read by the AI (including its review sheet).
+Phases 1–4 are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5 order, agreed
+with the user: **5a backup/export** → dashboard → market value from screenshots → bulk scan → in-store check. **5a is
+done**, version 0.5.0, tried on the emulator; not yet committed (the user runs all git commands themselves; give them
+the commands and the commit messages). Next: **the dashboard** (discuss it with the user first). Covered by tests only,
+as there is no real Gemini key on the emulator: the scan's Dex suggestion and the checklist screenshots read by the AI
+(including its review sheet).
 
 Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand/rarity/tag, 7 sorts, layout and
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
@@ -49,6 +50,12 @@ photo (camera/gallery; the sheet stays open for the next one), corrected later (
 varian"), deleted with a confirm that names linked diecasts; "Isi banyak sekaligus" from Excel (.xlsx) / CSV, from
 checklist screenshots or a photo of a printed list read by the AI (max 6, reviewed and ticked before they're added),
 or from the collection. The collection is auto-matched after every addition. No schema change.
+
+Phase 5a delivered: backup from the phone — one .zip in the web's format plus the Dex (links, own dexes with photos,
+wiki lists as text), saved through the system file picker ("Simpan": Download, Drive…) or the share sheet
+("Bagikan"); "Data & backup" shows the last backup; a reminder card on Koleksi when the collection was never backed up
+or not in 30 days ("Nanti" = 7 days). "Pulihkan dari backup" takes phone and web backups (phone backups restore the
+Dex too). "Export Excel" (.xlsx, the web's columns; save or share). No schema change.
 
 ## Build, test, run
 
@@ -147,6 +154,30 @@ or from the collection. The collection is auto-matched after every addition. No 
   every Robolectric test but throws `PatternSyntaxException` on a device — use explicit classes (`[\s\p{Z}]`). Check
   new patterns on the emulator.
 
+## Notes from phase 5
+
+- Backup zip (`BackupExporter`): the web's layout (`diecasts.json` v1, `photos/`, `koleksi.xlsx`) plus `dex.json`
+  (`DexBackup`: every catalog with its items, ids only meaningful inside the backup) and `dex/` (own dexes' photos;
+  wiki thumbnails are left out and download again). Records carry phone-only keys the web's restore ignores (it keeps
+  only validated fields): `market_value_source`, `market_value_updated_at`, `created_at`, `updated_at`, `dex_item`,
+  `dex_match`, sightings' `created_at`. **Never write `catalog_item_id`**: the web validates it with `exists` against
+  its own Dex. Checked with the web's own `CollectionBackup::restore` (and its Excel import of `koleksi.xlsx`) on an
+  in-memory SQLite, like `tools/make-web-backup-fixture.php`; the web sets the market value source to manual.
+- Restore (`BackupImporter` + `DexRestorer`): the Dex goes back first, then the diecasts with their links mapped.
+  Wiki years are matched by source + year (items by number + variant) and kept as they are; own dexes by name (items
+  by number + name + variant label; missing ones are added, as the next variant if the number exists). "Replace" also
+  deletes the own dexes (their folders after the commit) but keeps the phone's wiki years. A link whose entry didn't
+  come back is cleared and auto-linked again; "ignored" stays. Catalog ids are AUTOINCREMENT, so a new dex folder
+  never reuses a deleted one's.
+- Export runs in the app scope like the import. "Simpan" writes into a `CreateDocument` URI (a failed write deletes the
+  document); "Bagikan" writes into `cache/exports` (FileProvider path `exports`; older than an hour removed on the next
+  share, older than a day at start-up). Photos are STORED in the zip (already JPEG). Both count as a backup for the
+  reminder (`UserPrefs.backupTimes`, `BackupReminder`).
+- `XlsxWriter` writes a minimal .xlsx itself (inline strings, numbers, frozen bold header; closes its own zip but not
+  the stream, so it nests inside the backup zip); `CollectionSheet` has the web's columns and labels ("Carded").
+- Emulator: if everything stays black (Home too) while `uiautomator dump` shows the UI, the host GPU renderer failed —
+  restart it with `-gpu swiftshader_indirect`. `uiautomator` dumps escape `&` as `&amp;`.
+
 ## Decisions (made with the user)
 
 | Topic | Decision |
@@ -163,6 +194,7 @@ or from the collection. The collection is auto-matched after every addition. No 
 | AI provider | Gemini only for now (phase 2); Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
 | Existing data | Import the web app's **backup zip** (see below). |
+| Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |
 | Devices | Phone: Android 16 (API 36), USB debugging not set up yet. Emulator AVD `Medium_Phone_API_37.0` (API 37, WHPX acceleration works). |
 
 ## Phases (each ends with a usable APK)
@@ -200,8 +232,8 @@ Zip produced by `app/Services/CollectionBackup.php`:
   each record has the Diecast fields above (dates `Y-m-d`), `tags: [name]`, `photos: ["photos/<file>"]`,
   `sightings: [{ place, latitude, longitude, seen_on, price, notes, photo }]`.
 - `photos/…` — every photo; `koleksi.xlsx` — human copy, ignore.
-- Dex links are **not** in v1, and won't be: the user chose to build the Dex from scratch on the phone (sync +
-  auto-linking + "Cocokkan Dex").
+- The web's backups have no Dex: the user chose to build the Dex from scratch on the phone (sync + auto-linking +
+  "Cocokkan Dex"). Backups made on the phone add it in keys and files the web ignores (see "Notes from phase 5").
 
 ## Where the logic lives in the web app
 
