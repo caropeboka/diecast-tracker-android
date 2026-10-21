@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,9 +51,14 @@ fun SubHeading(text: String, modifier: Modifier = Modifier, maxLines: Int = 1) {
     Heading(text, modifier, MaterialTheme.typography.titleMedium.copy(fontFamily = MaterialTheme.typography.titleLarge.fontFamily), maxLines)
 }
 
-/** A card-coloured panel with a heading, like the web form's sections. */
+/** A card-coloured panel with a heading, like the web form's sections; [action] sits at the heading's end. */
 @Composable
-fun SectionCard(title: String?, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+fun SectionCard(
+    title: String?,
+    modifier: Modifier = Modifier,
+    action: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -60,7 +66,14 @@ fun SectionCard(title: String?, modifier: Modifier = Modifier, content: @Composa
         border = BorderStroke(1.dp, Garage.Border),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (title != null) SubHeading(title)
+            if (title != null && action != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SubHeading(title, Modifier.weight(1f))
+                    action()
+                }
+            } else if (title != null) {
+                SubHeading(title)
+            }
             content()
         }
     }

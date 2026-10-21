@@ -6,13 +6,17 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.github.caropeboka.diecasttracker.container
+import io.github.caropeboka.diecasttracker.ui.collection.CollectionLink
 import io.github.caropeboka.diecasttracker.ui.collection.CollectionScreen
+import io.github.caropeboka.diecasttracker.ui.collection.CollectionViewModel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
+import io.github.caropeboka.diecasttracker.ui.dashboard.DashboardScreen
 import io.github.caropeboka.diecasttracker.ui.data.DataScreen
 import io.github.caropeboka.diecasttracker.ui.dex.DexCatalogScreen
 import io.github.caropeboka.diecasttracker.ui.dex.DexMatchesScreen
@@ -24,6 +28,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data object CollectionRoute
+
+/** "Garasi": the dashboard. */
+@Serializable
+data object DashboardRoute
 
 /**
  * [id] 0 = a new diecast, which starts in [status] (a status key; owned by default). [scan] opens the camera
@@ -71,6 +79,7 @@ fun DiecastTrackerRoot() {
     val openTab = { tab: MainTab ->
         val route: Any = when (tab) {
             MainTab.Collection -> CollectionRoute
+            MainTab.Garage -> DashboardRoute
             MainTab.Explore -> ExploreRoute
             MainTab.Dex -> DexRoute
         }
@@ -82,6 +91,14 @@ fun DiecastTrackerRoot() {
     }
     val openDiecast = { id: Long -> nav.navigate(DiecastEditRoute(id = id)) }
     val openCatalog = { id: Long -> nav.navigate(DexCatalogRoute(id)) }
+    // The collection is always at the bottom of the stack. Its filters live in its view model's own saved state
+    // (not the entry's savedStateHandle, a different one), so the link goes through that view model.
+    val openCollection = { link: CollectionLink ->
+        val entry = nav.getBackStackEntry<CollectionRoute>()
+        ViewModelProvider.create(entry, CollectionViewModel.Factory, entry.defaultViewModelCreationExtras)[CollectionViewModel::class]
+            .show(link)
+        openTab(MainTab.Collection)
+    }
 
     CompositionLocalProvider(LocalSnackbar provides snackbar) {
         NavHost(nav, startDestination = CollectionRoute) {
@@ -93,6 +110,15 @@ fun DiecastTrackerRoot() {
                     onOpen = openDiecast,
                     onData = dropUnlessResumed { nav.navigate(DataRoute) },
                     onAiSettings = { fromScan -> nav.navigate(AiSettingsRoute(fromScan)) },
+                )
+            }
+            composable<DashboardRoute> {
+                DashboardScreen(
+                    onTab = openTab,
+                    onOpen = openDiecast,
+                    onOpenCatalog = openCatalog,
+                    onCollection = openCollection,
+                    onAdd = dropUnlessResumed { nav.navigate(DiecastEditRoute()) },
                 )
             }
             composable<ExploreRoute> {
