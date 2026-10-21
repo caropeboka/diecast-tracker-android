@@ -10,12 +10,13 @@ real-world fixtures.
 
 ## Status (2026-10-21)
 
-Phases 1–4 and 5a are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5 order,
-agreed with the user: 5a backup/export → **5b dashboard** → market value from screenshots → bulk scan → in-store check.
-**5b is done**, version 0.5.1, tried on the emulator; not yet committed (the user runs all git commands themselves;
-give them the commands and the commit messages). Next: **market value from marketplace screenshots** (discuss it with
-the user first). Covered by tests only, as there is no real Gemini key on the emulator: the scan's Dex suggestion and
-the checklist screenshots read by the AI (including its review sheet).
+Phases 1–4, 5a and 5b are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5
+order, agreed with the user: 5a backup/export → 5b dashboard → **5c market value from screenshots** → bulk scan →
+in-store check. **5c is done**, version 0.5.2, tried on the emulator; not yet committed (the user runs all git commands
+themselves; give them the commands and the commit messages). Next: **bulk scan** (discuss it with the user first).
+Covered by tests only, as there is no real Gemini key on the emulator: the scan's Dex suggestion, the checklist
+screenshots read by the AI (including its review sheet), and a price check's successful reading (its result card,
+"Pakai" and the error path were tried on the emulator with a restored check and a dummy key).
 
 Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand/rarity/tag, 7 sorts, layout and
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
@@ -63,6 +64,13 @@ tiles, Dex lists furthest along, most valuable, data completeness ("Lengkapi →
 (count/value), rarity, makes, release years, scales, price gainers, wishlist, recently added. Taps open the diecast,
 the dex list or the collection filtered to match. Koleksi got a "Belum ada …" filter (photo, purchase price, market
 value, storage location, tags). No schema change.
+
+Phase 5c delivered: "Cek harga pasaran" on every saved diecast's form — search keywords (prefilled like the web),
+Tokopedia/Shopee buttons, up to 6 screenshots from the gallery, the AI reads every listing, the app works out median,
+fair range, cheapest/dearest, suggested price (median to Rp 500), accuracy with reasons and tips, the wishlist target
+against the median; "Pakai Rp X sebagai harga pasaran" saves it at once (source "price_check", hint under the field);
+older checks (5 in view) and delete. Screenshots are not kept (the user's choice), only what was read. Price checks
+travel in phone backups. Room schema v4 (`price_checks`, with migration).
 
 ## Build, test, run
 
@@ -196,6 +204,15 @@ value, storage location, tags). No schema change.
   instance; writing there does nothing). `Navigation.openCollection` gets that view model with
   `ViewModelProvider.create(entry, CollectionViewModel.Factory, entry.defaultViewModelCreationExtras)` and calls
   `show(CollectionLink)`; a link's sort is saved as the remembered sort.
+- Price checks: `data/price` ports `PriceChecker.php` (prompt, schema, `searchQuery`) and `PriceAnalyzer.php` exactly
+  (dedupe on title/shop/price, Tukey fences from 5 listings, PHP-style percentiles, half-up rounding — prices are
+  positive so `roundToLong` matches PHP's `round`, scoring texts word for word). `PriceCheckEntity` keeps listings,
+  stats, reasons and tips as JSON through `Converters`, plus how many screenshots were read. "Pakai" writes the market
+  value straight to the database (`PriceCheckDao.setMarketValue`) and `DiecastEditViewModel.marketValueApplied` puts
+  it in the form and its baseline, so it doesn't count as an unsaved change; saving later keeps the source because
+  the value didn't change. The panel has its own view model (`viewModel(key = "price-check-<id>")`); picked screenshot
+  URIs live in its saved state and are decoded (2400 px) only when the check runs. Backups carry them as
+  `price_checks` per record. `PriceAnalyzerTest` / `PriceCheckTest` port the web's tests.
 
 ## Decisions (made with the user)
 
@@ -213,6 +230,7 @@ value, storage location, tags). No schema change.
 | AI provider | Gemini only for now (phase 2); Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
 | Existing data | Import the web app's **backup zip** (see below). |
+| Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. |
 | Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |
 | Devices | Phone: Android 16 (API 36), USB debugging not set up yet. Emulator AVD `Medium_Phone_API_37.0` (API 37, WHPX acceleration works). |
 
