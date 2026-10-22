@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
+import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -83,6 +84,9 @@ class MigrationTest {
                     ),
                 )
                 assertEquals(PriceAccuracy.Insufficient, db.priceChecks().observeFor(1).first().single().accuracy)
+
+                val queued = db.scanItems().insert(ScanItemEntity(photoFile = "a.jpg", createdAt = 6))
+                assertEquals(ScanItemStatus.Pending, db.scanItems().get(queued)?.status)
             } finally {
                 db.close()
                 context.deleteDatabase(name)
@@ -91,6 +95,6 @@ class MigrationTest {
     }
 
     private companion object {
-        const val LATEST = 4
+        const val LATEST = 5
     }
 }

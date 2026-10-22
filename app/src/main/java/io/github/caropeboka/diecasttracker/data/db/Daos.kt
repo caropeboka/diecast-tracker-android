@@ -189,6 +189,38 @@ interface PriceCheckDao {
     suspend fun setMarketValue(diecastId: Long, value: Long, at: Long)
 }
 
+/** The bulk scan queue (web: `BulkScanController`). */
+@Dao
+interface ScanItemDao {
+    @Insert
+    suspend fun insert(item: ScanItemEntity): Long
+
+    @Update
+    suspend fun update(item: ScanItemEntity)
+
+    @Query("SELECT * FROM scan_items WHERE id = :id")
+    suspend fun get(id: Long): ScanItemEntity?
+
+    /** In the order they were added. */
+    @Query("SELECT * FROM scan_items ORDER BY id")
+    fun observeAll(): Flow<List<ScanItemEntity>>
+
+    @Query("SELECT COUNT(*) FROM scan_items")
+    fun observeCount(): Flow<Int>
+
+    @Query("SELECT * FROM scan_items WHERE status = 'pending' ORDER BY id LIMIT 1")
+    suspend fun nextPending(): ScanItemEntity?
+
+    @Query("SELECT COUNT(*) FROM scan_items WHERE status = 'pending'")
+    suspend fun countPending(): Int
+
+    @Query("DELETE FROM scan_items WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("SELECT photo_file FROM scan_items")
+    suspend fun allPhotoFiles(): List<String>
+}
+
 /** Places: where things were spotted and bought (web: `PlaceLookup`, `ExploreController`), and the OpenStreetMap cache. */
 @Dao
 interface PlaceDao {

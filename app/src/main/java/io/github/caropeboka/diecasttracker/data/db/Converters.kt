@@ -7,9 +7,11 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ValueSource
+import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
+import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 
@@ -63,6 +65,18 @@ class Converters {
     @TypeConverter fun textsToJson(value: List<String>): String = JSON.encodeToString(value)
 
     @TypeConverter fun textsFromJson(text: String): List<String> = JSON.decodeFromString(text)
+
+    // Bulk scan queue
+
+    @TypeConverter fun scanStatusToKey(value: ScanItemStatus): String = value.key
+
+    @TypeConverter fun scanStatusFromKey(key: String): ScanItemStatus = ScanItemStatus.fromKey(key)
+
+    @TypeConverter fun scanFieldsToJson(value: ScanFields?): String? = value?.let { JSON.encodeToString(it) }
+
+    /** Unreadable (an older shape) counts as not read yet. */
+    @TypeConverter fun scanFieldsFromJson(text: String?): ScanFields? =
+        text?.let { runCatching { JSON.decodeFromString<ScanFields>(it) }.getOrNull() }
 
     private companion object {
         val JSON = Json {

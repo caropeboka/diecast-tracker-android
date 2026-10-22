@@ -15,9 +15,11 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ValueSource
+import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
+import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import java.time.LocalDate
 
 /**
@@ -232,6 +234,24 @@ data class PriceCheckEntity(
     @ColumnInfo(name = "ai_note") val aiNote: String?,
     /** Epoch millis: its price became the market value. */
     @ColumnInfo(name = "applied_at") val appliedAt: Long? = null,
+    /** Epoch millis. */
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/**
+ * A photo in the bulk scan queue (web: `scan_items` with source "bulk"): one photo, one diecast. It leaves the queue
+ * once saved or thrown away.
+ */
+@Entity(tableName = "scan_items")
+data class ScanItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** A pending photo of the [io.github.caropeboka.diecasttracker.data.PhotoStore] until its diecast is saved. */
+    @ColumnInfo(name = "photo_file") val photoFile: String,
+    val status: ScanItemStatus = ScanItemStatus.Pending,
+    /** What the AI read; null until then (or when it failed). */
+    val fields: ScanFields? = null,
+    /** Why the AI couldn't read it. */
+    val error: String? = null,
     /** Epoch millis. */
     @ColumnInfo(name = "created_at") val createdAt: Long,
 )

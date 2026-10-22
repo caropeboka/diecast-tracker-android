@@ -23,8 +23,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CatalogEntity::class,
         CatalogItemEntity::class,
         PriceCheckEntity::class,
+        ScanItemEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -38,6 +39,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dex(): DexDao
 
     abstract fun priceChecks(): PriceCheckDao
+
+    abstract fun scanItems(): ScanItemDao
 
     companion object {
         const val NAME = "diecast-tracker.db"
@@ -97,7 +100,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        /** Phase 5: the bulk scan queue. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `scan_items` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`photo_file` TEXT NOT NULL, `status` TEXT NOT NULL, `fields` TEXT, `error` TEXT, `created_at` INTEGER NOT NULL)",
+                )
+            }
+        }
+
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NAME).addMigrations(*MIGRATIONS).build()

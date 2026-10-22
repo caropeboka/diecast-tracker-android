@@ -120,12 +120,14 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
     /**
      * Run at start-up with every file name the database refers to. Finishes promotions an interrupted save
      * left behind, and removes unsaved photos, camera leftovers and unreferenced files older than a day.
+     * [waiting] photos (the bulk scan queue) stay pending however old they are.
      */
-    fun housekeeping(referenced: Set<String>, now: Long = System.currentTimeMillis()) {
+    fun housekeeping(referenced: Set<String>, waiting: Set<String> = emptySet(), now: Long = System.currentTimeMillis()) {
         val cutoff = now - DAY_MILLIS
 
         tmpDir.listFiles()?.forEach { file ->
             when {
+                file.name in waiting -> Unit
                 file.name in referenced -> promote(file.name)
                 file.lastModified() < cutoff -> file.delete()
             }

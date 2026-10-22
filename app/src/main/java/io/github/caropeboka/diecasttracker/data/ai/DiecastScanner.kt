@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -31,7 +32,11 @@ enum class Confidence(val key: String, val label: String) {
     Low("low", "Kurang yakin — cek lagi"),
 }
 
-/** What the AI read from the photos, with values outside the allowed options dropped so the form never gets junk. */
+/**
+ * What the AI read from the photos, with values outside the allowed options dropped so the form never gets junk.
+ * Serializable: the bulk scan queue keeps it until the diecast is saved.
+ */
+@Serializable
 data class ScanFields(
     val name: String? = null,
     val brand: String? = null,

@@ -23,6 +23,8 @@ import io.github.caropeboka.diecasttracker.data.places.DeviceLocation
 import io.github.caropeboka.diecasttracker.data.places.Nominatim
 import io.github.caropeboka.diecasttracker.data.places.PlaceLookup
 import io.github.caropeboka.diecasttracker.data.price.PriceChecker
+import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
+import io.github.caropeboka.diecasttracker.data.scan.ScanWork
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,6 +66,7 @@ class AppContainer(context: Context) {
     val dexCustom = DexCustom(database, dexMatcher, photos, context.filesDir)
     val checklist = ChecklistReader(aiSettings.gemini, gemini)
     val priceChecker = PriceChecker(aiSettings.gemini, gemini, database)
+    val scanQueue = ScanQueue(database, photos, scanner)
 
     private fun versionName(context: Context): String =
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "1"
@@ -83,6 +86,14 @@ class DiecastTrackerApp : Application() {
             // Thumbnails left from an earlier sync: carry on when the network allows.
             if (container.dex.countMissingImages() > 0) {
                 DexWork.downloadImages(this@DiecastTrackerApp, container.prefs.dexCellular.first())
+            }
+        }
+        // Photos waiting in the bulk scan queue: read them now, or as soon as an API key is set.
+        container.scope.launch {
+            container.scanner.enabled.collect { enabled ->
+                if (enabled && container.scanQueue.hasPending() && !container.prefs.bulkScanPaused.first()) {
+                    ScanWork.start(this@DiecastTrackerApp)
+                }
             }
         }
     }

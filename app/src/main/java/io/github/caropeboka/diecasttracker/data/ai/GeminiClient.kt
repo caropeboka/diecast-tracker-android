@@ -35,6 +35,9 @@ open class AiException(message: String) : Exception(message)
 /** The AI can't take the request right now (free quota used up, overloaded); nothing is wrong with the photo. */
 class AiRetryLaterException(message: String) : AiException(message)
 
+/** No connection to the AI at all; nothing is wrong with the photo either. */
+class AiOfflineException(message: String) : AiException(message)
+
 /**
  * Google Gemini over the REST `generateContent` endpoint, with the web app's fallbacks (`AiVision.php`): when
  * the chosen model is busy, out of free quota or retired, up to [MAX_FALLBACKS] other models are tried within
@@ -217,7 +220,7 @@ class GeminiClient(
             reason == "API_KEY_INVALID" || 403 in codes -> AiException("API key Gemini tidak valid. Cek Pengaturan AI.")
             429 in codes -> AiRetryLaterException("Kuota gratis Gemini habis untuk saat ini. Tunggu sebentar (atau besok) lalu coba lagi.")
             500 in codes || 503 in codes -> AiRetryLaterException("Server Gemini sedang sibuk (banyak pengguna). Coba lagi sebentar lagi.")
-            Outcome.Offline in outcomes.values -> AiException("Tidak bisa terhubung ke Gemini. Cek koneksi internet.")
+            Outcome.Offline in outcomes.values -> AiOfflineException("Tidak bisa terhubung ke Gemini. Cek koneksi internet.")
             Outcome.TimedOut in outcomes.values -> AiRetryLaterException(
                 "Gemini tidak merespons (server penuh atau koneksi lambat). Coba lagi sebentar lagi.",
             )

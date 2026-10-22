@@ -42,6 +42,13 @@ class UserPrefs(context: Context) {
         store.edit { it[DEX_CELLULAR] = allowed }
     }
 
+    /** The bulk scan queue's reading is paused. */
+    val bulkScanPaused: Flow<Boolean> = store.data.map { it[BULK_SCAN_PAUSED] ?: false }
+
+    suspend fun setBulkScanPaused(paused: Boolean) {
+        store.edit { it[BULK_SCAN_PAUSED] = paused }
+    }
+
     /** When the last backup was written on this phone (epoch millis), and until when its reminder is put off. */
     val backupTimes: Flow<BackupTimes> = store.data.map { BackupTimes(it[LAST_BACKUP], it[BACKUP_SNOOZED_UNTIL]) }
 
@@ -72,5 +79,6 @@ class UserPrefs(context: Context) {
         val DEX_CELLULAR = booleanPreferencesKey("dex_cellular")
         val LAST_BACKUP = longPreferencesKey("last_backup_at")
         val BACKUP_SNOOZED_UNTIL = longPreferencesKey("backup_snoozed_until")
+        val BULK_SCAN_PAUSED = booleanPreferencesKey("bulk_scan_paused")
     }
 }

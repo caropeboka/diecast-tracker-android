@@ -158,7 +158,7 @@ class DiecastRepository(
     /** See [PhotoStore.housekeeping]. */
     suspend fun housekeeping() {
         val referenced = dao.allPhotoFiles() + sightingDao.allPhotoFiles()
-        photos.housekeeping(referenced.toSet())
+        photos.housekeeping(referenced.toSet(), waiting = db.scanItems().allPhotoFiles().toSet())
     }
 
     /** Must run inside a transaction. */
