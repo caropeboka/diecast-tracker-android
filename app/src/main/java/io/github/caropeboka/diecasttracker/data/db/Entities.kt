@@ -20,6 +20,7 @@ import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
+import io.github.caropeboka.diecasttracker.data.scan.ScanSource
 import java.time.LocalDate
 
 /**
@@ -239,14 +240,15 @@ data class PriceCheckEntity(
 )
 
 /**
- * A photo in the bulk scan queue (web: `scan_items` with source "bulk"): one photo, one diecast. It leaves the queue
- * once saved or thrown away.
+ * A photo the AI reads (web: `scan_items`): one photo, one diecast. In the bulk scan queue until saved or thrown away;
+ * from a store check, kept for a day in case it is added after all.
  */
 @Entity(tableName = "scan_items")
 data class ScanItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     /** A pending photo of the [io.github.caropeboka.diecasttracker.data.PhotoStore] until its diecast is saved. */
     @ColumnInfo(name = "photo_file") val photoFile: String,
+    @ColumnInfo(defaultValue = "bulk") val source: ScanSource = ScanSource.Bulk,
     val status: ScanItemStatus = ScanItemStatus.Pending,
     /** What the AI read; null until then (or when it failed). */
     val fields: ScanFields? = null,

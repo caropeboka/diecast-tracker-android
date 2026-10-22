@@ -89,4 +89,5 @@ const val MAX_PHOTOS = 8
 const val MAX_TAGS = 20
 const val MAX_TAG_LENGTH = 50
 const val MAX_MONEY = 999_999_999_999L
+const val MAX_QUANTITY = 9999
 const val MIN_YEAR = 1950

@@ -11,6 +11,19 @@ import io.github.caropeboka.diecasttracker.data.db.ScanItemEntity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 
+/** Where a read photo came from (web: `scan_items.source`). */
+enum class ScanSource(val key: String) {
+    /** The bulk scan queue. */
+    Bulk("bulk"),
+
+    /** "Cek di toko". */
+    Check("check");
+
+    companion object {
+        fun fromKey(key: String?): ScanSource = entries.find { it.key == key } ?: Bulk
+    }
+}
+
 enum class ScanItemStatus(val key: String) {
     /** Waiting for the AI. */
     Pending("pending"),
@@ -41,10 +54,10 @@ class ScanQueue(
 ) {
     private val dao = db.scanItems()
 
-    fun observe(): Flow<List<ScanItemEntity>> = dao.observeAll()
+    fun observe(): Flow<List<ScanItemEntity>> = dao.observeBulk()
 
     /** Everything not saved or thrown away yet: what the banners count. */
-    fun observeCount(): Flow<Int> = dao.observeCount()
+    fun observeCount(): Flow<Int> = dao.observeBulkCount()
 
     suspend fun item(id: Long): ScanItemEntity? = dao.get(id)
 

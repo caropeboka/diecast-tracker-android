@@ -201,18 +201,21 @@ interface ScanItemDao {
     @Query("SELECT * FROM scan_items WHERE id = :id")
     suspend fun get(id: Long): ScanItemEntity?
 
-    /** In the order they were added. */
-    @Query("SELECT * FROM scan_items ORDER BY id")
-    fun observeAll(): Flow<List<ScanItemEntity>>
+    /** The bulk scan queue, in the order the photos were added. */
+    @Query("SELECT * FROM scan_items WHERE source = 'bulk' ORDER BY id")
+    fun observeBulk(): Flow<List<ScanItemEntity>>
 
-    @Query("SELECT COUNT(*) FROM scan_items")
-    fun observeCount(): Flow<Int>
+    @Query("SELECT COUNT(*) FROM scan_items WHERE source = 'bulk'")
+    fun observeBulkCount(): Flow<Int>
 
-    @Query("SELECT * FROM scan_items WHERE status = 'pending' ORDER BY id LIMIT 1")
+    @Query("SELECT * FROM scan_items WHERE source = 'bulk' AND status = 'pending' ORDER BY id LIMIT 1")
     suspend fun nextPending(): ScanItemEntity?
 
-    @Query("SELECT COUNT(*) FROM scan_items WHERE status = 'pending'")
+    @Query("SELECT COUNT(*) FROM scan_items WHERE source = 'bulk' AND status = 'pending'")
     suspend fun countPending(): Int
+
+    @Query("SELECT * FROM scan_items WHERE source = 'check' AND created_at < :before")
+    suspend fun checksBefore(before: Long): List<ScanItemEntity>
 
     @Query("DELETE FROM scan_items WHERE id = :id")
     suspend fun delete(id: Long)

@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
+import io.github.caropeboka.diecasttracker.data.scan.ScanSource
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -61,6 +62,8 @@ class MigrationTest {
                         "VALUES (1, 'Datsun 510', 'Hot Wheels', 'regular', 'carded', 'owned', 1, 0, 1, 1)",
                 )
                 db.execSQL("INSERT INTO sightings (diecast_id, place, seen_on, created_at) VALUES (1, 'Toys Kingdom GI', '2026-10-01', 1)")
+                // Queued before checks shared the table: it stays in the bulk queue.
+                if (version >= 5) db.execSQL("INSERT INTO scan_items (id, photo_file, status, created_at) VALUES (99, 'old.jpg', 'pending', 1)")
             }
 
             val db = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(*AppDatabase.MIGRATIONS).build()
@@ -86,6 +89,10 @@ class MigrationTest {
                 assertEquals(PriceAccuracy.Insufficient, db.priceChecks().observeFor(1).first().single().accuracy)
 
                 val queued = db.scanItems().insert(ScanItemEntity(photoFile = "a.jpg", createdAt = 6))
+                val checked = db.scanItems().insert(ScanItemEntity(photoFile = "b.jpg", source = ScanSource.Check, createdAt = 7))
+                assertEquals(ScanSource.Check, db.scanItems().get(checked)?.source)
+                if (version >= 5) assertEquals(ScanSource.Bulk, db.scanItems().get(99)?.source)
+                assertEquals(if (version >= 5) 2 else 1, db.scanItems().observeBulkCount().first())
                 assertEquals(ScanItemStatus.Pending, db.scanItems().get(queued)?.status)
             } finally {
                 db.close()
@@ -95,6 +102,6 @@ class MigrationTest {
     }
 
     private companion object {
-        const val LATEST = 5
+        const val LATEST = 6
     }
 }

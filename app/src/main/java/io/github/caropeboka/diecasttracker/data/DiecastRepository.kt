@@ -14,10 +14,13 @@ import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEventRow
 import io.github.caropeboka.diecasttracker.data.db.TagEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
+import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.util.naturalCaseInsensitiveOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 
 /**
  * Creates, updates and deletes diecasts together with their photos and tags (web: `DiecastWriter`).
@@ -57,6 +60,10 @@ class DiecastRepository(
     /** Cards for [ids], in no particular order. */
     suspend fun listItems(ids: Collection<Long>): List<DiecastListItem> =
         if (ids.isEmpty()) emptyList() else dao.list(CollectionQuery.byIds(ids))
+
+    /** The same, kept up to date (a +1, a sighting, an edit). */
+    fun observeItems(ids: Collection<Long>): Flow<List<DiecastListItem>> =
+        if (ids.isEmpty()) flowOf(emptyList()) else dao.observeList(CollectionQuery.byIds(ids))
 
     /**
      * Inserts ([DiecastEntity.id] = 0) or updates a diecast.
@@ -119,6 +126,33 @@ class DiecastRepository(
         if (rematch) dao.get(id)?.let { dexMatcher.autoLink(it) }
 
         return id
+    }
+
+    /** Bought one more of the same (web: `CheckController::quick` "increment"). */
+    suspend fun addOne(id: Long): DiecastEntity? {
+        val diecast = dao.get(id) ?: return null
+        save(diecast.copy(quantity = (diecast.quantity + 1).coerceAtMost(MAX_QUANTITY)))
+        return dao.get(id)
+    }
+
+    /**
+     * Got a wishlist or spotted one (web: "acquire"): in the garage from [today]. Unlike the web it also takes the
+     * store the check was made in as "Beli di", unless it already had one; the point only while it is fresh.
+     */
+    suspend fun acquire(id: Long, place: PlaceValue, today: LocalDate, now: Long = clock()): DiecastEntity? {
+        val diecast = dao.get(id) ?: return null
+        val here = place.name.trim().takeIf { it.isNotEmpty() && diecast.purchasePlace == null }
+        val point = place.takeIf { here != null && it.isFresh(now) }
+        save(
+            diecast.copy(
+                status = DiecastStatus.Owned,
+                purchaseDate = today,
+                purchasePlace = here ?: diecast.purchasePlace,
+                purchaseLatitude = point?.lat ?: diecast.purchaseLatitude,
+                purchaseLongitude = point?.lng ?: diecast.purchaseLongitude,
+            ),
+        )
+        return dao.get(id)
     }
 
     /** What decides which Dex entry a diecast is. */

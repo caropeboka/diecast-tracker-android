@@ -12,6 +12,7 @@ import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
+import io.github.caropeboka.diecasttracker.data.scan.ScanSource
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 
@@ -71,6 +72,10 @@ class Converters {
     @TypeConverter fun scanStatusToKey(value: ScanItemStatus): String = value.key
 
     @TypeConverter fun scanStatusFromKey(key: String): ScanItemStatus = ScanItemStatus.fromKey(key)
+
+    @TypeConverter fun scanSourceToKey(value: ScanSource): String = value.key
+
+    @TypeConverter fun scanSourceFromKey(key: String): ScanSource = ScanSource.fromKey(key)
 
     @TypeConverter fun scanFieldsToJson(value: ScanFields?): String? = value?.let { JSON.encodeToString(it) }
 

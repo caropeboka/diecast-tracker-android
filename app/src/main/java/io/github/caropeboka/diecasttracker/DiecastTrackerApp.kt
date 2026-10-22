@@ -25,6 +25,7 @@ import io.github.caropeboka.diecasttracker.data.places.PlaceLookup
 import io.github.caropeboka.diecasttracker.data.price.PriceChecker
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.data.scan.ScanWork
+import io.github.caropeboka.diecasttracker.data.scan.StoreCheck
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -67,6 +68,7 @@ class AppContainer(context: Context) {
     val checklist = ChecklistReader(aiSettings.gemini, gemini)
     val priceChecker = PriceChecker(aiSettings.gemini, gemini, database)
     val scanQueue = ScanQueue(database, photos, scanner)
+    val storeCheck = StoreCheck(database, photos, scanner, matcher, repository)
 
     private fun versionName(context: Context): String =
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "1"
@@ -80,6 +82,7 @@ class DiecastTrackerApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         container.scope.launch(Dispatchers.IO) {
+            container.storeCheck.prune(before = System.currentTimeMillis() - StoreCheck.KEEP_MS)
             container.repository.housekeeping()
             container.backupExporter.housekeeping()
             container.database.places().pruneCache(before = System.currentTimeMillis() - Nominatim.REVERSE_TTL_MS)
