@@ -80,6 +80,7 @@ fun CollectionScreen(
     onOpen: (Long) -> Unit,
     onData: () -> Unit,
     onBulkScan: () -> Unit,
+    onCheck: () -> Unit,
     onAiSettings: (fromScan: Boolean) -> Unit,
     viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
 ) {
@@ -119,6 +120,14 @@ fun CollectionScreen(
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
+                                text = { Text("Cek di toko") },
+                                leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    onCheck()
+                                },
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Scan massal") },
                                 leadingIcon = { Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null) },
                                 onClick = {
@@ -150,6 +159,14 @@ fun CollectionScreen(
         },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // At the shelf: "do I already have this?"
+                ExtendedFloatingActionButton(
+                    onClick = onCheck,
+                    icon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
+                    text = { Text("Cek") },
+                    containerColor = Garage.Muted,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                )
                 ExtendedFloatingActionButton(
                     onClick = onAdd,
                     icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },

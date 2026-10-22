@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.github.caropeboka.diecasttracker.container
+import io.github.caropeboka.diecasttracker.ui.check.CheckScreen
 import io.github.caropeboka.diecasttracker.ui.collection.CollectionLink
 import io.github.caropeboka.diecasttracker.ui.collection.CollectionScreen
 import io.github.caropeboka.diecasttracker.ui.collection.CollectionViewModel
@@ -25,6 +26,8 @@ import io.github.caropeboka.diecasttracker.ui.edit.DiecastEditScreen
 import io.github.caropeboka.diecasttracker.ui.explore.ExploreScreen
 import io.github.caropeboka.diecasttracker.ui.scan.BulkScanScreen
 import io.github.caropeboka.diecasttracker.ui.settings.AiSettingsScreen
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -37,7 +40,8 @@ data object DashboardRoute
 /**
  * [id] 0 = a new diecast, which starts in [status] (a status key; owned by default). [scan] opens the camera
  * straight away so the AI can fill the form (the collection's Scan button). [dexItem] fills a new diecast from
- * that dex entry and links it. [scanItem] starts from a bulk scan queue photo and what the AI read from it.
+ * that dex entry and links it. [scanItem] starts from a bulk scan or store check photo and what the AI read from it.
+ * [name] starts with that name (a store check typed by hand).
  */
 @Serializable
 data class DiecastEditRoute(
@@ -46,11 +50,16 @@ data class DiecastEditRoute(
     val scan: Boolean = false,
     val dexItem: Long = 0,
     val scanItem: Long = 0,
+    val name: String? = null,
 )
 
 /** "Scan massal". */
 @Serializable
 data object BulkScanRoute
+
+/** "Cek di toko": opens the camera straight away when the AI is on. */
+@Serializable
+data object CheckRoute
 
 @Serializable
 data object DataRoute
@@ -73,8 +82,9 @@ data class DexCatalogRoute(val id: Long)
 @Serializable
 data object DexMatchesRoute
 
+/** [openCheck]: the launcher shortcut "Cek di toko" was used. */
 @Composable
-fun DiecastTrackerRoot() {
+fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
     val nav = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
     val messages = LocalContext.current.container.messages
@@ -84,6 +94,9 @@ fun DiecastTrackerRoot() {
             snackbar.currentSnackbarData?.dismiss()
             snackbar.showSnackbar(it)
         }
+    }
+    LaunchedEffect(openCheck) {
+        openCheck.collect { nav.navigate(CheckRoute) { launchSingleTop = true } }
     }
 
     // Tabs keep their state (scroll, filters) and Back from any tab returns to the collection.
@@ -121,7 +134,18 @@ fun DiecastTrackerRoot() {
                     onOpen = openDiecast,
                     onData = dropUnlessResumed { nav.navigate(DataRoute) },
                     onBulkScan = dropUnlessResumed { nav.navigate(BulkScanRoute) },
+                    onCheck = dropUnlessResumed { nav.navigate(CheckRoute) },
                     onAiSettings = { fromScan -> nav.navigate(AiSettingsRoute(fromScan)) },
+                )
+            }
+            composable<CheckRoute> {
+                CheckScreen(
+                    onBack = dropUnlessResumed { nav.popBackStack() },
+                    onOpen = openDiecast,
+                    onAdd = { scanItem, name, status ->
+                        nav.navigate(DiecastEditRoute(status = status?.key, scanItem = scanItem, name = name))
+                    },
+                    onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
                 )
             }
             composable<DashboardRoute> {

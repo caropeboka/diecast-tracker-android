@@ -97,7 +97,7 @@ class DiecastEditViewModel(
     private val route = saved.toRoute<DiecastEditRoute>()
     val isNew = route.id == 0L
 
-    /** Started from a bulk scan photo: saving takes it out of the queue. */
+    /** Started from a bulk scan or store check photo: saving takes it out of the queue. */
     val fromQueue = isNew && route.scanItem != 0L
 
     /** The queue's photo: the form may drop it, but never deletes it (it stays in the queue). */
@@ -180,7 +180,7 @@ class DiecastEditViewModel(
             restored.catalogItemId?.let { id -> viewModelScope.launch { dexChosen = dex.item(id)?.let(::DexRef) } }
         } else if (isNew) {
             val status = DiecastStatus.fromKey(route.status) ?: DiecastStatus.Owned
-            reset(DiecastForm.new(status, LocalDate.now()))
+            reset(DiecastForm.new(status, LocalDate.now()).let { new -> route.name?.let { new.copy(name = it.trim()) } ?: new })
             if (route.dexItem != 0L) startFromDex(route.dexItem)
             if (fromQueue) startFromQueue(route.scanItem) else startAtRecentPlace()
         }
