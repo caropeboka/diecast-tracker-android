@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon: straight to "Cek di toko" with the camera open. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="check"
+        android:enabled="true"
+        android:icon="@mipmap/ic_shortcut_check"
+        android:shortcutShortLabel="@string/shortcut_check_short"
+        android:shortcutLongLabel="@string/shortcut_check_long">
+        <intent
+            android:action="io.github.caropeboka.diecasttracker.CHECK"
+            android:targetPackage="io.github.caropeboka.diecasttracker"
+            android:targetClass="io.github.caropeboka.diecasttracker.MainActivity" />
+    </shortcut>
+</shortcuts>

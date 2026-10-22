@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher shortcuts (long-press the app icon); shortcut labels have to be string resources. -->
+    <string name="shortcut_check_short">Cek di toko</string>
+    <string name="shortcut_check_long">Cek di toko: sudah punya belum?</string>
+</resources>
