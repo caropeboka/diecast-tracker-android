@@ -8,16 +8,18 @@ behaviour and logic**. It keeps working on the laptop until the Android app catc
 rather than re-inventing; its feature tests (`tests/Feature/*`) describe the expected behaviour and contain
 real-world fixtures.
 
-## Status (2026-10-21)
+## Status (2026-10-22)
 
-Phases 1–4 and 5a–5c are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5
-order, agreed with the user: 5a backup/export → 5b dashboard → 5c market value from screenshots → **5d bulk scan** →
-in-store check. **5d is done**, version 0.5.3, tried on the emulator; not yet committed (the user runs all git commands
-themselves; give them the commands and the commit messages). Next: **in-store check** (discuss it with the user first),
-the last part of phase 5. Covered by tests only, as there is no real Gemini key on the emulator: the scan's Dex
-suggestion, the checklist screenshots read by the AI (including its review sheet), a price check's successful reading,
-and a bulk scan photo the AI read successfully (its review card, "Simpan" and "Simpan semua"); the queue, the
-background reading with its error path, "Isi manual", the back-to-back camera and "Buang" were tried on the emulator.
+Phases 1–4 and 5a–5d are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5
+order, agreed with the user: 5a backup/export → 5b dashboard → 5c market value from screenshots → 5d bulk scan →
+**5e in-store check**. **5e is done**, version 0.5.4, tried on the emulator; not yet committed (the user runs all git
+commands themselves; give them the commands and the commit messages). With it, every planned phase is delivered. Next:
+discuss with the user (e.g. installing on the phone, Claude as a second AI provider). Covered by tests only, as there
+is no real Gemini key on the emulator: the scan's Dex suggestion, the checklist screenshots read by the AI (including
+its review sheet), a price check's successful reading, a bulk scan photo the AI read successfully (its review card,
+"Simpan" and "Simpan semua"), and a store check photo the AI read successfully (its verdict and matches; logging it
+with the check's photo). The verdict cards, +1, "Dapat", "Catat temuan", the typed search, the camera, a failed check
+and "Tambah ke koleksi" from it, and the launcher shortcut were tried on the emulator.
 
 Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand/rarity/tag, 7 sorts, layout and
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
@@ -80,6 +82,16 @@ connection; Jeda/Lanjutkan); review cards with confidence, "Mirip koleksimu" and
 brand, number, series, rarity, price), Simpan / Lengkap (the full form, prefilled) / Buang, failed ones Coba lagi /
 Isi manual; shared fields (save as Dimiliki/Wishlist/Ditemui, date, place with the map, storage, tags); "Simpan semua
 yang yakin". Room schema v5 (`scan_items`, with migration).
+
+Phase 5e delivered: "Cek di toko" — from the launcher shortcut (long-press the app icon), a "Cek" button above
+Tambah/Scan in Koleksi, or the ⋮ menu; the camera opens straight away when the AI is on. The AI reads the photo at once
+and the collection is searched: Sudah punya / Ada di wishlist / Pernah kamu temui / Belum punya / Tidak terbaca (with
+"Coba lagi"), each with its icon and colour, the store field (map picker), and the last 10 checks (older ones dimmed).
+Matches get +1 (owned) or "Dapat" (wishlist/spotted → owned today, "Beli di" = this store) and 👁 "Catat temuan" with
+"Harga di rak"; a new one can be logged as a "Ditemui" diecast (then "Jadi beli — Dapat"), added through the form
+("Tambah ke koleksi" / "Tambah sebagai item terpisah", "Wishlist") with the photo and the reading. "Atau ketik namanya
+(tanpa AI)" searches the collection, Ditemui included, without the AI or a connection. Room schema v6
+(`scan_items.source`, with migration).
 
 ## Build, test, run
 
@@ -239,6 +251,23 @@ yang yakin". Room schema v5 (`scan_items`, with migration).
   "Simpan & tambah lagi", and removes the queue entry after saving. `ScanQueueTest` ports the web's bulk tests.
 - The emulator was killed for low memory once during this phase (Claude Code reaps background shells under memory
   pressure): ask before starting it again, and keep builds lean while it runs.
+- Store checks (`data/scan/StoreCheck`, web: `CheckController`) share `scan_items` with the bulk queue, told apart by
+  `source` (`bulk`/`check`, like the web); every bulk query filters on `source = 'bulk'`. A check is read at once (not
+  by the worker); its photo stays pending until it is logged (a sighting's photo on a match, or the new Ditemui
+  diecast's photo) or added through the form (`DiecastEditRoute(scanItem)`, as from the queue), which removes the row.
+  Checks older than a day go with their photos at start-up (`StoreCheck.prune`, before the housekeeping).
+- `DiecastRepository.addOne` (+1, capped at `MAX_QUANTITY`) and `acquire` (owned, bought today; unlike the web it also
+  takes the store as "Beli di" unless one is set, with its point only while fresh). Sightings from a check keep the
+  point only while fresh, like the web's `freshCoordinates`.
+- The check screen keeps its results in its saved state (`CheckResult`, JSON) so they survive the process being killed
+  while the camera is open; the diecasts they point at are read live by id (`DiecastRepository.observeItems`), so +1,
+  Dapat and sightings show at once. Back from the form, `refresh()` marks photo checks whose row is gone as "Sudah
+  disimpan lewat form". The verdict leaves out the Ditemui diecast the check itself created. A typed search opens the
+  form with `DiecastEditRoute(name)`.
+- Launcher shortcut: `res/xml/shortcuts.xml` (action `io.github.caropeboka.diecasttracker.CHECK`, labels must be string
+  resources, adaptive icon `mipmap/ic_shortcut_check`). Static shortcuts start a fresh task, so `MainActivity` sends
+  the request (only without saved state) through a channel that `DiecastTrackerRoot` turns into `CheckRoute`.
+- Android unit test names (backticks) can't contain `:` — use a dash. `StoreCheckTest` ports the web's check tests.
 
 ## Decisions (made with the user)
 
@@ -256,6 +285,7 @@ yang yakin". Room schema v5 (`scan_items`, with migration).
 | AI provider | Gemini only for now (phase 2); Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
 | Existing data | Import the web app's **backup zip** (see below). |
+| In-store check (phase 5e) | Opened from a launcher shortcut, a "Cek" button in Koleksi and the ⋮ menu; the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). |
 | Bulk scan (phase 5d) | Reads in the background with WorkManager (not only while the screen is open, unlike the web). Camera is back-to-back. Entry: ⋮ menu in Koleksi, banners in Koleksi and Garasi. Saved items leave the queue (no "saved" history). |
 | Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. |
 | Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |
