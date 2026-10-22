@@ -18,6 +18,7 @@ import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.backup.BackupReminder
+import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -62,7 +63,11 @@ class CollectionViewModel(
     private val prefs: UserPrefs,
     scanner: DiecastScanner,
     private val saved: SavedStateHandle,
+    queue: ScanQueue,
 ) : ViewModel() {
+    /** Photos in the bulk scan queue not saved yet (the banner). */
+    val queued: StateFlow<Int> = queue.observeCount().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     /** What the search field shows right away; the query follows it after a short pause. */
     val search: StateFlow<String> = saved.getStateFlow(SEARCH, "")
 
@@ -171,7 +176,7 @@ class CollectionViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                CollectionViewModel(app.container.repository, app.container.prefs, app.container.scanner, createSavedStateHandle())
+                with(app.container) { CollectionViewModel(repository, prefs, scanner, createSavedStateHandle(), scanQueue) }
             }
         }
     }

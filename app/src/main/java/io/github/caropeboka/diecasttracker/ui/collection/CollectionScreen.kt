@@ -68,6 +68,7 @@ import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
+import io.github.caropeboka.diecasttracker.ui.scan.QueueBanner
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,6 +79,7 @@ fun CollectionScreen(
     onScan: () -> Unit,
     onOpen: (Long) -> Unit,
     onData: () -> Unit,
+    onBulkScan: () -> Unit,
     onAiSettings: (fromScan: Boolean) -> Unit,
     viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
 ) {
@@ -85,6 +87,7 @@ fun CollectionScreen(
     val search by viewModel.search.collectAsStateWithLifecycle()
     val scanEnabled by viewModel.scanEnabled.collectAsStateWithLifecycle()
     val backupDue by viewModel.backupDue.collectAsStateWithLifecycle()
+    val queued by viewModel.queued.collectAsStateWithLifecycle()
     var menuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -115,6 +118,14 @@ fun CollectionScreen(
                             Icon(painterResource(R.drawable.ic_more_vert), contentDescription = "Menu lain")
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Scan massal") },
+                                leadingIcon = { Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    onBulkScan()
+                                },
+                            )
                             DropdownMenuItem(
                                 text = { Text("Pengaturan AI") },
                                 leadingIcon = { Icon(painterResource(R.drawable.ic_sparkles), contentDescription = null) },
@@ -160,6 +171,7 @@ fun CollectionScreen(
         snackbarHost = { SnackbarHost(LocalSnackbar.current) },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
+            if (queued > 0) QueueBanner(queued, onBulkScan, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp))
             backupDue?.let { BackupReminderCard(it, onBackup = onData, onLater = viewModel::snoozeBackupReminder) }
             if (state.total > 0) {
                 SearchField(search, viewModel::setSearch)

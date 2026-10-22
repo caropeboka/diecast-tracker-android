@@ -618,7 +618,8 @@ private fun SaveBar(viewModel: DiecastEditViewModel) {
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (viewModel.isNew) {
+            // From the bulk scan queue the next one is waiting there, not in a blank form.
+            if (viewModel.isNew && !viewModel.fromQueue) {
                 OutlinedButton(
                     onClick = { viewModel.save(addAnother = true) },
                     enabled = !disabled,

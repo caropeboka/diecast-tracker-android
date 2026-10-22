@@ -80,6 +80,7 @@ import io.github.caropeboka.diecasttracker.data.dashboard.YearColumn
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.dex.CatalogSummary
 import io.github.caropeboka.diecasttracker.data.dex.DexRepository
+import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.ui.MainNavigationBar
 import io.github.caropeboka.diecasttracker.ui.MainTab
 import io.github.caropeboka.diecasttracker.ui.collection.CollectionLink
@@ -92,6 +93,7 @@ import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.components.SubHeading
 import io.github.caropeboka.diecasttracker.ui.dex.DexLegend
 import io.github.caropeboka.diecasttracker.ui.dex.DexMeter
+import io.github.caropeboka.diecasttracker.ui.scan.QueueBanner
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import io.github.caropeboka.diecasttracker.util.formatRupiah
 import io.github.caropeboka.diecasttracker.util.formatRupiahCompact
@@ -105,17 +107,20 @@ import java.time.LocalTime
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-class DashboardViewModel(repository: DiecastRepository, dex: DexRepository) : ViewModel() {
+class DashboardViewModel(repository: DiecastRepository, dex: DexRepository, queue: ScanQueue) : ViewModel() {
     /** Null while loading; follows every change to the collection and the Dex. */
     val dashboard: StateFlow<Dashboard?> = combine(repository.observeDashboard(), dex.observeCatalogs(), Dashboard::build)
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Photos in the bulk scan queue not saved yet (web: `pending_scans`). */
+    val queued: StateFlow<Int> = queue.observeCount().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                DashboardViewModel(app.container.repository, app.container.dex)
+                with(app.container) { DashboardViewModel(repository, dex, scanQueue) }
             }
         }
     }
@@ -132,9 +137,11 @@ fun DashboardScreen(
     onOpenCatalog: (Long) -> Unit,
     onCollection: (CollectionLink) -> Unit,
     onAdd: () -> Unit,
+    onBulkScan: () -> Unit,
     viewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory),
 ) {
     val dashboard by viewModel.dashboard.collectAsStateWithLifecycle()
+    val queued by viewModel.queued.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -156,12 +163,17 @@ fun DashboardScreen(
             data == null -> Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-            data.isEmpty -> EmptyGarage(onAdd, Modifier.padding(padding))
+            data.isEmpty && queued == 0 -> EmptyGarage(onAdd, Modifier.padding(padding))
             else -> LazyColumn(
                 Modifier.padding(padding).fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                if (queued > 0) item(key = "queue") { QueueBanner(queued, onBulkScan) }
+                if (data.isEmpty) {
+                    item(key = "empty") { EmptyGarage(onAdd) }
+                    return@LazyColumn
+                }
                 item(key = "value") { ValueHero(data, onOpen, onCollection) }
                 item(key = "stats") { StatTiles(data.stats, onCollection) }
                 if (data.dex.isNotEmpty()) {

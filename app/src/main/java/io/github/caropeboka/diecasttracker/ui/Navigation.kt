@@ -23,6 +23,7 @@ import io.github.caropeboka.diecasttracker.ui.dex.DexMatchesScreen
 import io.github.caropeboka.diecasttracker.ui.dex.DexScreen
 import io.github.caropeboka.diecasttracker.ui.edit.DiecastEditScreen
 import io.github.caropeboka.diecasttracker.ui.explore.ExploreScreen
+import io.github.caropeboka.diecasttracker.ui.scan.BulkScanScreen
 import io.github.caropeboka.diecasttracker.ui.settings.AiSettingsScreen
 import kotlinx.serialization.Serializable
 
@@ -36,10 +37,20 @@ data object DashboardRoute
 /**
  * [id] 0 = a new diecast, which starts in [status] (a status key; owned by default). [scan] opens the camera
  * straight away so the AI can fill the form (the collection's Scan button). [dexItem] fills a new diecast from
- * that dex entry and links it.
+ * that dex entry and links it. [scanItem] starts from a bulk scan queue photo and what the AI read from it.
  */
 @Serializable
-data class DiecastEditRoute(val id: Long = 0, val status: String? = null, val scan: Boolean = false, val dexItem: Long = 0)
+data class DiecastEditRoute(
+    val id: Long = 0,
+    val status: String? = null,
+    val scan: Boolean = false,
+    val dexItem: Long = 0,
+    val scanItem: Long = 0,
+)
+
+/** "Scan massal". */
+@Serializable
+data object BulkScanRoute
 
 @Serializable
 data object DataRoute
@@ -109,6 +120,7 @@ fun DiecastTrackerRoot() {
                     onScan = dropUnlessResumed { nav.navigate(DiecastEditRoute(scan = true)) },
                     onOpen = openDiecast,
                     onData = dropUnlessResumed { nav.navigate(DataRoute) },
+                    onBulkScan = dropUnlessResumed { nav.navigate(BulkScanRoute) },
                     onAiSettings = { fromScan -> nav.navigate(AiSettingsRoute(fromScan)) },
                 )
             }
@@ -119,6 +131,15 @@ fun DiecastTrackerRoot() {
                     onOpenCatalog = openCatalog,
                     onCollection = openCollection,
                     onAdd = dropUnlessResumed { nav.navigate(DiecastEditRoute()) },
+                    onBulkScan = dropUnlessResumed { nav.navigate(BulkScanRoute) },
+                )
+            }
+            composable<BulkScanRoute> {
+                BulkScanScreen(
+                    onBack = dropUnlessResumed { nav.popBackStack() },
+                    onOpen = openDiecast,
+                    onComplete = { item -> nav.navigate(DiecastEditRoute(scanItem = item)) },
+                    onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
                 )
             }
             composable<ExploreRoute> {

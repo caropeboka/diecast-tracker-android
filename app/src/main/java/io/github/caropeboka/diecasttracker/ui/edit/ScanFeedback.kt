@@ -73,7 +73,7 @@ private fun Notice(@DrawableRes icon: Int, color: Color, content: @Composable Co
 
 /** Diecasts in the collection that look like the scanned one (web: `match-list.tsx`). */
 @Composable
-private fun Matches(matches: List<DiecastListItem>, onOpen: (Long) -> Unit) {
+internal fun Matches(matches: List<DiecastListItem>, onOpen: (Long) -> Unit) {
     val shape = MaterialTheme.shapes.medium
     Column(
         Modifier

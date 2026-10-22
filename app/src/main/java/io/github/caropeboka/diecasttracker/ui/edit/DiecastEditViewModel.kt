@@ -35,6 +35,7 @@ import io.github.caropeboka.diecasttracker.data.dex.DexRef
 import io.github.caropeboka.diecasttracker.data.dex.DexRepository
 import io.github.caropeboka.diecasttracker.data.dex.LinkAction
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
+import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.ui.DiecastEditRoute
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -91,9 +92,16 @@ class DiecastEditViewModel(
     private val matcher: CollectionMatcher,
     private val prefs: UserPrefs,
     private val dex: DexRepository,
+    private val queue: ScanQueue,
 ) : ViewModel() {
     private val route = saved.toRoute<DiecastEditRoute>()
     val isNew = route.id == 0L
+
+    /** Started from a bulk scan photo: saving takes it out of the queue. */
+    val fromQueue = isNew && route.scanItem != 0L
+
+    /** The queue's photo: the form may drop it, but never deletes it (it stays in the queue). */
+    private val queuePhoto: String? get() = saved.get<String>(QUEUE_PHOTO)
 
     var form by mutableStateOf(DiecastForm())
         private set
@@ -174,7 +182,7 @@ class DiecastEditViewModel(
             val status = DiecastStatus.fromKey(route.status) ?: DiecastStatus.Owned
             reset(DiecastForm.new(status, LocalDate.now()))
             if (route.dexItem != 0L) startFromDex(route.dexItem)
-            startAtRecentPlace()
+            if (fromQueue) startFromQueue(route.scanItem) else startAtRecentPlace()
         }
         sightingDraft = saved.get<String>(SIGHTING)?.let { Json.decodeFromString<SightingDraft>(it) }
 
@@ -206,6 +214,34 @@ class DiecastEditViewModel(
         viewModelScope.launch {
             val here = prefs.recentPlace() ?: return@launch
             if (form == original) reset(form.at(here))
+        }
+    }
+
+    /**
+     * From the bulk scan queue (web: `scan_item`): its photo and what the AI read, marked ✦, with its look-alikes —
+     * the starting point, so leaving without changes asks nothing.
+     */
+    private fun startFromQueue(itemId: Long) {
+        viewModelScope.launch {
+            val item = queue.item(itemId)
+            if (item == null) {
+                messages.show("Foto ini sudah tidak ada di antrean.")
+                _events.send(EditEvent.Close)
+                return@launch
+            }
+            saved[QUEUE_PHOTO] = item.photoFile
+
+            val here = prefs.recentPlace()
+            val start = form.let { if (here != null) it.at(here) else it }.copy(photos = listOf(item.photoFile))
+            val fields = item.fields
+            if (fields == null) {
+                reset(start)
+                return@launch
+            }
+            val (next, filled) = start.withScan(fields)
+            reset(next)
+            markAiFields(filled)
+            scan = ScanState.Done(fields.confidence, matcher.find(fields), dex.suggestFor(next.toEntity(null)))
         }
     }
 
@@ -384,7 +420,7 @@ class DiecastEditViewModel(
     fun removePhoto(index: Int) {
         val name = form.photos.getOrNull(index) ?: return
         // A photo added in this session goes right away; a saved one only when the change is saved.
-        if (photos.isPending(name)) photos.delete(name)
+        if (photos.isPending(name) && name != queuePhoto) photos.delete(name)
         update { it.copy(photos = it.photos - name) }
         selectedPhoto = 0
     }
@@ -514,6 +550,7 @@ class DiecastEditViewModel(
                 val entity = form.toEntity(existing)
                 val sighting = if (isNew && form.status == DiecastStatus.Spotted) form.firstSighting(today) else null
                 repository.save(entity, form.photos, form.tags, sighting)
+                if (fromQueue) queue.saved(route.scanItem)
 
                 messages.show(
                     when {
@@ -555,9 +592,9 @@ class DiecastEditViewModel(
         }
     }
 
-    /** Leaves without saving: photos added in this session are thrown away. */
+    /** Leaves without saving: photos added in this session are thrown away (not the queue's: it stays queued). */
     fun discard() {
-        form.photos.filter(photos::isPending).forEach(photos::delete)
+        form.photos.filter { photos.isPending(it) && it != queuePhoto }.forEach(photos::delete)
         original = form
         viewModelScope.launch { _events.send(EditEvent.Close) }
     }
@@ -585,12 +622,13 @@ class DiecastEditViewModel(
         private const val AI_FIELDS = "ai_fields"
         private const val SIGHTING = "sighting_draft"
         private const val SIGHTING_CAMERA = "sighting_camera_file"
+        private const val QUEUE_PHOTO = "queue_photo"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 with(app.container) {
-                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher, prefs, dex)
+                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher, prefs, dex, scanQueue)
                 }
             }
         }
