@@ -10,13 +10,14 @@ real-world fixtures.
 
 ## Status (2026-10-21)
 
-Phases 1–4, 5a and 5b are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5
-order, agreed with the user: 5a backup/export → 5b dashboard → **5c market value from screenshots** → bulk scan →
-in-store check. **5c is done**, version 0.5.2, tried on the emulator; not yet committed (the user runs all git commands
-themselves; give them the commands and the commit messages). Next: **bulk scan** (discuss it with the user first).
-Covered by tests only, as there is no real Gemini key on the emulator: the scan's Dex suggestion, the checklist
-screenshots read by the AI (including its review sheet), and a price check's successful reading (its result card,
-"Pakai" and the error path were tried on the emulator with a restored check and a dummy key).
+Phases 1–4 and 5a–5c are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5
+order, agreed with the user: 5a backup/export → 5b dashboard → 5c market value from screenshots → **5d bulk scan** →
+in-store check. **5d is done**, version 0.5.3, tried on the emulator; not yet committed (the user runs all git commands
+themselves; give them the commands and the commit messages). Next: **in-store check** (discuss it with the user first),
+the last part of phase 5. Covered by tests only, as there is no real Gemini key on the emulator: the scan's Dex
+suggestion, the checklist screenshots read by the AI (including its review sheet), a price check's successful reading,
+and a bulk scan photo the AI read successfully (its review card, "Simpan" and "Simpan semua"); the queue, the
+background reading with its error path, "Isi manual", the back-to-back camera and "Buang" were tried on the emulator.
 
 Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand/rarity/tag, 7 sorts, layout and
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
@@ -71,6 +72,14 @@ fair range, cheapest/dearest, suggested price (median to Rp 500), accuracy with 
 against the median; "Pakai Rp X sebagai harga pasaran" saves it at once (source "price_check", hint under the field);
 older checks (5 in view) and delete. Screenshots are not kept (the user's choice), only what was read. Price checks
 travel in phone backups. Room schema v4 (`price_checks`, with migration).
+
+Phase 5d delivered: "Scan massal" (⋮ menu in Koleksi; a banner in Koleksi and Garasi while the queue holds photos) —
+many photos from the gallery or a back-to-back camera (it reopens after each shot until Back), one diecast each; the
+AI reads them one by one **in the background** (WorkManager, also with the app closed; waits out quota/busy/no
+connection; Jeda/Lanjutkan); review cards with confidence, "Mirip koleksimu" and its matches, quick fields (name,
+brand, number, series, rarity, price), Simpan / Lengkap (the full form, prefilled) / Buang, failed ones Coba lagi /
+Isi manual; shared fields (save as Dimiliki/Wishlist/Ditemui, date, place with the map, storage, tags); "Simpan semua
+yang yakin". Room schema v5 (`scan_items`, with migration).
 
 ## Build, test, run
 
@@ -213,6 +222,23 @@ travel in phone backups. Room schema v4 (`price_checks`, with migration).
   the value didn't change. The panel has its own view model (`viewModel(key = "price-check-<id>")`); picked screenshot
   URIs live in its saved state and are decoded (2400 px) only when the check runs. Backups carry them as
   `price_checks` per record. `PriceAnalyzerTest` / `PriceCheckTest` port the web's tests.
+- Bulk scan: `data/scan/ScanQueue` + `ScanWork` (unique work `bulk-scan`, `KEEP`, network required, linear back-off
+  from 60 s). The worker reads the oldest pending item in a loop; `AiRetryLaterException` (quota/busy) and the new
+  `AiOfflineException` (no connection, thrown by `GeminiClient` instead of a plain `AiException`) leave it pending and
+  return `retry`; other errors mark it failed with the reason. Paused (`UserPrefs.bulkScanPaused`) or no key: the
+  worker ends at once. The app starts it at launch and whenever the key becomes set (`scanner.enabled` collected in
+  `DiecastTrackerApp`), and the screen after adding/retrying/resuming. `ScanWork.observe` shows reading / waiting
+  (with `nextScheduleTimeMillis` as a countdown) / queued.
+- A queued photo stays a **pending** photo (`photos-tmp`) until its diecast is saved: `PhotoStore.housekeeping` takes
+  a `waiting` set (the queue's files) that it neither promotes nor prunes. `ScanFields` is `@Serializable` and stored
+  as JSON in `scan_items.fields`. Saving builds a `DiecastForm` with `ui/scan/queuedForm` (AI reading → quick edits →
+  shared defaults; Ditemui gets its first sighting from place/date/price, Wishlist's price is the target price) so the
+  rules and validation are the form's; `isSafe` = done, named, not low confidence, no matches.
+- "Lengkap"/"Isi manual" open `DiecastEditRoute(scanItem = id)`: the form starts from the photo and the reading (as its
+  baseline, so leaving asks nothing), never deletes the queue's photo (`queue_photo` in its saved state), hides
+  "Simpan & tambah lagi", and removes the queue entry after saving. `ScanQueueTest` ports the web's bulk tests.
+- The emulator was killed for low memory once during this phase (Claude Code reaps background shells under memory
+  pressure): ask before starting it again, and keep builds lean while it runs.
 
 ## Decisions (made with the user)
 
@@ -230,6 +256,7 @@ travel in phone backups. Room schema v4 (`price_checks`, with migration).
 | AI provider | Gemini only for now (phase 2); Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
 | Existing data | Import the web app's **backup zip** (see below). |
+| Bulk scan (phase 5d) | Reads in the background with WorkManager (not only while the screen is open, unlike the web). Camera is back-to-back. Entry: ⋮ menu in Koleksi, banners in Koleksi and Garasi. Saved items leave the queue (no "saved" history). |
 | Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. |
 | Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |
 | Devices | Phone: Android 16 (API 36), USB debugging not set up yet. Emulator AVD `Medium_Phone_API_37.0` (API 37, WHPX acceleration works). |
