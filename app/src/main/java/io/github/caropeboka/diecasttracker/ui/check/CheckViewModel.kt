@@ -28,6 +28,8 @@ import io.github.caropeboka.diecasttracker.data.scan.StoreCheck
 import io.github.caropeboka.diecasttracker.data.scan.StoreCheckException
 import io.github.caropeboka.diecasttracker.data.scan.Verdict
 import io.github.caropeboka.diecasttracker.data.scan.verdictOf
+import io.github.caropeboka.diecasttracker.ui.components.AiProgress
+import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -121,6 +123,11 @@ class CheckViewModel(
         private set
     var checking by mutableStateOf(false)
         private set
+
+    private val log = AiProgressLog("Biasanya 10–30 detik.")
+
+    /** What the running check (or retry) is doing, step by step. */
+    val progress: StateFlow<AiProgress?> = log.state
     var busy by mutableStateOf(emptySet<Long>())
         private set
     var query by mutableStateOf(saved.get<String>(QUERY).orEmpty())
@@ -181,10 +188,13 @@ class CheckViewModel(
             return
         }
         checking = true
+        log.start("Menyiapkan foto")
         viewModelScope.launch {
             try {
                 val photo = withContext(Dispatchers.IO) { photos.addFromCamera(file) }
-                add(result(store.check(photo)))
+                val item = store.check(photo, log::onEvent)
+                log.step("Mencari di koleksimu")
+                add(result(item))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: PhotoException) {
@@ -193,6 +203,7 @@ class CheckViewModel(
                 messages.show("Foto gagal diproses (${e.message ?: e::class.simpleName}).")
             } finally {
                 checking = false
+                log.stop()
             }
         }
     }
@@ -218,13 +229,19 @@ class CheckViewModel(
     }
 
     fun retry(result: CheckResult) = act(result.key) {
-        val item = store.retry(result.checkId)
-        if (item == null) {
-            messages.show("Foto ini sudah tidak ada.")
-        } else {
-            val read = result(item)
-            change(result.key) { it.copy(fields = read.fields, failed = read.failed, error = read.error, matchIds = read.matchIds) }
-            if (read.failed) messages.show(read.error ?: "Masih belum terbaca.")
+        log.start("Menyiapkan foto")
+        try {
+            val item = store.retry(result.checkId, log::onEvent)
+            if (item == null) {
+                messages.show("Foto ini sudah tidak ada.")
+            } else {
+                log.step("Mencari di koleksimu")
+                val read = result(item)
+                change(result.key) { it.copy(fields = read.fields, failed = read.failed, error = read.error, matchIds = read.matchIds) }
+                if (read.failed) messages.show(read.error ?: "Masih belum terbaca.")
+            }
+        } finally {
+            log.stop()
         }
     }
 
