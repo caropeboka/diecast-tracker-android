@@ -24,7 +24,10 @@ launcher icon, screen transitions. Then the **3D garage** (see "3D garage"): G0 
 the dashboard's diecasts grow into their pages, the ＋ menu as a FAB menu) and 0.7.3 (every screen opened by a tap
 grows out of what was tapped, a new "Cek di toko" page, decorations on the black shelf: Room v8; on the phone with the
 two figures placed). **0.8.0**: more free AI providers besides Gemini with automatic switching (see "AI providers");
-covered by tests, not yet tried with real Groq/Mistral/OpenRouter keys. The phone got 0.7.0
+covered by tests, not yet tried with real Groq/Mistral/OpenRouter keys. **0.9.0**: English by default with
+Indonesian and Simplified Chinese, a Settings screen (language, currency with daily rates, date format) and a
+first-run tour (see "Languages, money, dates and the tour"); on the phone since 2026-11-01 (all 8 tour steps and a
+switch to Chinese and back checked; currency and date formats not yet tried there). The phone got 0.7.0
 and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57); the work since 0.5.4 is
 not committed yet. Next: the user adds the other providers' keys and tries a scan with Gemini's quota used up (or
 Gemini switched off); the user tries the garage on the phone (placing,
@@ -408,6 +411,49 @@ The user chose Groq, Mistral, OpenRouter and a free "OpenAI-compatible" slot, sw
   `bearers`); `FakeGemini.vision()` builds the app's `AiVision` for the callers' tests. `AiVisionTest` covers the
   switch, the rests, the request shape, the JSON-mode retry, the model lists and the custom server.
 
+## Languages, money, dates and the tour (0.9.0)
+
+The user wanted the app in English by default, Indonesian and Chinese as well, chosen in Settings, an English README,
+and a guided first run "like a game's". Their choices: follow the phone's language; Simplified Chinese (zh-CN);
+prices in Rupiah, US dollars or yuan, **converted at daily rates** (data stays in Rupiah); a choice of date formats;
+the tour as a spotlight on the real screens, starting with the language.
+
+- Strings: `res/values` is English, `values-in` Indonesian, `values-zh-rCN` Chinese, one `strings_<feature>.xml` per
+  area in each. **Every new string goes into all three files**, and counts are `<plurals>` (lint's `PluralsCandidate`
+  warnings that remain are wordings where a plural changes nothing). Keys are prefixed by area (`dex_`, `garage_`,
+  `tour_`…); shared ones (`save`, `cancel`, `delete`…) are in `strings_common.xml`. The Excel export's column headers
+  stay Indonesian on purpose (`CollectionSheet`: the web's import reads them).
+- Language: `data/locale/AppLanguage.kt`. `AppLocales.set` uses `LocaleManager` on Android 13+ (it recreates the
+  activity itself; `res/xml/locales_config.xml` also lists the app in the phone's per-app language settings); before
+  that a `locale` SharedPreference read by `AppLocales.wrap` in `attachBaseContext` of the app and the activity, then
+  `recreate()`. "Ikuti HP" = no choice; a phone language the app doesn't have shows English. "in" and "id" both mean
+  Indonesian. The phone's own language comes from `AppLocales.phone` (`LocaleManager.systemLocales` on 13+): there
+  even `Resources.getSystem()` carries the app's choice (found on the phone: "Phone language (now Chinese)").
+- Outside composition (view models, repositories, AI errors, price check reasons, import problems) texts come from
+  `Texts` (`container.texts`, `texts(R.string.x, …)`, `texts.plural(…)`); in a composable outside `stringResource`'s
+  reach (tap handlers, semantics) `rememberTexts()`. Enums carry `@StringRes label`. `Texts.everyLanguage()`
+  recognises something written in another language, e.g. a storage location ("Rak putih · baris 3 kolom 2") written
+  before the language changed, so taking a diecast off the shelf still clears it.
+- Money and dates: `util/Format.kt`. `Formats` (Compose state: `locale`, `currency`, `rates`, `dateStyle`) is set
+  from the configuration and `UserPrefs` by `DiecastTrackerApp`/`MainActivity`. `formatMoney`/`formatMoneyCompact`
+  convert from Rupiah; money fields take amounts in the shown currency and store `convertToIdr`. Until there's a rate
+  prices stay in Rupiah (`Formats.shownCurrency`). `data/money/RateSource`: Frankfurter (ECB) first, open.er-api.com
+  as a fallback, rates per USD; refreshed when another currency is in use and the last ones are over 12 h old, kept
+  in `UserPrefs` for offline use; "Perbarui kurs" in Settings forces it. `DateStyle`: like the language, yyyy-MM-dd,
+  dd-MM-yyyy, dd/MM/yyyy, MM/dd/yyyy. Indonesian groups thousands with dots, English and Chinese with commas.
+- Settings (`ui/settings/SettingsScreen.kt`, ⋮ → Pengaturan): language, currency (with the current rates and their
+  source), date format, links to the AI settings and "Data & backup", and "Ulangi tur".
+- Tour (`ui/Tour.kt`): `TourStep` Welcome (with the language chips) → Koleksi tab → ＋ → Garasi → Peta → Dex → ⋮ →
+  Ready (with "Atur AI" when no AI is set up). Pieces register their bounds with `Modifier.tourTarget(LocalTour.current,
+  TourTarget.X)` (tabs and ＋ in `MainNavigation`, ⋮ in `CollectionScreen`); `TourOverlay`, drawn by the root over
+  everything, dims the screen with a hole (`BlendMode.Clear` in an offscreen layer) that glides between targets, a
+  pulsing ring, and a card above or below the target. It swallows taps (a tap on the spot = Next); Back goes a step
+  back. It starts on Koleksi while `UserPrefs.tourDone` is false (finished or skipped sets it); the step is saveable,
+  so a language change on the first step (which recreates the activity) keeps it.
+- Tests: Robolectric tests with Indonesian expectations run with `@Config(…, qualifiers = "in")` and, for number
+  formats, `Formats.locale = Locale.forLanguageTag("id")` (reset in `@After`); `testTexts()` / `TestEnvironment.texts`
+  in `data/TestSupport.kt`. `TextsTest` covers the three languages and `everyLanguage()`.
+
 ## 3D garage (G0 0.6.7–0.6.8, G1 0.7.0)
 
 The user's real furniture from their photos, in 3D, with the owned diecasts on it: left the black carved corner shelf
@@ -504,7 +550,8 @@ each, ~12 cards per lane), right the white case (6 × 10 compartments). Opens fr
 
 | Topic | Decision |
 | --- | --- |
-| Language / UI | Kotlin, Jetpack Compose, Material 3 with the "Garage" dark theme (below). UI text in **Bahasa Indonesia**, money in **Rupiah** (`id-ID`, no decimals). |
+| Language / UI | Kotlin, Jetpack Compose, Material 3 with the "Garage" dark theme (below). UI text in **English** by default, **Bahasa Indonesia** and **Simplified Chinese** too, following the phone unless chosen in Settings (0.9.0; Indonesian only before). Money stored in whole **Rupiah**; shown in Rupiah, USD or CNY at daily rates as chosen. Date format chosen in Settings. |
+| First run (0.9.0) | A spotlight tour on the real screens, language first, Skip/Next, replayable from Settings. |
 | Data | Room (SQLite) on the device. Photos in app-private storage. |
 | Network | OkHttp + kotlinx.serialization (Gemini, OpenAI-style AI providers, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
 | Location / map | Fused Location Provider; **MapLibre** with **OpenFreeMap**'s dark style (OpenStreetMap data, no API key). osmdroid was dropped: archived Nov 2024. Nominatim for place names. |
