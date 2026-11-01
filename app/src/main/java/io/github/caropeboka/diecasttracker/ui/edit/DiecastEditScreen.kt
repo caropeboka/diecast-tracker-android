@@ -12,12 +12,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -27,6 +29,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -34,6 +37,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +54,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -75,6 +81,7 @@ import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.SCALES
 import io.github.caropeboka.diecasttracker.data.ValueSource
 import io.github.caropeboka.diecasttracker.data.ai.MAX_SCAN_PHOTOS
+import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.DateInput
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
@@ -88,8 +95,13 @@ import io.github.caropeboka.diecasttracker.ui.components.TagInput
 import io.github.caropeboka.diecasttracker.ui.components.TextInput
 import io.github.caropeboka.diecasttracker.ui.components.icon
 import io.github.caropeboka.diecasttracker.ui.places.LocationField
+import io.github.caropeboka.diecasttracker.ui.sharedDiecastPage
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import java.time.LocalDate
+import kotlinx.coroutines.delay
+
+/** How long a saved diecast may take to load before the page shows a spinner. */
+private const val SLOW_LOAD = 400L
 
 private val SECTION_TITLES = mapOf(
     DiecastStatus.Owned to "Kepemilikan & harga",
@@ -143,6 +155,8 @@ fun DiecastEditScreen(
     BackHandler(enabled = viewModel.isDirty) { confirmDiscard = true }
 
     Scaffold(
+        // Opened from the collection, the page grows out of the diecast's card.
+        modifier = if (viewModel.isNew) Modifier else sharedDiecastPage(viewModel.diecastId),
         topBar = {
             TopAppBar(
                 title = { Heading(if (viewModel.isNew) "Tambah diecast" else "Edit diecast") },
@@ -165,8 +179,17 @@ fun DiecastEditScreen(
         snackbarHost = { SnackbarHost(LocalSnackbar.current) },
     ) { padding ->
         if (viewModel.loading) {
-            Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+            // Usually read within a few frames, while the page is still coming in: a spinner only if it takes longer,
+            // so it doesn't flash on every opening.
+            var slow by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                delay(SLOW_LOAD)
+                slow = true
+            }
+            if (slow) {
+                Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
             return@Scaffold
         }
@@ -283,12 +306,14 @@ private fun StatusToggle(value: DiecastStatus, onChange: (DiecastStatus) -> Unit
 private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, onCamera: () -> Unit, onOpen: (Long) -> Unit) {
     val photos = viewModel.form.photos
     val selected = viewModel.selectedPhoto.coerceAtMost((photos.size - 1).coerceAtLeast(0))
-    val busy = viewModel.processingPhotos > 0 || viewModel.scanning
+    val busy = viewModel.processingPhotos > 0 || viewModel.scanning || viewModel.makingStudio
     val full = photos.size >= MAX_PHOTOS
 
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS)) {
         viewModel.addFromGallery(it)
     }
+
+    viewModel.cardCrop?.let { CardCropDialog(it, viewModel) }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(
@@ -313,7 +338,7 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
                     Text("Foto diecast kamu", style = MaterialTheme.typography.titleSmall)
                     Text(
                         if (scanEnabled) {
-                            "Foto depan kartunya agar AI bisa membaca nama, seri, dan nomornya. Bisa tambah foto belakang kartu juga — foto pertama jadi cover."
+                            "Foto semua sisinya dulu, lalu ketuk Pindai dengan AI: makin banyak sisi, makin akurat bacaannya. Foto pertama jadi cover."
                         } else {
                             "Foto depan kartunya. Bisa tambah foto belakang kartu atau mobilnya juga — foto pertama jadi cover."
                         },
@@ -324,17 +349,43 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
                 }
             }
 
+            if (current != null && !busy && current !in viewModel.studioPhotos) {
+                // A pill on the photo itself: it works on the one in view.
+                Row(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
+                        .clip(CircleShape)
+                        .background(Garage.Background.copy(alpha = 0.78f))
+                        .border(1.dp, Garage.Border, CircleShape)
+                        .clickable(role = Role.Button, onClickLabel = "Buat foto studio dari foto ini") { viewModel.makeStudioPhoto(selected) }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(painterResource(R.drawable.ic_auto_fix_high), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(18.dp))
+                    Text("Foto studio", style = MaterialTheme.typography.labelLarge, color = Garage.Foreground)
+                }
+            }
+
             if (busy) {
+                val scanSteps by viewModel.scanProgress.collectAsStateWithLifecycle()
+                val studioSteps by viewModel.studioProgress.collectAsStateWithLifecycle()
                 Column(
-                    Modifier.fillMaxSize().background(Garage.Background.copy(alpha = 0.8f)),
+                    Modifier.fillMaxSize().background(Garage.Background.copy(alpha = 0.85f)).padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
                 ) {
-                    CircularProgressIndicator()
-                    Text(
-                        if (viewModel.processingPhotos > 0) "Memproses ${viewModel.processingPhotos} foto…" else "AI sedang membaca foto…",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                    val steps = scanSteps ?: studioSteps
+                    if (viewModel.processingPhotos == 0 && steps != null) {
+                        AiProgressView(steps, framed = false)
+                    } else {
+                        CircularProgressIndicator()
+                        Text(
+                            if (viewModel.processingPhotos > 0) "Memproses ${viewModel.processingPhotos} foto…" else "AI sedang membaca foto…",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
                 }
             }
         }
@@ -391,14 +442,26 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
             }
         }
 
+        // A new diecast: every side first, then the AI reads them all at once.
+        val beforeScan = scanEnabled && viewModel.isNew && viewModel.scan !is ScanState.Done
+        if (beforeScan) {
+            ShotGuide(viewModel.form.packaging, photos.count { it !in viewModel.studioPhotos }) { packaging ->
+                viewModel.update { it.copy(packaging = packaging) }
+                viewModel.fieldEdited(Field.Packaging)
+            }
+        }
+        val readyToScan = beforeScan && photos.isNotEmpty()
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = onCamera,
-                enabled = !busy && !full,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.weight(1f),
-            ) {
-                IconLabel(R.drawable.ic_photo_camera, if (photos.isEmpty()) "Ambil foto" else "Foto lagi")
+            val cameraLabel = if (photos.isEmpty()) "Ambil foto" else "Foto lagi"
+            if (readyToScan) {
+                OutlinedButton(onClick = onCamera, enabled = !busy && !full, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
+                    IconLabel(R.drawable.ic_photo_camera, cameraLabel)
+                }
+            } else {
+                Button(onClick = onCamera, enabled = !busy && !full, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
+                    IconLabel(R.drawable.ic_photo_camera, cameraLabel)
+                }
             }
             OutlinedButton(
                 onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
@@ -411,14 +474,21 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
         }
 
         if (scanEnabled && photos.isNotEmpty()) {
-            OutlinedButton(
-                onClick = viewModel::runScan,
-                enabled = !busy,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                val label = if (viewModel.scan == ScanState.Idle) "Isi otomatis dengan AI" else "Baca ulang dengan AI"
-                IconLabel(R.drawable.ic_sparkles, if (photos.size > 1) "$label (${minOf(photos.size, MAX_SCAN_PHOTOS)} foto)" else label)
+            val label = if (viewModel.scan == ScanState.Idle) "Pindai dengan AI" else "Pindai ulang dengan AI"
+            val count = minOf(photos.size, MAX_SCAN_PHOTOS)
+            val text = when {
+                photos.size > MAX_SCAN_PHOTOS -> "$label ($count foto pertama)"
+                photos.size > 1 -> "$label ($count foto)"
+                else -> label
+            }
+            if (readyToScan) {
+                Button(onClick = viewModel::runScan, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    IconLabel(R.drawable.ic_sparkles, text)
+                }
+            } else {
+                OutlinedButton(onClick = viewModel::runScan, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+                    IconLabel(R.drawable.ic_sparkles, text)
+                }
             }
         }
 
@@ -427,6 +497,54 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
         }
 
         ScanFeedback(viewModel.scan, onOpen)
+    }
+}
+
+/**
+ * The sides worth a photo before the AI reads them (a blister's back has the series and number, a loose car's base
+ * the name and year); ticked off as photos come in. Picking the packaging here sets the form's field.
+ */
+@Composable
+private fun ShotGuide(packaging: Packaging, photoCount: Int, onPackaging: (Packaging) -> Unit) {
+    val sides = if (packaging == Packaging.Loose) listOf("Depan", "Samping", "Atas", "Bawah (sasis)") else listOf("Depan", "Belakang")
+    val shape = MaterialTheme.shapes.medium
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Garage.Card, shape)
+            .border(1.dp, Garage.Border, shape)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            "Foto semua sisinya dulu, baru pindai. Makin lengkap, makin akurat.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Garage.MutedForeground,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(Packaging.Carded to "Blister", Packaging.Boxed to "Box", Packaging.Loose to "Loose").forEach { (option, label) ->
+                FilterChip(
+                    selected = option == packaging,
+                    onClick = { onPackaging(option) },
+                    label = { Text(label) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Garage.Brand.copy(alpha = 0.18f)),
+                )
+            }
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            sides.forEachIndexed { index, side ->
+                val taken = index < photoCount
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (taken) {
+                        Icon(painterResource(R.drawable.ic_check_circle), contentDescription = "Sudah difoto", tint = Garage.Gain, modifier = Modifier.size(16.dp))
+                    } else {
+                        Box(Modifier.size(16.dp).padding(1.dp).border(1.5.dp, Garage.MutedForeground, CircleShape))
+                    }
+                    Text(side, style = MaterialTheme.typography.bodyMedium, color = if (taken) Garage.Foreground else Garage.MutedForeground)
+                }
+            }
+        }
     }
 }
 

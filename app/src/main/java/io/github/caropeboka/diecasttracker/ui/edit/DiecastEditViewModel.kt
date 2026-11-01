@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -20,6 +21,7 @@ import io.github.caropeboka.diecasttracker.data.CollectionMatcher
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MAX_PHOTOS
+import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.PhotoException
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.UserPrefs
@@ -27,6 +29,7 @@ import io.github.caropeboka.diecasttracker.data.ai.AiException
 import io.github.caropeboka.diecasttracker.data.ai.AiRetryLaterException
 import io.github.caropeboka.diecasttracker.data.ai.Confidence
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
+import io.github.caropeboka.diecasttracker.data.ai.MAX_SCAN_PHOTOS
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
@@ -36,9 +39,16 @@ import io.github.caropeboka.diecasttracker.data.dex.DexRepository
 import io.github.caropeboka.diecasttracker.data.dex.LinkAction
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
+import io.github.caropeboka.diecasttracker.data.studio.CardCutout
+import io.github.caropeboka.diecasttracker.data.studio.StudioException
+import io.github.caropeboka.diecasttracker.data.studio.StudioPhoto
+import io.github.caropeboka.diecasttracker.data.studio.StudioStep
 import io.github.caropeboka.diecasttracker.ui.DiecastEditRoute
+import io.github.caropeboka.diecasttracker.ui.components.AiProgress
+import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -76,8 +86,11 @@ sealed interface ScanState {
 
     data object Scanning : ScanState
 
-    /** [matches]: diecasts already in the collection that look like this one; [dex]: the entry it most likely is (new diecasts). */
-    data class Done(val confidence: Confidence, val matches: List<DiecastListItem>, val dex: DexRef? = null) : ScanState
+    /**
+     * [matches]: diecasts already in the collection that look like this one; [dex]: the entry it most likely is (new
+     * diecasts); [by]: the AI that read it when it wasn't Gemini.
+     */
+    data class Done(val confidence: Confidence, val matches: List<DiecastListItem>, val dex: DexRef? = null, val by: String? = null) : ScanState
 
     /** [retryLater]: the AI is busy or out of quota, nothing is wrong with the photo. */
     data class Failed(val message: String, val retryLater: Boolean) : ScanState
@@ -93,9 +106,11 @@ class DiecastEditViewModel(
     private val prefs: UserPrefs,
     private val dex: DexRepository,
     private val queue: ScanQueue,
+    private val studio: StudioPhoto,
 ) : ViewModel() {
     private val route = saved.toRoute<DiecastEditRoute>()
-    val isNew = route.id == 0L
+    val diecastId = route.id
+    val isNew = diecastId == 0L
 
     /** Started from a bulk scan or store check photo: saving takes it out of the queue. */
     val fromQueue = isNew && route.scanItem != 0L
@@ -145,6 +160,26 @@ class DiecastEditViewModel(
         private set
 
     val scanning get() = scan == ScanState.Scanning
+
+    private val scanLog = AiProgressLog("Biasanya 10–30 detik.")
+
+    /** What the running scan is doing, step by step. */
+    val scanProgress: StateFlow<AiProgress?> = scanLog.state
+
+    var makingStudio by mutableStateOf(false)
+        private set
+
+    /** Studio photos made in this session: copies of another photo, so they don't count as a side of the diecast. */
+    var studioPhotos by mutableStateOf(saved.get<List<String>>(STUDIO_PHOTOS).orEmpty().toSet())
+        private set
+
+    private val studioLog = AiProgressLog("Diproses di HP. Biasanya beberapa detik.")
+    val studioProgress: StateFlow<AiProgress?> = studioLog.state
+
+    /** The corner editor of a card or box's studio photo; null while closed. */
+    var cardCrop by mutableStateOf<CardCrop?>(null)
+        private set
+    private var cardCropJob: Job? = null
 
     /** Edit: the diecast's dex entry or suggestions; changed right away, apart from the form. */
     var dexLink by mutableStateOf<DexLinkState?>(null)
@@ -241,7 +276,7 @@ class DiecastEditViewModel(
             val (next, filled) = start.withScan(fields)
             reset(next)
             markAiFields(filled)
-            scan = ScanState.Done(fields.confidence, matcher.find(fields), dex.suggestFor(next.toEntity(null)))
+            scan = ScanState.Done(fields.confidence, matcher.find(fields), dex.suggestFor(next.toEntity(null)), fields.readBy)
         }
     }
 
@@ -276,20 +311,25 @@ class DiecastEditViewModel(
 
     /** Lets the AI read the photos and fill the form, and looks for look-alikes already in the collection. */
     fun runScan() {
-        if (scanning || form.photos.isEmpty()) return
+        if (scanning || makingStudio || form.photos.isEmpty()) return
 
         scan = ScanState.Scanning
+        scanLog.start("Menyiapkan ${minOf(form.photos.size, MAX_SCAN_PHOTOS)} foto")
         viewModelScope.launch {
             scan = try {
-                val fields = scanner.scan(form.photos)
+                // The AI reads the first few: the sides themselves before their studio copies.
+                val (copies, sides) = form.photos.partition { it in studioPhotos }
+                val fields = scanner.scan(sides + copies, scanLog::onEvent)
                 val (next, filled) = form.withScan(fields)
                 replaceForm(next)
                 markAiFields(filled)
                 errors = errors - filled
+                scanLog.step(if (isNew) "Mencocokkan dengan koleksi dan Dex" else "Mencocokkan dengan koleksi")
                 ScanState.Done(
                     fields.confidence,
                     matcher.find(fields).filter { it.id != existing?.id },
                     if (isNew) dex.suggestFor(next.toEntity(null)) else null,
+                    fields.readBy,
                 )
             } catch (e: CancellationException) {
                 throw e
@@ -297,6 +337,8 @@ class DiecastEditViewModel(
                 ScanState.Failed(e.message.orEmpty(), retryLater = e is AiRetryLaterException)
             } catch (e: Exception) {
                 ScanState.Failed("Scan gagal (${e.message ?: e::class.simpleName}). Isi manual dulu atau coba lagi.", retryLater = false)
+            } finally {
+                scanLog.stop()
             }
         }
     }
@@ -371,11 +413,16 @@ class DiecastEditViewModel(
         return uri
     }
 
+    /**
+     * A photo taken. A new diecast gets every side shot before the AI reads them, so the camera opens again for
+     * the next side until the collector backs out (or the photos are full).
+     */
     fun onCameraResult(success: Boolean) {
         val file = saved.get<String>(CAMERA)?.let(::File) ?: return
         saved[CAMERA] = null
         if (success && file.length() > 0) {
             addPhotos(listOf { photos.addFromCamera(file) })
+            if (isNew && form.photos.size + processingPhotos < MAX_PHOTOS) _events.trySend(EditEvent.OpenCamera)
         } else {
             file.delete()
         }
@@ -393,7 +440,6 @@ class DiecastEditViewModel(
         val todo = loads.take(room)
         if (todo.isEmpty()) return
 
-        val firstPhotos = form.photos.isEmpty() && processingPhotos == 0
         processingPhotos += todo.size
         viewModelScope.launch {
             for (load in todo) {
@@ -411,9 +457,6 @@ class DiecastEditViewModel(
                     processingPhotos--
                 }
             }
-
-            // First photo(s) of a new diecast: let the AI fill the form straight away.
-            if (firstPhotos && isNew && form.photos.isNotEmpty() && scanner.isEnabled()) runScan()
         }
     }
 
@@ -429,6 +472,157 @@ class DiecastEditViewModel(
         val name = form.photos.getOrNull(index) ?: return
         update { it.copy(photos = listOf(name) + (it.photos - name)) }
         selectedPhoto = 0
+    }
+
+    /**
+     * "Foto studio": the diecast on white as the new cover; the photo itself stays. A card or box goes by its corners
+     * (the corner editor: the background remover takes a card's printed picture for the subject at times), a loose
+     * car is cut out by the background remover.
+     */
+    fun makeStudioPhoto(index: Int) {
+        val name = form.photos.getOrNull(index) ?: return
+        if (makingStudio || scanning || processingPhotos > 0 || cardCrop != null) return
+        if (form.photos.size >= MAX_PHOTOS) {
+            photoError = "Foto sudah $MAX_PHOTOS. Hapus satu dulu untuk membuat foto studio."
+            return
+        }
+
+        photoError = null
+        if (form.packaging == Packaging.Loose) cutOut(name) else openCardCrop(name)
+    }
+
+    private fun cutOut(name: String) = makeStudio("Menyiapkan foto") {
+        studio.make(name) { step ->
+            when (step) {
+                is StudioStep.Downloading -> if (step.fraction == null) {
+                    studioLog.step("Mengunduh pemisah latar (sekali saja)")
+                } else {
+                    studioLog.progress(step.fraction)
+                }
+                StudioStep.Cutting -> studioLog.step("Memisahkan diecast dari latar")
+                StudioStep.Composing -> studioLog.step("Meluruskan dan menaruh di latar putih")
+            }
+        }
+    }
+
+    private fun openCardCrop(name: String) {
+        cardCrop = CardCrop(name, rounded = form.packaging == Packaging.Carded)
+        cardCropJob = viewModelScope.launch {
+            try {
+                val image = studio.load(name)
+                cardCrop = cardCrop?.copy(image = image, corners = CardCrop.startCorners(image))
+                val guess = studio.guessCorners(image)
+                cardCrop = cardCrop?.let { crop ->
+                    if (guess != null && !crop.moved) {
+                        crop.copy(corners = CardCrop.corners(guess), guessing = false, guessed = true)
+                    } else {
+                        crop.copy(guessing = false)
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                cardCrop = null
+                photoError = "Foto gagal dibuka (${e.message ?: e::class.simpleName})."
+            }
+        }
+    }
+
+    /** A corner dragged to [to] (the photo's pixels), kept on the photo. */
+    fun moveCorner(index: Int, to: Offset) {
+        val crop = cardCrop ?: return
+        val image = crop.image ?: return
+        val point = Offset(to.x.coerceIn(0f, image.width.toFloat()), to.y.coerceIn(0f, image.height.toFloat()))
+        cardCrop = crop.copy(corners = crop.corners.toMutableList().apply { set(index, point) }, moved = true)
+    }
+
+    fun closeCardCrop() {
+        cardCropJob?.cancel()
+        cardCrop = null
+    }
+
+    /** From the corner editor: a loose car after all, cut out by the background remover. */
+    fun cutOutInstead() {
+        val name = cardCrop?.photo ?: return
+        closeCardCrop()
+        cutOut(name)
+    }
+
+    /** Step two: the card squared up, the hang hole erased if found, to tap the rest of the background away. */
+    fun continueCardCrop() {
+        val crop = cardCrop ?: return
+        val image = crop.image ?: return
+        val corners = crop.quad ?: return
+        if (crop.working) return
+        cardCropJob?.cancel()
+        cardCrop = crop.copy(working = true, guessing = false)
+        cardCropJob = viewModelScope.launch {
+            try {
+                val cutout = studio.cutCard(image, corners, crop.rounded)
+                cardCrop = cardCrop?.copy(working = false, cutout = cutout, preview = cutout.image, lastTap = null)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                cardCrop = cardCrop?.copy(working = false)
+                photoError = e.message
+            }
+        }
+    }
+
+    /** Step two: a tap on the card at [x], [y] (its pixels) erases the background there, or brings an erased part back. */
+    fun tapCard(x: Int, y: Int) = changeCard { cutout -> cutout.tap(x, y) }
+
+    fun undoCard() = changeCard { cutout ->
+        cutout.undo()
+        null
+    }
+
+    private fun changeCard(change: (CardCutout) -> CardCutout.Tap?) {
+        val crop = cardCrop ?: return
+        val cutout = crop.cutout ?: return
+        if (crop.working) return
+        cardCrop = crop.copy(working = true)
+        viewModelScope.launch {
+            val tap = withContext(Dispatchers.Default) { change(cutout) }
+            cardCrop = cardCrop?.takeIf { it.cutout === cutout }?.copy(working = false, preview = cutout.image, lastTap = tap)
+        }
+    }
+
+    fun backToCorners() {
+        cardCrop = cardCrop?.takeIf { !it.working }?.copy(cutout = null, preview = null, lastTap = null)
+    }
+
+    fun finishCardCrop() {
+        val crop = cardCrop ?: return
+        val cutout = crop.cutout ?: return
+        if (crop.working) return
+        closeCardCrop()
+        makeStudio("Menaruh kartu di latar putih") { studio.makeCard(cutout) }
+    }
+
+    /** Makes a studio photo with [make], its steps shown from [first]; it becomes the cover. */
+    private fun makeStudio(first: String, make: suspend () -> String) {
+        makingStudio = true
+        studioLog.start(first)
+        viewModelScope.launch {
+            try {
+                val made = make()
+                studioPhotos = studioPhotos + made
+                saved[STUDIO_PHOTOS] = ArrayList(studioPhotos)
+                update { it.copy(photos = listOf(made) + it.photos) }
+                selectedPhoto = 0
+                messages.show("Foto studio jadi cover. Foto aslinya tetap ada.")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: StudioException) {
+                photoError = e.message
+            } catch (e: Exception) {
+                photoError = "Foto studio gagal dibuat (${e.message ?: e::class.simpleName})."
+            } finally {
+                makingStudio = false
+                studioLog.stop()
+            }
+        }
     }
 
     // Sightings ("Catatan temuan"): saved right away, apart from the form (web: `SightingController`)
@@ -535,7 +729,7 @@ class DiecastEditViewModel(
     // Saving
 
     fun save(addAnother: Boolean) {
-        if (saving || processingPhotos > 0 || loading || scanning) return
+        if (saving || processingPhotos > 0 || loading || scanning || makingStudio) return
 
         val today = LocalDate.now()
         errors = form.validate(today)
@@ -612,6 +806,8 @@ class DiecastEditViewModel(
         photoError = null
         scan = ScanState.Idle
         markAiFields(emptySet())
+        studioPhotos = emptySet()
+        saved[STUDIO_PHOTOS] = null
     }
 
     companion object {
@@ -623,12 +819,13 @@ class DiecastEditViewModel(
         private const val SIGHTING = "sighting_draft"
         private const val SIGHTING_CAMERA = "sighting_camera_file"
         private const val QUEUE_PHOTO = "queue_photo"
+        private const val STUDIO_PHOTOS = "studio_photos"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 with(app.container) {
-                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher, prefs, dex, scanQueue)
+                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher, prefs, dex, scanQueue, studio)
                 }
             }
         }

@@ -71,6 +71,19 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
         }
     }
 
+    /** A saved or pending photo, decoded to work on (the studio photo). From its bytes: Robolectric can't decode a file. */
+    fun bitmap(name: String, maxEdge: Int = MAX_EDGE): Bitmap =
+        decode(ImageDecoder.createSource(ByteBuffer.wrap(file(name).readBytes())), maxEdge)
+
+    /** Stores an image made in the app (the studio photo) as a pending photo; returns its name. */
+    fun addBitmap(image: Bitmap): String {
+        val name = newName()
+        File(tmpDir.apply { mkdirs() }, name).outputStream().use {
+            image.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it)
+        }
+        return name
+    }
+
     /** Moves a pending photo into permanent storage. */
     fun promote(name: String): String {
         val source = File(tmpDir, name)
@@ -136,13 +149,7 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
         dir.listFiles()?.filter { it.name !in referenced && it.lastModified() < cutoff }?.forEach(File::delete)
     }
 
-    private fun normalize(source: ImageDecoder.Source): String {
-        val name = newName()
-        File(tmpDir.apply { mkdirs() }, name).outputStream().use {
-            decode(source, MAX_EDGE).compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it)
-        }
-        return name
-    }
+    private fun normalize(source: ImageDecoder.Source): String = addBitmap(decode(source, MAX_EDGE))
 
     private fun jpeg(image: Bitmap): ByteArray =
         ByteArrayOutputStream().also { image.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it) }.toByteArray()
