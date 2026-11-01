@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanSource
+import io.github.caropeboka.diecasttracker.data.shelf.Shelf
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -94,6 +95,15 @@ class MigrationTest {
                 if (version >= 5) assertEquals(ScanSource.Bulk, db.scanItems().get(99)?.source)
                 assertEquals(if (version >= 5) 2 else 1, db.scanItems().observeBulkCount().first())
                 assertEquals(ScanItemStatus.Pending, db.scanItems().get(queued)?.status)
+
+                db.shelves().put(ShelfSlotEntity(1, Shelf.Case, 12))
+                assertEquals(Shelf.Case, db.diecasts().observeShelf().first().single().slot?.shelf)
+                db.diecasts().delete(1)
+                assertEquals(emptyList<ShelfSlotEntity>(), db.shelves().all())
+
+                val figure = db.decorations().insert(DecorationEntity(name = "Figur", photo = "a.png", heightMm = 110, tier = 2, position = 800, createdAt = 8))
+                db.decorations().move(figure, 1, 450)
+                assertEquals(450, db.decorations().observe().first().single().position)
             } finally {
                 db.close()
                 context.deleteDatabase(name)
@@ -102,6 +112,6 @@ class MigrationTest {
     }
 
     private companion object {
-        const val LATEST = 6
+        const val LATEST = 8
     }
 }

@@ -14,3 +14,6 @@
 /signing.properties
 *.jks
 *.keystore
+
+# Trademarked artwork for the personal build only (the code falls back without it)
+/app/src/main/assets/brand/

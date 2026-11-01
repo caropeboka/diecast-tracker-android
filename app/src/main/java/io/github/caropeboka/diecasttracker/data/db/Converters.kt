@@ -13,6 +13,7 @@ import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanSource
+import io.github.caropeboka.diecasttracker.data.shelf.Shelf
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 
@@ -44,6 +45,10 @@ class Converters {
     @TypeConverter fun matchToKey(value: CatalogMatch?): String? = value?.key
 
     @TypeConverter fun matchFromKey(key: String?): CatalogMatch? = CatalogMatch.fromKey(key)
+
+    @TypeConverter fun shelfToKey(value: Shelf): String = value.key
+
+    @TypeConverter fun shelfFromKey(key: String): Shelf = Shelf.fromKey(key) ?: Shelf.Corner
 
     @TypeConverter fun dateToText(value: LocalDate?): String? = value?.toString()
 

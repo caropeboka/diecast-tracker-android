@@ -7,7 +7,9 @@ import androidx.room.Query
 import androidx.room.RawQuery
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.Upsert
 import androidx.sqlite.db.SupportSQLiteQuery
+import io.github.caropeboka.diecasttracker.data.shelf.Shelf
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -48,6 +50,16 @@ interface DiecastDao {
         """,
     )
     fun observeDashboard(): Flow<List<DashboardRow>>
+
+    @Query(
+        """
+        SELECT d.id, d.name, d.packaging, d.scale,
+            (SELECT p.file_name FROM diecast_photos p WHERE p.diecast_id = d.id ORDER BY p.position, p.id LIMIT 1) AS cover_file,
+            s.shelf, s.spot, s.position
+        FROM diecasts d LEFT JOIN shelf_slots s ON s.diecast_id = d.id WHERE d.status = 'owned' ORDER BY d.id
+        """,
+    )
+    fun observeShelf(): Flow<List<ShelfRow>>
 
     /** Everything, for a backup. */
     @Transaction
@@ -222,6 +234,62 @@ interface ScanItemDao {
 
     @Query("SELECT photo_file FROM scan_items")
     suspend fun allPhotoFiles(): List<String>
+}
+
+/** Where the 3D garage's diecasts stand (see [io.github.caropeboka.diecasttracker.data.shelf.ShelfRepository]). */
+@Dao
+interface ShelfDao {
+    @Query("SELECT * FROM shelf_slots WHERE diecast_id = :id")
+    suspend fun get(id: Long): ShelfSlotEntity?
+
+    /** A lane's cards from the bottom, a tier's diecasts from the back wall round, what's in a compartment. */
+    @Query("SELECT * FROM shelf_slots WHERE shelf = :shelf AND spot = :spot ORDER BY position, diecast_id")
+    suspend fun at(shelf: Shelf, spot: Int): List<ShelfSlotEntity>
+
+    /** Everything, for a backup. */
+    @Query("SELECT * FROM shelf_slots ORDER BY diecast_id")
+    suspend fun all(): List<ShelfSlotEntity>
+
+    @Upsert
+    suspend fun put(slot: ShelfSlotEntity)
+
+    @Query("DELETE FROM shelf_slots WHERE diecast_id = :id")
+    suspend fun clear(id: Long)
+
+    @Query("SELECT storage_location FROM diecasts WHERE id = :id")
+    suspend fun storageLocation(id: Long): String?
+
+    @Query("UPDATE diecasts SET storage_location = :location, updated_at = :now WHERE id = :id")
+    suspend fun setStorageLocation(id: Long, location: String?, now: Long)
+}
+
+/** The 3D garage's decorations. */
+@Dao
+interface DecorationDao {
+    @Query("SELECT * FROM decorations ORDER BY id")
+    fun observe(): Flow<List<DecorationEntity>>
+
+    /** Everything, for a backup. */
+    @Query("SELECT * FROM decorations ORDER BY id")
+    suspend fun all(): List<DecorationEntity>
+
+    @Query("SELECT * FROM decorations WHERE id = :id")
+    suspend fun get(id: Long): DecorationEntity?
+
+    @Insert
+    suspend fun insert(decoration: DecorationEntity): Long
+
+    @Update
+    suspend fun update(decoration: DecorationEntity)
+
+    @Query("UPDATE decorations SET tier = :tier, position = :position WHERE id = :id")
+    suspend fun move(id: Long, tier: Int, position: Int)
+
+    @Query("DELETE FROM decorations WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("DELETE FROM decorations")
+    suspend fun deleteAll()
 }
 
 /** Places: where things were spotted and bought (web: `PlaceLookup`, `ExploreController`), and the OpenStreetMap cache. */

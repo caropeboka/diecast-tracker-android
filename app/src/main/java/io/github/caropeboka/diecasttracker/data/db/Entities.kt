@@ -21,6 +21,7 @@ import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanSource
+import io.github.caropeboka.diecasttracker.data.shelf.Shelf
 import java.time.LocalDate
 
 /**
@@ -307,6 +308,63 @@ data class DashboardRow(
     /** Epoch millis. */
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "has_tags") val hasTags: Boolean,
+)
+
+/** An owned diecast as the 3D garage shows it: where it stands, its scale for the size of a box. */
+data class ShelfRow(
+    val id: Long,
+    val name: String,
+    val packaging: Packaging,
+    val scale: String?,
+    @ColumnInfo(name = "cover_file") val coverFile: String?,
+    @ColumnInfo(name = "shelf") val shelfKey: String?,
+    val spot: Int?,
+    val position: Int?,
+) {
+    /** Null while it waits in the tray. */
+    val slot: ShelfSlotEntity? get() = Shelf.fromKey(shelfKey)?.let { ShelfSlotEntity(id, it, spot ?: 0, position ?: 0) }
+}
+
+/**
+ * Where an owned diecast stands in the 3D garage; without one it waits in the tray. [spot] is the board lane (left
+ * to right across both boards), the black shelf's tier (lowest first) or the case's compartment (row by row from
+ * the top left). [position] orders a lane's cards from the bottom, and is the angle along a tier in tenths of a
+ * degree (0 along the back wall, 900 along the left one).
+ */
+@Entity(
+    tableName = "shelf_slots",
+    foreignKeys = [
+        ForeignKey(
+            entity = DiecastEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["diecast_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("shelf", "spot")],
+)
+data class ShelfSlotEntity(
+    @PrimaryKey @ColumnInfo(name = "diecast_id") val diecastId: Long,
+    val shelf: Shelf,
+    val spot: Int,
+    val position: Int = 0,
+)
+
+/**
+ * A decoration on the black shelf in the 3D garage (a figure, an ornament): not a diecast, so not in the collection,
+ * its numbers or the Dex. [photo] is its cut-out (see [io.github.caropeboka.diecasttracker.data.decor.DecorStore]),
+ * drawn [heightMm] tall. [tier] and [position] as a diecast's on that shelf ([ShelfSlotEntity]).
+ */
+@Entity(tableName = "decorations")
+data class DecorationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val photo: String,
+    @ColumnInfo(name = "height_mm") val heightMm: Int,
+    val tier: Int,
+    val position: Int,
+    /** Epoch millis. */
+    @ColumnInfo(name = "created_at") val createdAt: Long,
 )
 
 /**

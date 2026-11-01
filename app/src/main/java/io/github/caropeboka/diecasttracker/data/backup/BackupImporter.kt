@@ -5,8 +5,15 @@ import android.net.Uri
 import androidx.room.withTransaction
 import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
+import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
+import io.github.caropeboka.diecasttracker.data.db.DecorationEntity
+import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
+import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
+import io.github.caropeboka.diecasttracker.data.decor.DecorStore
+import io.github.caropeboka.diecasttracker.data.shelf.Shelf
+import io.github.caropeboka.diecasttracker.data.shelf.ShelfLayout
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +51,8 @@ sealed interface ImportState {
  * adds to it. Everything happens in one transaction: a failed import leaves the collection as it was.
  *
  * A phone backup also holds the Dex ([DexBackup]): the diecasts keep their links, and "replace" swaps the own dexes
- * too. Wiki lists are shared reference data: the phone's own years are kept and reused.
+ * too. Wiki lists are shared reference data: the phone's own years are kept and reused. Its decorations for the 3D
+ * garage ([DecorBackup]) come back as well; "replace" swaps them.
  */
 class BackupImporter(
     private val context: Context,
@@ -129,6 +137,15 @@ class BackupImporter(
                 .also { if (it == null) skipped.add(0, "Data Dex di backup ini rusak, jadi Dex tidak ikut dipulihkan.") }
         }
 
+        val decor = zip.getEntry(DecorBackup.ENTRY)?.let { entry ->
+            entry.takeIf { it.size <= MAX_MANIFEST_BYTES }
+                ?.let { DecorBackup.decode(zip.getInputStream(it).bufferedReader().use { reader -> reader.readText() }) }
+                .also { if (it == null) skipped.add(0, "Data hiasan garasi di backup ini rusak, jadi tidak ikut dipulihkan.") }
+        }
+        val decorStore = DecorStore(root)
+        val decorFiles = mutableListOf<String>()
+        val replacedDecor = mutableListOf<String>()
+
         val dao = db.diecasts()
         val sightingDao = db.sightings()
         val dexDao = db.dex()
@@ -152,6 +169,28 @@ class BackupImporter(
 
                 val itemIds = dex?.let { restorer.restore(zip, it.catalogs) }.orEmpty()
 
+                if (decor != null) {
+                    if (replace) {
+                        replacedDecor += db.decorations().all().map { it.photo }
+                        db.decorations().deleteAll()
+                    }
+                    decor.decorations.forEach { item ->
+                        if (item.tier !in 0..2 || !DecorBackup.PHOTO_ENTRY.matches(item.photo)) return@forEach
+                        val entry = zip.getEntry(item.photo)?.takeIf { it.size in 0..DecorBackup.MAX_PHOTO_BYTES } ?: return@forEach
+                        val photo = decorStore.import(zip.getInputStream(entry).use { it.readBytes() }).also { decorFiles += it }
+                        db.decorations().insert(
+                            DecorationEntity(
+                                name = item.name,
+                                photo = photo,
+                                heightMm = item.heightMm,
+                                tier = item.tier,
+                                position = item.position,
+                                createdAt = item.createdAt,
+                            ),
+                        )
+                    }
+                }
+
                 valid.forEachIndexed { i, record ->
                     onProgress(i, valid.size)
 
@@ -170,6 +209,7 @@ class BackupImporter(
                     record.createdAt?.let { dao.setTimestamps(id, it, record.updatedAt ?: it) }
 
                     record.priceChecks.forEach { db.priceChecks().insert(it.copy(diecastId = id)) }
+                    record.shelfSlot?.let { restoreSlot(id, diecast, it) }
                     record.sightings.forEach { sighting ->
                         val photo = sighting.photo?.let { extractPhoto(zip, it) }?.also { created += it }
                         val createdAt = sighting.entity.createdAt.takeIf { it > 0 } ?: System.currentTimeMillis()
@@ -181,15 +221,37 @@ class BackupImporter(
         } catch (e: Throwable) {
             created.forEach(photos::delete)
             restorer.written.forEach(File::delete)
+            decorFiles.forEach(decorStore::delete)
             throw e
         }
 
         created.filter(photos::isPending).forEach(photos::promote)
         replacedFiles.forEach(photos::delete)
         replacedDexes.forEach { File(root, "dex/$it").deleteRecursively() }
+        replacedDecor.forEach(decorStore::delete)
         if (dex != null) onDexRestored()
 
         return ImportResult(valid.size, skipped, manifest.exportedOn, dexes = dex?.catalogs?.size ?: 0)
+    }
+
+    /**
+     * Back where it stood in the 3D garage, as long as it is owned, fits there and, when merging, the place is free:
+     * a compartment holds one, a full lane takes no more, and a card at the same height puts it on top.
+     */
+    private suspend fun restoreSlot(id: Long, diecast: DiecastEntity, slot: ShelfSlotEntity) {
+        if (diecast.status != DiecastStatus.Owned || !ShelfLayout.fits(slot.shelf, diecast.packaging, diecast.scale)) return
+        val shelves = db.shelves()
+        val there = shelves.at(slot.shelf, slot.spot)
+        val position = when (slot.shelf) {
+            Shelf.Case -> if (there.isEmpty()) 0 else return
+            Shelf.Boards -> when {
+                there.size >= ShelfLayout.LANE_CARDS -> return
+                there.any { it.position == slot.position } -> there.maxOf { it.position } + 1
+                else -> slot.position
+            }
+            Shelf.Corner -> slot.position
+        }
+        shelves.put(slot.copy(diecastId = id, position = position))
     }
 
     /** Copies one photo out of the zip as a pending photo; null if it is missing, too big or not a JPEG. */

@@ -13,10 +13,13 @@ import io.github.caropeboka.diecasttracker.data.ValueSource
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
+import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
+import io.github.caropeboka.diecasttracker.data.shelf.Shelf
+import io.github.caropeboka.diecasttracker.data.shelf.ShelfLayout
 import io.github.caropeboka.diecasttracker.util.groupThousands
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -29,6 +32,7 @@ import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import java.math.BigDecimal
@@ -48,8 +52,8 @@ class BackupException(message: String) : Exception(message)
  *
  * Backups made on the phone add keys the web's restore ignores (it keeps only the fields it validates): the market
  * value's source, timestamps, the Dex link as `dex_item` / `dex_match` (see [DexBackup]) and the price checks
- * (`price_checks`, what was read from the screenshots). The link is never `catalog_item_id`, which the web would check
- * against its own Dex.
+ * (`price_checks`, what was read from the screenshots) and where it stands in the 3D garage (`shelf_slot`). The link is
+ * never `catalog_item_id`, which the web would check against its own Dex.
  */
 object WebBackupFormat {
     const val FORMAT = "diecast-tracker-backup"
@@ -89,6 +93,7 @@ object WebBackupFormat {
         photos: List<String>,
         sightingPhoto: (SightingEntity) -> String?,
         priceChecks: List<PriceCheckEntity> = emptyList(),
+        shelfSlot: ShelfSlotEntity? = null,
     ): JsonObject =
         buildJsonObject {
             val diecast = details.diecast
@@ -122,6 +127,16 @@ object WebBackupFormat {
             put("updated_at", diecast.updatedAt.takeIf { it > 0 }?.let(::timestamp))
             put("dex_item", diecast.catalogItemId)
             put("dex_match", diecast.catalogMatch?.key)
+            put(
+                "shelf_slot",
+                shelfSlot?.let { slot ->
+                    buildJsonObject {
+                        put("shelf", slot.shelf.key)
+                        put("spot", slot.spot)
+                        put("position", slot.position)
+                    }
+                } ?: JsonNull,
+            )
 
             putJsonArray("tags") { details.orderedTags.forEach { add(it.name) } }
             putJsonArray("photos") { photos.forEach { add(it) } }
@@ -175,6 +190,14 @@ object WebBackupFormat {
         )
     }.getOrNull()
 
+    /** Where a diecast of a phone backup stood in the 3D garage, for no diecast yet; null when it can't be read. */
+    private fun parseShelfSlot(element: JsonElement?): ShelfSlotEntity? {
+        val json = element as? JsonObject ?: return null
+        val shelf = Shelf.fromKey((json["shelf"] as? JsonPrimitive)?.contentOrNull) ?: return null
+        val spot = (json["spot"] as? JsonPrimitive)?.intOrNull?.takeIf { it in 0 until ShelfLayout.spots(shelf) } ?: return null
+        return ShelfSlotEntity(0, shelf, spot, (json["position"] as? JsonPrimitive)?.intOrNull ?: 0)
+    }
+
     private val PRICE_JSON = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -202,6 +225,8 @@ object WebBackupFormat {
             val updatedAt: Long? = null,
             /** Phone backups: for no diecast yet. */
             val priceChecks: List<PriceCheckEntity> = emptyList(),
+            /** Phone backups: where it stood in the 3D garage, for no diecast yet. */
+            val shelfSlot: ShelfSlotEntity? = null,
         ) : Record
 
         data class Invalid(val reason: String) : Record
@@ -286,6 +311,7 @@ object WebBackupFormat {
             createdAt = fields.extra("created_at")?.let(::parseTimestamp),
             updatedAt = fields.extra("updated_at")?.let(::parseTimestamp),
             priceChecks = (fields.json["price_checks"] as? JsonArray).orEmpty().mapNotNull(::parsePriceCheck),
+            shelfSlot = parseShelfSlot(fields.json["shelf_slot"]),
         )
     }
 

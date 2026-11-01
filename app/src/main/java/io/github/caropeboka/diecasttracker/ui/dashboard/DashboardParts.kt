@@ -21,6 +21,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import io.github.caropeboka.diecasttracker.data.dashboard.YearColumn
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
+import io.github.caropeboka.diecasttracker.ui.sharedDiecastCard
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import kotlin.math.ceil
 
@@ -177,16 +180,32 @@ internal fun Thumb(item: DiecastListItem, size: Dp = 44.dp) {
     DiecastPhoto(item.coverFile, null, Modifier.size(size).clip(RoundedCornerShape(6.dp)), placeholderSize = size / 2)
 }
 
+/**
+ * Opens a diecast from wherever it shows on the page. A diecast can show in several places at once (the collage, the
+ * most valuable, the newest), but only one may grow into its page and take it back: the one tapped, remembered.
+ */
+@Stable
+internal class Opener(private val opened: MutableState<String?>, private val onOpen: (Long) -> Unit) {
+    fun open(place: String, id: Long) {
+        opened.value = "$place-$id"
+        onOpen(id)
+    }
+
+    /** On the card or row of [id] in [place]: its page grows out of it if it was the one tapped. */
+    @Composable
+    fun card(place: String, id: Long): Modifier = if (opened.value == "$place-$id") sharedDiecastCard(id) else Modifier
+}
+
 /** Diecasts with a photo, name, brand · series and something at the end (web: `MiniList`). */
 @Composable
-internal fun MiniList(items: List<DiecastListItem>, onOpen: (Long) -> Unit, detail: @Composable (DiecastListItem) -> Unit) {
+internal fun MiniList(items: List<DiecastListItem>, place: String, opener: Opener, detail: @Composable (DiecastListItem) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         items.forEach { item ->
             Row(
-                Modifier
+                opener.card(place, item.id)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(6.dp))
-                    .clickable { onOpen(item.id) }
+                    .clickable { opener.open(place, item.id) }
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -41,6 +41,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -94,6 +95,7 @@ import io.github.caropeboka.diecasttracker.ui.components.SubHeading
 import io.github.caropeboka.diecasttracker.ui.dex.DexLegend
 import io.github.caropeboka.diecasttracker.ui.dex.DexMeter
 import io.github.caropeboka.diecasttracker.ui.scan.QueueBanner
+import io.github.caropeboka.diecasttracker.ui.sharedGarage
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import io.github.caropeboka.diecasttracker.util.formatRupiah
 import io.github.caropeboka.diecasttracker.util.formatRupiahCompact
@@ -138,10 +140,13 @@ fun DashboardScreen(
     onCollection: (CollectionLink) -> Unit,
     onAdd: () -> Unit,
     onBulkScan: () -> Unit,
+    onShelves: () -> Unit,
     viewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory),
 ) {
     val dashboard by viewModel.dashboard.collectAsStateWithLifecycle()
     val queued by viewModel.queued.collectAsStateWithLifecycle()
+    val opened = rememberSaveable { mutableStateOf<String?>(null) }
+    val opener = remember(onOpen) { Opener(opened, onOpen) }
 
     Scaffold(
         topBar = {
@@ -152,6 +157,7 @@ fun DashboardScreen(
                         Heading("Garasi kamu")
                     }
                 },
+                actions = { ShelvesButton(onShelves) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -174,13 +180,13 @@ fun DashboardScreen(
                     item(key = "empty") { EmptyGarage(onAdd) }
                     return@LazyColumn
                 }
-                item(key = "value") { ValueHero(data, onOpen, onCollection) }
+                item(key = "value") { ValueHero(data, opener, onCollection) }
                 item(key = "stats") { StatTiles(data.stats, onCollection) }
                 if (data.dex.isNotEmpty()) {
                     item(key = "dex") { DexPanel(data.dex, onOpenCatalog, onAll = { onTab(MainTab.Dex) }) }
                 }
                 item(key = "valuable") {
-                    MostValuable(data.mostValuable, onOpen, onAll = { onCollection(OWNED.copy(sort = CollectionSort.Value)) })
+                    MostValuable(data.mostValuable, opener, onAll = { onCollection(OWNED.copy(sort = CollectionSort.Value)) })
                 }
                 item(key = "completeness") { CompletenessPanel(data.completeness, data.stats.uniqueItems, onCollection) }
                 item(key = "brands") { BrandPanel(data.brands, data.stats.totalItems, onCollection) }
@@ -195,11 +201,11 @@ fun DashboardScreen(
                     item(key = "scales") { ScalePanel(data.scales) }
                 }
                 if (data.topGainers.isNotEmpty()) {
-                    item(key = "gainers") { GainersPanel(data.topGainers, onOpen) }
+                    item(key = "gainers") { GainersPanel(data.topGainers, opener) }
                 }
                 if (data.wishlist.isNotEmpty()) {
                     item(key = "wishlist") {
-                        WishlistPanel(data.wishlist, data.stats.wishlist, onOpen, onAll = {
+                        WishlistPanel(data.wishlist, data.stats.wishlist, opener, onAll = {
                             onCollection(CollectionLink(status = DiecastStatus.Wishlist))
                         })
                     }
@@ -212,12 +218,32 @@ fun DashboardScreen(
                 }
                 items(data.recent.chunked(2), key = { row -> "recent-${row.first().id}" }) { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        row.forEach { DiecastCard(it, onClick = { onOpen(it.id) }, modifier = Modifier.weight(1f)) }
+                        row.forEach { DiecastCard(it, onClick = { opener.open("recent", it.id) }, modifier = opener.card("recent", it.id).weight(1f)) }
                         if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }
         }
+    }
+}
+
+/** Opens the 3D garage, which grows out of it. */
+@Composable
+private fun ShelvesButton(onClick: () -> Unit) {
+    val shape = RoundedCornerShape(50)
+    Row(
+        sharedGarage(page = false)
+            .padding(end = 8.dp)
+            .clip(shape)
+            .background(Garage.Muted)
+            .border(1.dp, Garage.Border, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(painterResource(R.drawable.ic_grid_view), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(18.dp))
+        Text("Rak 3D", style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -255,7 +281,7 @@ private fun EmptyGarage(onAdd: () -> Unit, modifier: Modifier = Modifier) {
 
 /** The collection's market value, the gain against what it cost, and a collage of the best pieces. */
 @Composable
-private fun ValueHero(data: Dashboard, onOpen: (Long) -> Unit, onCollection: (CollectionLink) -> Unit) {
+private fun ValueHero(data: Dashboard, opener: Opener, onCollection: (CollectionLink) -> Unit) {
     val stats = data.stats
 
     Surface(shape = MaterialTheme.shapes.large, color = Garage.Card, border = BorderStroke(1.dp, Garage.Border)) {
@@ -294,7 +320,7 @@ private fun ValueHero(data: Dashboard, onOpen: (Long) -> Unit, onCollection: (Co
                     color = Garage.MutedForeground,
                 )
             }
-            if (data.showcase.isNotEmpty()) Collage(data.showcase, onOpen)
+            if (data.showcase.isNotEmpty()) Collage(data.showcase, opener)
         }
     }
 }
@@ -343,7 +369,7 @@ private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier
  * 6 → 3×2, 3–5 → one row of 3, 2 → side by side, 1 → wide.
  */
 @Composable
-private fun Collage(showcase: List<DiecastListItem>, onOpen: (Long) -> Unit) {
+private fun Collage(showcase: List<DiecastListItem>, opener: Opener) {
     val gap = 4.dp
 
     @Composable
@@ -352,8 +378,9 @@ private fun Collage(showcase: List<DiecastListItem>, onOpen: (Long) -> Unit) {
             item.coverFile,
             item.name,
             modifier
+                .then(opener.card("showcase", item.id))
                 .clip(RoundedCornerShape(6.dp))
-                .clickable { onOpen(item.id) },
+                .clickable { opener.open("showcase", item.id) },
         )
     }
 
@@ -442,7 +469,7 @@ private fun DexPanel(dex: List<CatalogSummary>, onOpenCatalog: (Long) -> Unit, o
 }
 
 @Composable
-private fun MostValuable(items: List<DiecastListItem>, onOpen: (Long) -> Unit, onAll: () -> Unit) {
+private fun MostValuable(items: List<DiecastListItem>, opener: Opener, onAll: () -> Unit) {
     SectionCard("Paling berharga", action = if (items.isNotEmpty()) ({ SeeAll(onAll) }) else null) {
         if (items.isEmpty()) {
             Text(
@@ -456,10 +483,10 @@ private fun MostValuable(items: List<DiecastListItem>, onOpen: (Long) -> Unit, o
         val max = items.first().marketValue?.coerceAtLeast(1L) ?: 1L
         items.forEachIndexed { index, item ->
             Row(
-                Modifier
+                opener.card("valuable", item.id)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(6.dp))
-                    .clickable { onOpen(item.id) }
+                    .clickable { opener.open("valuable", item.id) }
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -665,9 +692,9 @@ private fun YearPanel(years: List<YearColumn>, unknownYears: Int) {
 }
 
 @Composable
-private fun GainersPanel(items: List<DiecastListItem>, onOpen: (Long) -> Unit) {
+private fun GainersPanel(items: List<DiecastListItem>, opener: Opener) {
     SectionCard("Harga paling naik") {
-        MiniList(items, onOpen) { item ->
+        MiniList(items, "gainers", opener) { item ->
             Row(
                 Modifier.semantics(mergeDescendants = true) {
                     contentDescription = "Naik ${formatRupiah((item.marketValue ?: 0L) - (item.purchasePrice ?: 0L))}"
@@ -688,9 +715,9 @@ private fun GainersPanel(items: List<DiecastListItem>, onOpen: (Long) -> Unit) {
 }
 
 @Composable
-private fun WishlistPanel(items: List<DiecastListItem>, count: Int, onOpen: (Long) -> Unit, onAll: () -> Unit) {
+private fun WishlistPanel(items: List<DiecastListItem>, count: Int, opener: Opener, onAll: () -> Unit) {
     SectionCard("Wishlist ($count)", action = { SeeAll(onAll) }) {
-        MiniList(items, onOpen) { item ->
+        MiniList(items, "wishlist", opener) { item ->
             item.targetPrice?.let {
                 Text("≤ ${formatRupiah(it)}", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
             }

@@ -13,6 +13,7 @@ import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
 import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
+import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexCustom
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
@@ -23,6 +24,8 @@ import io.github.caropeboka.diecasttracker.data.price.ListingStatus
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
+import io.github.caropeboka.diecasttracker.data.shelf.Shelf
+import io.github.caropeboka.diecasttracker.data.shelf.ShelfRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -330,6 +333,31 @@ class BackupExporterTest {
             datsun,
         )
         assertEquals("Wishlist", rows.single { it[0] == "Mystery car" }[11])
+    }
+
+    @Test
+    fun `the garage's places come back, unless merging finds them taken`() = runBlocking {
+        seed()
+        val datsun = byName(env, "'71 Datsun 510").diecast.id
+        val skyline = byName(env, "Nissan Skyline GT-R").diecast.id
+        ShelfRepository(env.db).apply(mapOf(datsun to ShelfSlotEntity(datsun, Shelf.Case, 13), skyline to ShelfSlotEntity(skyline, Shelf.Boards, 5, 3)))
+        val file = backup()
+
+        val record = Json.parseToJsonElement(ZipFile(file).use { zip -> zip.getInputStream(zip.getEntry("diecasts.json")).reader().readText() })
+            .jsonObject.getValue("diecasts").jsonArray.map { it.jsonObject }.single { it.string("name") == "'71 Datsun 510" }
+        assertEquals("case", record.getValue("shelf_slot").jsonObject.string("shelf"))
+        assertEquals("Rak putih · baris 3 kolom 2", record.string("storage_location"))
+
+        importer.import(file, replace = false)
+        val restored = other.db.diecasts().observeShelf().first().associateBy { it.name }
+        assertEquals(ShelfSlotEntity(restored.getValue("'71 Datsun 510").id, Shelf.Case, 13), restored.getValue("'71 Datsun 510").slot)
+        assertEquals(Shelf.Boards to 3, restored.getValue("Nissan Skyline GT-R").slot!!.let { it.shelf to it.position })
+
+        // Again into the same phone: the compartment is taken, the card goes on top of its lane.
+        importer.import(file, replace = false)
+        val again = other.db.diecasts().observeShelf().first().filter { it.id !in restored.values.map { row -> row.id } }
+        assertNull(again.single { it.name == "'71 Datsun 510" }.slot)
+        assertEquals(4, again.single { it.name == "Nissan Skyline GT-R" }.slot!!.position)
     }
 
     @Test

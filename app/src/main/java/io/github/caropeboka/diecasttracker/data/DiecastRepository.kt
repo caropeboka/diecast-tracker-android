@@ -10,11 +10,13 @@ import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.MatchCandidate
 import io.github.caropeboka.diecasttracker.data.db.PhotoEntity
 import io.github.caropeboka.diecasttracker.data.db.PurchaseEventRow
+import io.github.caropeboka.diecasttracker.data.db.ShelfRow
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEventRow
 import io.github.caropeboka.diecasttracker.data.db.TagEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
+import io.github.caropeboka.diecasttracker.data.shelf.unshelve
 import io.github.caropeboka.diecasttracker.util.naturalCaseInsensitiveOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -40,6 +42,8 @@ class DiecastRepository(
     fun observeCount(): Flow<Int> = dao.observeCount()
 
     fun observeDashboard(): Flow<List<DashboardRow>> = dao.observeDashboard()
+
+    fun observeShelf(): Flow<List<ShelfRow>> = dao.observeShelf()
 
     fun observePhotoCount(): Flow<Int> = dao.observePhotoCount()
 
@@ -106,6 +110,8 @@ class DiecastRepository(
             rematch = existing == null || existing.identity() != record.identity()
 
             val id = if (existing == null) dao.insert(record) else record.id.also { dao.update(record) }
+            // Sold or no longer had: off the garage's shelves.
+            if (record.status != DiecastStatus.Owned) db.shelves().unshelve(id, now)
 
             if (photoNames != null) {
                 syncPhotos(id, photoNames, toPromote, toDelete)

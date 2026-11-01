@@ -8,7 +8,14 @@ import androidx.core.content.FileProvider
 import androidx.room.withTransaction
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
+import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
+import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
+import io.github.caropeboka.diecasttracker.data.db.DecorationEntity
+import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
+import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
+import io.github.caropeboka.diecasttracker.data.decor.DecorStore
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -159,11 +166,13 @@ class BackupExporter(
     suspend fun writeBackup(out: OutputStream, onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): ExportSummary =
         withContext(Dispatchers.IO) {
             val dexDao = db.dex()
-            val (diecasts, catalogs, priceChecks) = db.withTransaction {
-                Triple(
+            val (diecasts, catalogs, priceChecks, slots, decorations) = db.withTransaction {
+                Snapshot(
                     db.diecasts().allDetails(),
                     dexDao.allCatalogs().map { it to dexDao.items(it.id) },
                     db.priceChecks().all().groupBy { it.diecastId },
+                    db.shelves().all().associateBy { it.diecastId },
+                    db.decorations().all(),
                 )
             }
 
@@ -178,7 +187,7 @@ class BackupExporter(
             val records = diecasts.map { details ->
                 val own = details.orderedPhotos.mapNotNull { photo(it.fileName) }.also { photoCount += it.size }
                 val sightingPhoto = { sighting: SightingEntity -> photo(sighting.photoFile)?.also { sightingPhotoCount++ } }
-                WebBackupFormat.record(details, own, sightingPhoto, priceChecks[details.diecast.id].orEmpty())
+                WebBackupFormat.record(details, own, sightingPhoto, priceChecks[details.diecast.id].orEmpty(), slots[details.diecast.id])
             }
             val dex = catalogs.map { (catalog, items) ->
                 DexBackup.catalog(catalog, items) { item ->
@@ -186,9 +195,14 @@ class BackupExporter(
                 }
             }
 
+            val decor = decorations.mapNotNull { decoration ->
+                add("decor", DecorStore(root).file(decoration.photo))?.let { DecorBackup.item(decoration, it) }
+            }
+
             ZipOutputStream(out.buffered()).use { zip ->
                 zip.deflated(WebBackupFormat.MANIFEST, WebBackupFormat.manifest(records, clock()).toByteArray())
                 zip.deflated(DexBackup.ENTRY, DexBackup.encode(dex).toByteArray())
+                if (decor.isNotEmpty()) zip.deflated(DecorBackup.ENTRY, DecorBackup.encode(decor).toByteArray())
                 zip.putNextEntry(ZipEntry("koleksi.xlsx"))
                 CollectionSheet.write(zip, diecasts)
                 zip.closeEntry()
@@ -229,6 +243,15 @@ class BackupExporter(
             if (it.moveToFirst()) it.getString(0) else null
         }
     }.getOrNull()
+
+    /** Everything a backup holds, read at one moment. */
+    private data class Snapshot(
+        val diecasts: List<DiecastWithDetails>,
+        val catalogs: List<Pair<CatalogEntity, List<CatalogItemEntity>>>,
+        val priceChecks: Map<Long, List<PriceCheckEntity>>,
+        val slots: Map<Long, ShelfSlotEntity>,
+        val decorations: List<DecorationEntity>,
+    )
 
     private class Counting(out: OutputStream) : FilterOutputStream(out) {
         var count = 0L

@@ -24,8 +24,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CatalogItemEntity::class,
         PriceCheckEntity::class,
         ScanItemEntity::class,
+        ShelfSlotEntity::class,
+        DecorationEntity::class,
     ],
-    version = 6,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -41,6 +43,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun priceChecks(): PriceCheckDao
 
     abstract fun scanItems(): ScanItemDao
+
+    abstract fun shelves(): ShelfDao
+
+    abstract fun decorations(): DecorationDao
 
     companion object {
         const val NAME = "diecast-tracker.db"
@@ -117,7 +123,30 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        /** The 3D garage: where each diecast stands, chosen by the collector. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `shelf_slots` (`diecast_id` INTEGER NOT NULL, `shelf` TEXT NOT NULL, " +
+                        "`spot` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`diecast_id`), " +
+                        "FOREIGN KEY(`diecast_id`) REFERENCES `diecasts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_shelf_slots_shelf_spot` ON `shelf_slots` (`shelf`, `spot`)")
+            }
+        }
+
+        /** Decorations in the 3D garage: figures and ornaments on the black shelf. */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `decorations` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL, `photo` TEXT NOT NULL, `height_mm` INTEGER NOT NULL, `tier` INTEGER NOT NULL, " +
+                        "`position` INTEGER NOT NULL, `created_at` INTEGER NOT NULL)",
+                )
+            }
+        }
+
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NAME).addMigrations(*MIGRATIONS).build()

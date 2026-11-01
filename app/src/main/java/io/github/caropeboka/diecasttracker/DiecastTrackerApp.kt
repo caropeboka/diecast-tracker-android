@@ -7,11 +7,16 @@ import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.AiSettings
+import io.github.caropeboka.diecasttracker.data.ai.AiVision
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
+import io.github.caropeboka.diecasttracker.data.ai.OpenAiClient
 import io.github.caropeboka.diecasttracker.data.backup.BackupExporter
 import io.github.caropeboka.diecasttracker.data.backup.BackupImporter
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
+import io.github.caropeboka.diecasttracker.data.decor.DecorMaker
+import io.github.caropeboka.diecasttracker.data.decor.DecorRepository
+import io.github.caropeboka.diecasttracker.data.decor.DecorStore
 import io.github.caropeboka.diecasttracker.data.dex.ChecklistReader
 import io.github.caropeboka.diecasttracker.data.dex.DexCustom
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
@@ -26,6 +31,9 @@ import io.github.caropeboka.diecasttracker.data.price.PriceChecker
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.data.scan.ScanWork
 import io.github.caropeboka.diecasttracker.data.scan.StoreCheck
+import io.github.caropeboka.diecasttracker.data.shelf.ShelfRepository
+import io.github.caropeboka.diecasttracker.data.studio.MlKitCutter
+import io.github.caropeboka.diecasttracker.data.studio.StudioPhoto
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,6 +50,7 @@ class AppContainer(context: Context) {
     val photos = PhotoStore(context)
     val dexMatcher = DexMatcher(database.dex())
     val repository = DiecastRepository(database, photos, dexMatcher = dexMatcher)
+    val shelves = ShelfRepository(database)
     val prefs = UserPrefs(context)
     val backupImporter = BackupImporter(context, database, repository, photos, scope) {
         if (dex.countMissingImages() > 0) DexWork.downloadImages(context, prefs.dexCellular.first())
@@ -52,7 +61,9 @@ class AppContainer(context: Context) {
     val http = OkHttpClient()
     val aiSettings = AiSettings(context)
     val gemini = GeminiClient(http, aiSettings)
-    val scanner = DiecastScanner(aiSettings.gemini, gemini, photos)
+    val openAi = OpenAiClient(http)
+    val vision = AiVision(aiSettings.setup, gemini, openAi, aiSettings)
+    val scanner = DiecastScanner(vision, photos)
     val matcher = CollectionMatcher(repository)
 
     private val userAgent = "DiecastTracker-Android/${versionName(context)} (personal diecast collection tracker)"
@@ -65,10 +76,15 @@ class AppContainer(context: Context) {
     val dexSync = DexSync(database, wiki, dexMatcher, context.filesDir)
     val dex = DexRepository(database, dexMatcher)
     val dexCustom = DexCustom(database, dexMatcher, photos, context.filesDir)
-    val checklist = ChecklistReader(aiSettings.gemini, gemini)
-    val priceChecker = PriceChecker(aiSettings.gemini, gemini, database)
+    val checklist = ChecklistReader(vision)
+    val priceChecker = PriceChecker(vision, database)
     val scanQueue = ScanQueue(database, photos, scanner)
     val storeCheck = StoreCheck(database, photos, scanner, matcher, repository)
+    private val cutter = MlKitCutter(context)
+    val studio = StudioPhoto(photos, cutter)
+    val decorStore = DecorStore(context.filesDir)
+    val decorations = DecorRepository(database, decorStore)
+    val decorMaker = DecorMaker(cutter)
 
     private fun versionName(context: Context): String =
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "1"
@@ -84,6 +100,7 @@ class DiecastTrackerApp : Application() {
         container.scope.launch(Dispatchers.IO) {
             container.storeCheck.prune(before = System.currentTimeMillis() - StoreCheck.KEEP_MS)
             container.repository.housekeeping()
+            container.decorations.housekeeping()
             container.backupExporter.housekeeping()
             container.database.places().pruneCache(before = System.currentTimeMillis() - Nominatim.REVERSE_TTL_MS)
             // Thumbnails left from an earlier sync: carry on when the network allows.
