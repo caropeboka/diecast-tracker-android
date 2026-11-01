@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The wheel as one shape for themed icons: tyre ring, a thin gap, the rim with its windows and the hub's hole cut
+     out (even-odd). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M54,25.5a28.5,28.5 0,1 1,0 57a28.5,28.5 0,1 1,0 -57z M54,33a21,21 0,1 1,0 42a21,21 0,1 1,0 -42z M54,34.5a19.5,19.5 0,1 1,0 39a19.5,19.5 0,1 1,0 -39z M55.53,46.15L57.15,37.8A16.5,16.5 0,0 1,68.43 46L61,50.12A8,8 0,0 0,55.53 46.15Z M61.94,53.03L70.38,51.99A16.5,16.5 0,0 1,66.07 65.25L59.85,59.46A8,8 0,0 0,61.94 53.03Z M57.38,61.25L60.97,68.95A16.5,16.5 0,0 1,47.03 68.95L50.62,61.25A8,8 0,0 0,57.38 61.25Z M48.15,59.46L41.93,65.25A16.5,16.5 0,0 1,37.62 51.99L46.06,53.03A8,8 0,0 0,48.15 59.46Z M47,50.12L39.57,46A16.5,16.5 0,0 1,50.85 37.8L52.47,46.15A8,8 0,0 0,47 50.12Z M54,52.1a1.9,1.9 0,1 1,0 3.8a1.9,1.9 0,1 1,0 -3.8z" />
+</vector>
