@@ -22,8 +22,8 @@ android {
         applicationId = "io.github.caropeboka.diecasttracker"
         minSdk = 29
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.5.4"
+        versionCode = 24
+        versionName = "0.8.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -100,7 +100,9 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.maplibre.android)
     implementation(libs.play.services.location)
+    implementation(libs.mlkit.subject.segmentation)
     implementation(libs.androidx.work.runtime)
+    implementation(libs.sceneview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
