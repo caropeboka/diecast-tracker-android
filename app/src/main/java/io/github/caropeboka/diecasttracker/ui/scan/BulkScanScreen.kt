@@ -420,6 +420,7 @@ private fun QueueCard(
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 fields?.let { Pill(it.confidence.label.substringBefore(" —"), it.confidence.color()) }
                                 if (row.matches.isNotEmpty()) Pill("Mirip koleksimu", Garage.MutedForeground)
+                                fields?.readBy?.let { Pill(it, Garage.MutedForeground) }
                             }
                             TextInput(edits.name ?: fields?.name.orEmpty(), { v -> onEdit { it.copy(name = v) } }, "Nama model")
                         }

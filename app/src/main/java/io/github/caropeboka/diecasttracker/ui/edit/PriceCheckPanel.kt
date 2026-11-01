@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,6 +71,9 @@ import io.github.caropeboka.diecasttracker.data.price.MAX_PRICE_SCREENSHOTS
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceChecker
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
+import io.github.caropeboka.diecasttracker.ui.components.AiProgress
+import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
+import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
@@ -114,6 +116,11 @@ class PriceCheckViewModel(
 
     var analyzing by mutableStateOf(false)
         private set
+
+    private val log = AiProgressLog("Biasanya 20–60 detik, tergantung jumlah screenshot.")
+
+    /** What the running check is doing, step by step. */
+    val progress: StateFlow<AiProgress?> = log.state
     var error by mutableStateOf<String?>(null)
         private set
     var applyingId by mutableStateOf<Long?>(null)
@@ -144,6 +151,7 @@ class PriceCheckViewModel(
 
         analyzing = true
         error = null
+        log.start("Menyiapkan ${uris.size} screenshot")
         viewModelScope.launch {
             try {
                 val images = try {
@@ -153,7 +161,7 @@ class PriceCheckViewModel(
                 } catch (_: Exception) {
                     throw AiException("Screenshot tidak bisa dibuka lagi. Hapus lalu pilih ulang dari galeri.")
                 }
-                checker.check(diecast, images)
+                checker.check(diecast, images, log::onEvent)
                 saved[PICKED] = ArrayList<String>()
                 saved[OPEN] = false
             } catch (e: CancellationException) {
@@ -164,6 +172,7 @@ class PriceCheckViewModel(
                 error = "Gagal membaca screenshot: ${e.message ?: e::class.simpleName}"
             } finally {
                 analyzing = false
+                log.stop()
             }
         }
     }
@@ -228,7 +237,7 @@ fun PriceCheckPanel(diecast: DiecastEntity, onApplied: (DiecastEntity) -> Unit, 
     ) {
         when {
             !enabled -> {
-                Hint("Cek harga memakai AI untuk membaca screenshot marketplace. Isi API key Gemini dulu di Pengaturan AI.")
+                Hint("Cek harga memakai AI untuk membaca screenshot marketplace. Isi API key dulu di Pengaturan AI.")
                 OutlinedButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_sparkles, "Pengaturan AI") }
             }
             open -> Steps(viewModel, diecast)
@@ -340,21 +349,22 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
 
         viewModel.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.Loss) }
 
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
-                onClick = { viewModel.analyze(diecast) },
-                enabled = picked.isNotEmpty() && !viewModel.analyzing,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.weight(1f),
-            ) {
-                if (viewModel.analyzing) {
-                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                    Text("AI membaca ${picked.size} screenshot…", modifier = Modifier.padding(start = 8.dp), maxLines = 1)
-                } else {
+        val progress by viewModel.progress.collectAsStateWithLifecycle()
+        val steps = progress
+        if (steps != null) {
+            AiProgressView(steps)
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { viewModel.analyze(diecast) },
+                    enabled = picked.isNotEmpty() && !viewModel.analyzing,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.weight(1f),
+                ) {
                     IconLabel(R.drawable.ic_sparkles, "Hitung harga pasaran")
                 }
+                TextButton(onClick = { viewModel.setOpen(false) }, enabled = !viewModel.analyzing) { Text("Batal") }
             }
-            TextButton(onClick = { viewModel.setOpen(false) }, enabled = !viewModel.analyzing) { Text("Batal") }
         }
     }
 }

@@ -8,9 +8,6 @@ import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.util.string
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -51,6 +48,8 @@ data class ScanFields(
     val condition: Condition? = null,
     val notes: String? = null,
     val confidence: Confidence = Confidence.Medium,
+    /** The provider that read it when it wasn't Gemini (a fallback may read small print less well). */
+    val readBy: String? = null,
 ) {
     companion object {
         fun from(data: JsonObject, currentYear: Int): ScanFields {
@@ -79,27 +78,24 @@ data class ScanFields(
 
 /** Identifies a diecast from photos of it and returns the form fields it can fill in (web: `DiecastScanner.php`). */
 class DiecastScanner(
-    private val settings: Flow<GeminiSettings>,
-    private val gemini: GeminiClient,
+    private val vision: AiVision,
     private val photos: PhotoStore,
     private val currentYear: () -> Int = { LocalDate.now().year },
 ) {
-    val enabled: Flow<Boolean> = settings.map { it.isEnabled }.distinctUntilChanged()
+    val enabled: Flow<Boolean> = vision.enabled
 
-    suspend fun isEnabled(): Boolean = settings.first().isEnabled
+    suspend fun isEnabled(): Boolean = vision.isEnabled()
 
     /** Reads the first [MAX_SCAN_PHOTOS] photos (file names in the photo store) as one diecast. */
-    suspend fun scan(photoNames: List<String>): ScanFields {
-        val config = settings.first()
-        val key = config.key?.takeIf { config.isEnabled }
-            ?: throw AiException("Scan AI belum aktif. Isi API key di Pengaturan AI.")
+    suspend fun scan(photoNames: List<String>, onEvent: (AiEvent) -> Unit = {}): ScanFields {
+        if (!vision.isEnabled()) throw AiException("Scan AI belum aktif. Isi API key di Pengaturan AI.")
 
         val images = withContext(Dispatchers.IO) {
             photoNames.take(MAX_SCAN_PHOTOS).map { photos.file(it).readBytes() }
         }
-        val data = gemini.extract(key, config.model, images, SYSTEM_PROMPT, instruction(images.size), SCHEMA)
+        val answer = vision.extract(images, SYSTEM_PROMPT, instruction(images.size), SCHEMA, onEvent)
 
-        return ScanFields.from(data, currentYear())
+        return ScanFields.from(answer.data, currentYear()).copy(readBy = answer.by.takeIf { answer.provider != AiProvider.Gemini })
     }
 
     private fun instruction(photoCount: Int) =

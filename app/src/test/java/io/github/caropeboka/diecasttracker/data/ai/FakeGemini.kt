@@ -1,5 +1,7 @@
 package io.github.caropeboka.diecasttracker.data.ai
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -18,17 +20,19 @@ import okio.Buffer
 import java.io.IOException
 
 /**
- * Answers Gemini requests from a table instead of the network (the web tests' `Http::fake`), and records what
- * was asked: "models" for the model list, otherwise the model a generateContent call went to.
+ * Answers AI requests from a table instead of the network (the web tests' `Http::fake`), and records what was asked.
+ * Gemini's targets are "models" for the model list, otherwise the model a generateContent call went to; the
+ * OpenAI-style providers' are host + path ("api.groq.com/openai/v1/chat/completions"). Several replies for one
+ * target are given in turn, the last one again and again.
  */
 class FakeGemini : Interceptor {
     sealed interface Reply {
-        data class Json(val code: Int, val body: String) : Reply
+        data class Json(val code: Int, val body: String, val headers: Map<String, String> = emptyMap()) : Reply
 
         data class Fail(val error: IOException) : Reply
     }
 
-    private val routes = linkedMapOf<String, Reply>()
+    private val routes = linkedMapOf<String, ArrayDeque<Reply>>()
     private var fallback: Reply = Reply.Json(599, """{"error":"no route"}""")
 
     /** Called before each request is answered, e.g. to move a fake clock. */
@@ -38,9 +42,12 @@ class FakeGemini : Interceptor {
     val keys = mutableListOf<String?>()
     val bodies = mutableListOf<String>()
 
+    /** Every request's `Authorization` header (the OpenAI-style providers' key). */
+    val bearers = mutableListOf<String?>()
+
     val client: OkHttpClient = OkHttpClient.Builder().addInterceptor(this).build()
 
-    fun on(target: String, reply: Reply) = apply { routes[target] = reply }
+    fun on(target: String, vararg replies: Reply) = apply { routes[target] = ArrayDeque(replies.toList()) }
 
     fun on(target: String, code: Int, body: String = "{}") = on(target, Reply.Json(code, body))
 
@@ -50,19 +57,32 @@ class FakeGemini : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        val target = request.url.encodedPath.substringAfter("/v1beta/models").trimStart('/').substringBefore(':').ifEmpty { "models" }
+        val path = request.url.encodedPath
+        val target = if ("/v1beta/models" in path) {
+            path.substringAfter("/v1beta/models").trimStart('/').substringBefore(':').ifEmpty { "models" }
+        } else {
+            request.url.host + path
+        }
         calls += target
         keys += request.header("x-goog-api-key")
+        bearers += request.header("Authorization")
         bodies += request.body?.let { body -> Buffer().also(body::writeTo).readUtf8() }.orEmpty()
         onRequest()
 
-        return when (val reply = routes[target] ?: fallback) {
+        val queue = routes[target]
+        val reply = when {
+            queue == null || queue.isEmpty() -> fallback
+            queue.size > 1 -> queue.removeFirst()
+            else -> queue.first()
+        }
+        return when (reply) {
             is Reply.Fail -> throw reply.error
             is Reply.Json -> Response.Builder()
                 .request(request)
                 .protocol(Protocol.HTTP_1_1)
                 .code(reply.code)
                 .message("fake")
+                .apply { reply.headers.forEach { (name, value) -> header(name, value) } }
                 .body(reply.body.toResponseBody("application/json".toMediaType()))
                 .build()
         }
@@ -110,3 +130,26 @@ class MemoryModelCache : ModelListCache {
         stored[key] = models
     }
 }
+
+/** [AiSettings]' provider rests, in memory. */
+class MemoryRests : ProviderRests {
+    val rests = mutableMapOf<AiProvider, Long>()
+
+    override suspend fun until(provider: AiProvider) = rests[provider] ?: 0
+
+    override suspend fun rest(provider: AiProvider, until: Long) {
+        rests[provider] = until
+    }
+
+    override suspend fun clear(provider: AiProvider) {
+        rests.remove(provider)
+    }
+}
+
+/** The app's [AiVision] with [setup] (only Gemini by default), every request answered by this fake. */
+fun FakeGemini.vision(setup: Flow<AiSetup> = MutableStateFlow(AiSetup.gemini("test-key"))) = AiVision(
+    setup,
+    GeminiClient(client, MemoryModelCache(), baseUrl = "https://gemini.test/v1beta"),
+    OpenAiClient(client),
+    MemoryRests(),
+)

@@ -3,18 +3,14 @@ package io.github.caropeboka.diecasttracker.data.price
 import androidx.room.withTransaction
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
-import io.github.caropeboka.diecasttracker.data.ai.AiException
-import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
-import io.github.caropeboka.diecasttracker.data.ai.GeminiSettings
+import io.github.caropeboka.diecasttracker.data.ai.AiEvent
+import io.github.caropeboka.diecasttracker.data.ai.AiVision
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
 import io.github.caropeboka.diecasttracker.util.array
 import io.github.caropeboka.diecasttracker.util.string
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -35,24 +31,20 @@ const val MAX_PRICE_SCREENSHOTS = 6
  * (web: `PriceChecker.php`); [PriceAnalyzer] does the sums.
  */
 class PriceChecker(
-    private val settings: Flow<GeminiSettings>,
-    private val gemini: GeminiClient,
+    private val vision: AiVision,
     private val db: AppDatabase,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val dao = db.priceChecks()
 
-    val enabled: Flow<Boolean> = settings.map { it.isEnabled }.distinctUntilChanged()
+    val enabled: Flow<Boolean> = vision.enabled
 
     fun observe(diecastId: Long): Flow<List<PriceCheckEntity>> = dao.observeFor(diecastId)
 
     /** [images]: JPEG screenshots; at most [MAX_PRICE_SCREENSHOTS] are read. */
-    suspend fun check(diecast: DiecastEntity, images: List<ByteArray>): PriceCheckEntity {
-        val config = settings.first()
-        val key = config.key?.takeIf { config.isEnabled } ?: throw AiException("AI belum aktif. Isi API key di Pengaturan AI.")
-
+    suspend fun check(diecast: DiecastEntity, images: List<ByteArray>, onEvent: (AiEvent) -> Unit = {}): PriceCheckEntity {
         val sent = images.take(MAX_PRICE_SCREENSHOTS)
-        val read = gemini.extract(key, config.model, sent, SYSTEM_PROMPT, instruction(diecast, sent.size), SCHEMA)
+        val read = vision.extract(sent, SYSTEM_PROMPT, instruction(diecast, sent.size), SCHEMA, onEvent).data
 
         val analysis = PriceAnalyzer.analyze(read.array("listings").orEmpty().mapNotNull { (it as? JsonObject)?.let(::listing) })
         val hint = read.string("search_hint")?.trim()?.ifEmpty { null }

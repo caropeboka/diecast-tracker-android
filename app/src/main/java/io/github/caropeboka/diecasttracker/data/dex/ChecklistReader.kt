@@ -1,15 +1,11 @@
 package io.github.caropeboka.diecasttracker.data.dex
 
-import io.github.caropeboka.diecasttracker.data.ai.AiException
-import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
-import io.github.caropeboka.diecasttracker.data.ai.GeminiSettings
+import io.github.caropeboka.diecasttracker.data.ai.AiEvent
+import io.github.caropeboka.diecasttracker.data.ai.AiVision
 import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
 import io.github.caropeboka.diecasttracker.util.array
 import io.github.caropeboka.diecasttracker.util.string
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
@@ -25,16 +21,13 @@ const val MAX_CHECKLIST_IMAGES = 6
  * Reads a release checklist (an Instagram post, a catalog page, a store's pre-order list, a printed sheet) into
  * rows for an own dex (web: `CatalogImport::fromScreenshots`). The rows are reviewed before they're added.
  */
-class ChecklistReader(private val settings: Flow<GeminiSettings>, private val gemini: GeminiClient) {
-    val enabled: Flow<Boolean> = settings.map { it.isEnabled }.distinctUntilChanged()
+class ChecklistReader(private val vision: AiVision) {
+    val enabled: Flow<Boolean> = vision.enabled
 
     /** [images]: JPEGs. Rows without a name are left out. */
-    suspend fun read(catalog: CatalogEntity, images: List<ByteArray>): List<DexRow> {
-        val config = settings.first()
-        val key = config.key?.takeIf { config.isEnabled } ?: throw AiException("AI belum aktif. Isi API key di Pengaturan AI.")
-
+    suspend fun read(catalog: CatalogEntity, images: List<ByteArray>, onEvent: (AiEvent) -> Unit = {}): List<DexRow> {
         val sent = images.take(MAX_CHECKLIST_IMAGES)
-        val data = gemini.extract(key, config.model, sent, SYSTEM_PROMPT, instruction(catalog, sent.size), SCHEMA)
+        val data = vision.extract(sent, SYSTEM_PROMPT, instruction(catalog, sent.size), SCHEMA, onEvent).data
 
         return data.array("items").orEmpty().mapNotNull { element ->
             val item = element as? JsonObject ?: return@mapNotNull null

@@ -70,6 +70,60 @@ class GeminiClientTest {
     }
 
     @Test
+    fun `every step is reported, from the upload to the answer`() = runTest {
+        fake.on("models", 200, FakeGemini.models("gemini-3.5-flash-lite"))
+            .on("gemini-3.8-flash", busy)
+            .on("gemini-3.5-flash-lite", 200, mazda)
+        val events = mutableListOf<AiEvent>()
+
+        client.extract("test-key", "gemini-3.8-flash", listOf(ByteArray(100_000)), "system", "Identify.", schema) { events += it }
+
+        val size = events.filterIsInstance<AiEvent.Sending>().first().bytes
+        assertEquals(
+            listOf(
+                AiEvent.ListingModels,
+                AiEvent.Sending("gemini-3.8-flash", size, fallback = 0),
+                AiEvent.Waiting("gemini-3.8-flash"),
+                AiEvent.Missed("gemini-3.8-flash", "sedang sibuk", retrying = true),
+                AiEvent.Sending("gemini-3.8-flash", size, fallback = 0),
+                AiEvent.Waiting("gemini-3.8-flash"),
+                AiEvent.Missed("gemini-3.8-flash", "sedang sibuk", retrying = false),
+                AiEvent.Sending("gemini-3.5-flash-lite", size, fallback = 1),
+                AiEvent.Waiting("gemini-3.5-flash-lite"),
+                AiEvent.Answered,
+            ),
+            events.filterNot { it is AiEvent.Uploading },
+        )
+
+        // 100 KB of photo (about 133 KB as base64) goes out in 32 KB pieces, three times.
+        val uploads = events.filterIsInstance<AiEvent.Uploading>()
+        assertEquals(List(3) { listOf(32_768L, 65_536L, 98_304L, 131_072L) }.flatten(), uploads.map { it.sent })
+        assertTrue(uploads.all { it.total == size && size > 131_072L })
+    }
+
+    @Test
+    fun `a missing connection or a silent model is named in the steps`() = runTest {
+        fake.on("models", 200, FakeGemini.models())
+            .on("gemini-3.8-flash", FakeGemini.Reply.Fail(InterruptedIOException("timeout")))
+            .otherwise(FakeGemini.Reply.Fail(UnknownHostException("gemini.test")))
+        val events = mutableListOf<AiEvent>()
+
+        try {
+            client.extract("test-key", "gemini-3.8-flash", listOf(byteArrayOf(1)), "system", "Identify.", schema) { events += it }
+            fail("Expected an AiException")
+        } catch (_: AiOfflineException) {
+        }
+
+        assertEquals(
+            listOf(
+                AiEvent.Missed("gemini-3.8-flash", "tidak menjawab", retrying = false),
+                AiEvent.Missed("gemini-flash-lite-latest", "tidak bisa dihubungi (cek koneksi)", retrying = false),
+            ),
+            events.filterIsInstance<AiEvent.Missed>(),
+        )
+    }
+
+    @Test
     fun `quota error is explained`() = runTest {
         fake.otherwise(429, """{"error":{"code":429}}""")
 

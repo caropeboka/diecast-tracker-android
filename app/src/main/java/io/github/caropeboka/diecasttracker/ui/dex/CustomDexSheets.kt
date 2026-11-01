@@ -49,6 +49,7 @@ import io.github.caropeboka.diecasttracker.data.dex.CatalogField
 import io.github.caropeboka.diecasttracker.data.dex.DexRow
 import io.github.caropeboka.diecasttracker.data.dex.MAX_CHECKLIST_IMAGES
 import io.github.caropeboka.diecasttracker.data.dex.RowField
+import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.SubHeading
@@ -232,6 +233,7 @@ fun EntryEditorSheet(viewModel: CustomDexViewModel, seriesSuggestions: List<Stri
 fun ImportSheet(viewModel: CustomDexViewModel, brand: String, onAiSettings: () -> Unit) {
     if (!viewModel.importing) return
     val aiEnabled by viewModel.aiEnabled.collectAsStateWithLifecycle()
+    val checklistProgress by viewModel.checklistProgress.collectAsStateWithLifecycle()
     val busy = viewModel.busy
 
     val screenshots = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_CHECKLIST_IMAGES), viewModel::readChecklist)
@@ -256,7 +258,7 @@ fun ImportSheet(viewModel: CustomDexViewModel, brand: String, onAiSettings: () -
                 "Screenshot daftar rilisan (post checklist, katalog, pre-order toko), maks. $MAX_CHECKLIST_IMAGES, atau foto lembar " +
                     "checklist. AI yang mengetik daftarnya; kamu periksa dulu sebelum ditambahkan."
             } else {
-                "AI belum aktif. Isi API key Gemini di Pengaturan AI."
+                "AI belum aktif. Isi API key di Pengaturan AI."
             },
             busy = busy == ImportBusy.Checklist,
         ) {
@@ -283,9 +285,7 @@ fun ImportSheet(viewModel: CustomDexViewModel, brand: String, onAiSettings: () -
                 TextButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { Text("Buka Pengaturan AI") }
             }
         }
-        if (busy == ImportBusy.Checklist) {
-            Text("AI sedang membaca checklist… bisa sampai satu menit.", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
-        }
+        checklistProgress?.let { AiProgressView(it) }
 
         ImportOption(
             icon = R.drawable.ic_grid_view,

@@ -8,6 +8,7 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.data.ai.AiEvent
 import io.github.caropeboka.diecasttracker.data.ai.AiException
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.ScanFields
@@ -60,17 +61,17 @@ class StoreCheck(
      * Reads [photoName] (a pending photo) right away: the collector is waiting at the shelf. The AI's problems become
      * a failed check with the reason, never an exception.
      */
-    suspend fun check(photoName: String): ScanItemEntity {
+    suspend fun check(photoName: String, onEvent: (AiEvent) -> Unit = {}): ScanItemEntity {
         val item = ScanItemEntity(photoFile = photoName, source = ScanSource.Check, createdAt = clock())
-        return read(item.copy(id = dao.insert(item)))
+        return read(item.copy(id = dao.insert(item)), onEvent)
     }
 
     /** Another go at a check that failed (no signal at the shelf, a busy AI). Null when it is gone. */
-    suspend fun retry(id: Long): ScanItemEntity? = dao.get(id)?.let { read(it) }
+    suspend fun retry(id: Long, onEvent: (AiEvent) -> Unit = {}): ScanItemEntity? = dao.get(id)?.let { read(it, onEvent) }
 
-    private suspend fun read(item: ScanItemEntity): ScanItemEntity {
+    private suspend fun read(item: ScanItemEntity, onEvent: (AiEvent) -> Unit): ScanItemEntity {
         val read = try {
-            item.copy(status = ScanItemStatus.Done, fields = scanner.scan(listOf(item.photoFile)), error = null)
+            item.copy(status = ScanItemStatus.Done, fields = scanner.scan(listOf(item.photoFile), onEvent), error = null)
         } catch (e: CancellationException) {
             throw e
         } catch (e: AiException) {

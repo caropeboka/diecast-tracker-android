@@ -7,13 +7,10 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.TestEnvironment
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.FakeGemini
-import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
-import io.github.caropeboka.diecasttracker.data.ai.GeminiSettings
-import io.github.caropeboka.diecasttracker.data.ai.MemoryModelCache
+import io.github.caropeboka.diecasttracker.data.ai.vision
 import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -37,8 +34,7 @@ class StoreCheckTest {
     private val env = TestEnvironment(now = { 1_000L })
     private val fake = FakeGemini().on("models", 200, FakeGemini.models())
     private val scanner = DiecastScanner(
-        MutableStateFlow(GeminiSettings(key = "test-key")),
-        GeminiClient(fake.client, MemoryModelCache(), baseUrl = "https://gemini.test/v1beta"),
+        fake.vision(),
         env.photos,
         currentYear = { 2026 },
     )

@@ -31,6 +31,8 @@ import io.github.caropeboka.diecasttracker.data.dex.MAX_CHECKLIST_IMAGES
 import io.github.caropeboka.diecasttracker.data.dex.PhotoEdit
 import io.github.caropeboka.diecasttracker.data.dex.RowField
 import io.github.caropeboka.diecasttracker.ui.DexCatalogRoute
+import io.github.caropeboka.diecasttracker.ui.components.AiProgress
+import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -103,6 +105,11 @@ class CustomDexViewModel(
         private set
     var busy by mutableStateOf<ImportBusy?>(null)
         private set
+
+    private val checklistLog = AiProgressLog("Bisa sampai satu menit, tergantung panjang daftarnya.")
+
+    /** What the AI reading a checklist is doing, step by step. */
+    val checklistProgress: StateFlow<AiProgress?> = checklistLog.state
 
     /** Why the last import didn't work, shown in the sheet. */
     var importNote by mutableStateOf<String?>(null)
@@ -277,14 +284,16 @@ class CustomDexViewModel(
     private fun readChecklist(load: () -> List<ByteArray>) {
         if (busy != null) return
         busy = ImportBusy.Checklist
+        checklistLog.start("Menyiapkan gambar")
         viewModelScope.launch {
             try {
                 val images = withContext(Dispatchers.IO) { load() }
                 val catalog = dex.catalog(catalogId) ?: return@launch
-                val rows = checklist.read(catalog, images)
+                val rows = checklist.read(catalog, images, checklistLog::onEvent)
                 if (rows.isEmpty()) {
                     note("AI tidak menemukan rilisan di gambar itu.")
                 } else {
+                    checklistLog.step("Mengecek yang sudah ada di daftar")
                     val known = custom.known(catalogId, rows)
                     storeReview(ChecklistReview(rows, known, rows.indices.filterNot { known[it] }.toSet()))
                     openImport(false)
@@ -299,6 +308,7 @@ class CustomDexViewModel(
                 note("Gagal membaca checklist (${e.message ?: e::class.simpleName}).")
             } finally {
                 busy = null
+                checklistLog.stop()
             }
         }
     }

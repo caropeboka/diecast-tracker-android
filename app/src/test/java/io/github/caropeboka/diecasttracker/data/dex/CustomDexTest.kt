@@ -5,13 +5,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.TestEnvironment
 import io.github.caropeboka.diecasttracker.data.ai.FakeGemini
-import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
-import io.github.caropeboka.diecasttracker.data.ai.GeminiSettings
-import io.github.caropeboka.diecasttracker.data.ai.MemoryModelCache
+import io.github.caropeboka.diecasttracker.data.ai.vision
 import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
 import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -143,10 +140,7 @@ class CustomDexTest {
                 """.trimIndent(),
             ),
         )
-        val reader = ChecklistReader(
-            MutableStateFlow(GeminiSettings(key = "test-key")),
-            GeminiClient(fake.client, MemoryModelCache(), baseUrl = "https://gemini.test/v1beta"),
-        )
+        val reader = ChecklistReader(fake.vision())
         val id = dex()
         val mine = env.repository.save(DiecastEntity(name = "Nissan Skyline GT-R R34", brand = "Mini GT", collectionNumber = "MGT00512"))
 

@@ -31,9 +31,8 @@ import org.robolectric.annotation.GraphicsMode
 class DiecastScannerTest {
     private val env = TestEnvironment()
     private val fake = FakeGemini()
-    private val settings = MutableStateFlow(GeminiSettings(key = "test-key"))
-    private val gemini = GeminiClient(fake.client, MemoryModelCache(), baseUrl = "https://gemini.test/v1beta")
-    private val scanner = DiecastScanner(settings, gemini, env.photos, currentYear = { 2026 })
+    private val setup = MutableStateFlow(AiSetup.gemini("test-key"))
+    private val scanner = DiecastScanner(fake.vision(setup), env.photos, currentYear = { 2026 })
     private val matcher = CollectionMatcher(env.repository)
 
     @After
@@ -84,7 +83,7 @@ class DiecastScannerTest {
 
     @Test
     fun `without a key the scan explains how to turn it on`() = runBlocking {
-        settings.value = GeminiSettings(key = null)
+        setup.value = AiSetup.gemini(null)
 
         assertFalse(scanner.isEnabled())
         try {

@@ -42,7 +42,7 @@ fun ScanFeedback(scan: ScanState, onOpen: (Long) -> Unit) {
         }
         is ScanState.Done -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Notice(R.drawable.ic_sparkles, Garage.Brand) {
-                Text("Field bertanda ✦ diisi oleh AI.", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text("Field bertanda ✦ diisi oleh ${scan.by ?: "AI"}.", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Keyakinan: ${scan.confidence.label}. Periksa dulu sebelum menyimpan.",
                     style = MaterialTheme.typography.bodySmall,
