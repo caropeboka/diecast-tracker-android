@@ -16,7 +16,6 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MissingField
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.UserPrefs
-import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.backup.BackupReminder
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
@@ -61,7 +60,6 @@ data class CollectionLink(
 class CollectionViewModel(
     private val repository: DiecastRepository,
     private val prefs: UserPrefs,
-    scanner: DiecastScanner,
     private val saved: SavedStateHandle,
     queue: ScanQueue,
 ) : ViewModel() {
@@ -102,9 +100,6 @@ class CollectionViewModel(
     ) { (items, filter), brands, tags, layout, total ->
         CollectionUiState(items, filter, brands, tags, layout, total)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CollectionUiState())
-
-    /** Without a key the Scan button leads to the AI settings instead. */
-    val scanEnabled: StateFlow<Boolean> = scanner.enabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     /** Null while no backup reminder is due. */
     val backupDue: StateFlow<BackupDue?> = combine(prefs.backupTimes, repository.observeCount()) { times, count ->
@@ -176,7 +171,7 @@ class CollectionViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                with(app.container) { CollectionViewModel(repository, prefs, scanner, createSavedStateHandle(), scanQueue) }
+                with(app.container) { CollectionViewModel(repository, prefs, createSavedStateHandle(), scanQueue) }
             }
         }
     }

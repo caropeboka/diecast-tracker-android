@@ -27,7 +27,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -69,6 +68,8 @@ import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
 import io.github.caropeboka.diecasttracker.ui.scan.QueueBanner
+import io.github.caropeboka.diecasttracker.ui.revealSource
+import io.github.caropeboka.diecasttracker.ui.sharedDiecastCard
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,17 +77,15 @@ import io.github.caropeboka.diecasttracker.ui.theme.Garage
 fun CollectionScreen(
     onTab: (MainTab) -> Unit,
     onAdd: () -> Unit,
-    onScan: () -> Unit,
     onOpen: (Long) -> Unit,
     onData: () -> Unit,
     onBulkScan: () -> Unit,
     onCheck: () -> Unit,
-    onAiSettings: (fromScan: Boolean) -> Unit,
+    onAiSettings: () -> Unit,
     viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val search by viewModel.search.collectAsStateWithLifecycle()
-    val scanEnabled by viewModel.scanEnabled.collectAsStateWithLifecycle()
     val backupDue by viewModel.backupDue.collectAsStateWithLifecycle()
     val queued by viewModel.queued.collectAsStateWithLifecycle()
     var menuOpen by remember { mutableStateOf(false) }
@@ -115,7 +114,8 @@ fun CollectionScreen(
                         }
                     }
                     Box {
-                        IconButton(onClick = { menuOpen = true }) {
+                        // What the menu opens grows out of this button.
+                        IconButton(onClick = { menuOpen = true }, modifier = revealSource()) {
                             Icon(painterResource(R.drawable.ic_more_vert), contentDescription = "Menu lain")
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -140,7 +140,7 @@ fun CollectionScreen(
                                 leadingIcon = { Icon(painterResource(R.drawable.ic_sparkles), contentDescription = null) },
                                 onClick = {
                                     menuOpen = false
-                                    onAiSettings(false)
+                                    onAiSettings()
                                 },
                             )
                             DropdownMenuItem(
@@ -156,33 +156,6 @@ fun CollectionScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
-        },
-        floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // At the shelf: "do I already have this?"
-                ExtendedFloatingActionButton(
-                    onClick = onCheck,
-                    icon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
-                    text = { Text("Cek") },
-                    containerColor = Garage.Muted,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                )
-                ExtendedFloatingActionButton(
-                    onClick = onAdd,
-                    icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
-                    text = { Text("Tambah") },
-                    containerColor = Garage.Muted,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                )
-                // Camera first, the AI fills the form; without a key, it explains how to turn scanning on.
-                ExtendedFloatingActionButton(
-                    onClick = { if (scanEnabled) onScan() else onAiSettings(true) },
-                    icon = { Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null) },
-                    text = { Text("Scan") },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
         },
         bottomBar = { MainNavigationBar(MainTab.Collection, onTab) },
         snackbarHost = { SnackbarHost(LocalSnackbar.current) },
@@ -204,21 +177,21 @@ fun CollectionScreen(
                 items.isEmpty() -> NoMatches(viewModel::resetFilters)
                 state.layout == CollectionLayout.Grid -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 150.dp),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 160.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(items, key = { it.id }) { item ->
-                        DiecastCard(item, onClick = { onOpen(item.id) })
+                        DiecastCard(item, onClick = { onOpen(item.id) }, modifier = sharedDiecastCard(item.id))
                     }
                 }
                 else -> LazyColumn(
-                    contentPadding = PaddingValues(bottom = 160.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(items, key = { it.id }) { item ->
-                        DiecastRow(item, onClick = { onOpen(item.id) })
+                        DiecastRow(item, onClick = { onOpen(item.id) }, modifier = sharedDiecastCard(item.id))
                         HorizontalDivider(Modifier.padding(start = 92.dp), color = Garage.Border)
                     }
                 }

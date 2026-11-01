@@ -1,13 +1,24 @@
 package io.github.caropeboka.diecasttracker.ui
 
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -24,6 +35,7 @@ import io.github.caropeboka.diecasttracker.ui.dex.DexMatchesScreen
 import io.github.caropeboka.diecasttracker.ui.dex.DexScreen
 import io.github.caropeboka.diecasttracker.ui.edit.DiecastEditScreen
 import io.github.caropeboka.diecasttracker.ui.explore.ExploreScreen
+import io.github.caropeboka.diecasttracker.ui.garage.GarageScreen
 import io.github.caropeboka.diecasttracker.ui.scan.BulkScanScreen
 import io.github.caropeboka.diecasttracker.ui.settings.AiSettingsScreen
 import kotlinx.coroutines.flow.Flow
@@ -39,7 +51,8 @@ data object DashboardRoute
 
 /**
  * [id] 0 = a new diecast, which starts in [status] (a status key; owned by default). [scan] opens the camera
- * straight away so the AI can fill the form (the collection's Scan button). [dexItem] fills a new diecast from
+ * straight away (the bottom bar's "Scan dengan AI"); it reopens for every side until Back, then the AI reads them
+ * all on "Pindai dengan AI". [dexItem] fills a new diecast from
  * that dex entry and links it. [scanItem] starts from a bulk scan or store check photo and what the AI read from it.
  * [name] starts with that name (a store check typed by hand).
  */
@@ -82,12 +95,18 @@ data class DexCatalogRoute(val id: Long)
 @Serializable
 data object DexMatchesRoute
 
+/** The 3D shelves (G0 trial). */
+@Serializable
+data object GarageRoute
+
 /** [openCheck]: the launcher shortcut "Cek di toko" was used. */
 @Composable
 fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
     val nav = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
-    val messages = LocalContext.current.container.messages
+    val container = LocalContext.current.container
+    val messages = container.messages
+    val scanEnabled by container.scanner.enabled.collectAsStateWithLifecycle(initialValue = false)
 
     LaunchedEffect(messages) {
         messages.flow.collect {
@@ -95,6 +114,9 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
             snackbar.showSnackbar(it)
         }
     }
+    // Screens grow out of the tap that opened them (ScreenReveal).
+    val blob = with(LocalDensity.current) { 56.dp.toPx() }
+    DisposableEffect(nav) { onDispose(nav.trackReveals(blob, ScreenTransitions::reveals)) }
     LaunchedEffect(openCheck) {
         openCheck.collect { nav.navigate(CheckRoute) { launchSingleTop = true } }
     }
@@ -124,83 +146,127 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
         openTab(MainTab.Collection)
     }
 
-    CompositionLocalProvider(LocalSnackbar provides snackbar) {
-        NavHost(nav, startDestination = CollectionRoute) {
-            composable<CollectionRoute> {
-                CollectionScreen(
-                    onTab = openTab,
-                    onAdd = dropUnlessResumed { nav.navigate(DiecastEditRoute()) },
-                    onScan = dropUnlessResumed { nav.navigate(DiecastEditRoute(scan = true)) },
-                    onOpen = openDiecast,
-                    onData = dropUnlessResumed { nav.navigate(DataRoute) },
-                    onBulkScan = dropUnlessResumed { nav.navigate(BulkScanRoute) },
-                    onCheck = dropUnlessResumed { nav.navigate(CheckRoute) },
-                    onAiSettings = { fromScan -> nav.navigate(AiSettingsRoute(fromScan)) },
-                )
+    // The bottom bar's centre button, on every tab. Camera first, the AI fills the form; without a key, the AI
+    // settings explain how to turn scanning on.
+    val menu = remember { CreateMenu() }
+    val create = CreateActions(
+        scanEnabled = scanEnabled,
+        onScan = { nav.navigate(if (scanEnabled) DiecastEditRoute(scan = true) else AiSettingsRoute(fromScan = true)) },
+        onAdd = { nav.navigate(DiecastEditRoute()) },
+        onCheck = { nav.navigate(CheckRoute) },
+        menu = menu,
+    )
+
+    // Lets a diecast card grow into its diecast's page, the dashboard's button into the 3D garage, and every other
+    // screen out of what opened it (see ScreenTransitions).
+    SharedTransitionLayout {
+        CompositionLocalProvider(
+            LocalSnackbar provides snackbar,
+            LocalCreateActions provides create,
+            LocalSharedTransition provides this,
+        ) {
+            Box(Modifier.fillMaxSize().noteTaps()) {
+                NavHost(
+                    nav,
+                    startDestination = CollectionRoute,
+                    enterTransition = ScreenTransitions.enter,
+                    exitTransition = ScreenTransitions.exit,
+                    popEnterTransition = ScreenTransitions.popEnter,
+                    popExitTransition = ScreenTransitions.popExit,
+                    predictivePopEnterTransition = ScreenTransitions.predictivePopEnter,
+                    predictivePopExitTransition = ScreenTransitions.predictivePopExit,
+                ) {
+                    screen<CollectionRoute> {
+                        CollectionScreen(
+                            onTab = openTab,
+                            onAdd = dropUnlessResumed { nav.navigate(DiecastEditRoute()) },
+                            onOpen = openDiecast,
+                            onData = dropUnlessResumed { nav.navigate(DataRoute) },
+                            onBulkScan = dropUnlessResumed { nav.navigate(BulkScanRoute) },
+                            onCheck = dropUnlessResumed { nav.navigate(CheckRoute) },
+                            onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
+                        )
+                    }
+                    screen<CheckRoute> {
+                        CheckScreen(
+                            onBack = dropUnlessResumed { nav.popBackStack() },
+                            onOpen = openDiecast,
+                            onAdd = { scanItem, name, status ->
+                                nav.navigate(DiecastEditRoute(status = status?.key, scanItem = scanItem, name = name))
+                            },
+                            onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
+                        )
+                    }
+                    screen<DashboardRoute> {
+                        DashboardScreen(
+                            onTab = openTab,
+                            onOpen = openDiecast,
+                            onOpenCatalog = openCatalog,
+                            onCollection = openCollection,
+                            onAdd = dropUnlessResumed { nav.navigate(DiecastEditRoute()) },
+                            onBulkScan = dropUnlessResumed { nav.navigate(BulkScanRoute) },
+                            onShelves = dropUnlessResumed { nav.navigate(GarageRoute) },
+                        )
+                    }
+                    screen<GarageRoute> {
+                        GarageScreen(onBack = dropUnlessResumed { nav.popBackStack() }, onOpen = openDiecast)
+                    }
+                    screen<BulkScanRoute> {
+                        BulkScanScreen(
+                            onBack = dropUnlessResumed { nav.popBackStack() },
+                            onOpen = openDiecast,
+                            onComplete = { item -> nav.navigate(DiecastEditRoute(scanItem = item)) },
+                            onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
+                        )
+                    }
+                    screen<ExploreRoute> {
+                        ExploreScreen(onTab = openTab, onOpen = openDiecast)
+                    }
+                    screen<DexRoute> {
+                        DexScreen(onTab = openTab, onOpen = openCatalog, onMatches = dropUnlessResumed { nav.navigate(DexMatchesRoute) })
+                    }
+                    screen<DexCatalogRoute> {
+                        DexCatalogScreen(
+                            onBack = dropUnlessResumed { nav.popBackStack() },
+                            onAdd = { item, status -> nav.navigate(DiecastEditRoute(status = status.key, dexItem = item)) },
+                            onOpenDiecast = openDiecast,
+                            onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
+                        )
+                    }
+                    screen<DexMatchesRoute> {
+                        DexMatchesScreen(
+                            onBack = dropUnlessResumed { nav.popBackStack() },
+                            onOpenDiecast = openDiecast,
+                            onOpenCatalog = openCatalog,
+                        )
+                    }
+                    screen<DiecastEditRoute> {
+                        DiecastEditScreen(
+                            onClose = { nav.popBackStack<DiecastEditRoute>(inclusive = true) },
+                            onOpen = { id -> nav.navigate(DiecastEditRoute(id = id)) },
+                            onOpenCatalog = openCatalog,
+                            onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
+                        )
+                    }
+                    screen<DataRoute> {
+                        DataScreen(onBack = dropUnlessResumed { nav.popBackStack() })
+                    }
+                    screen<AiSettingsRoute> {
+                        AiSettingsScreen(onClose = { nav.popBackStack<AiSettingsRoute>(inclusive = true) })
+                    }
+                }
+                // Over the screen and its bottom bar.
+                CreateMenuOverlay(create)
             }
-            composable<CheckRoute> {
-                CheckScreen(
-                    onBack = dropUnlessResumed { nav.popBackStack() },
-                    onOpen = openDiecast,
-                    onAdd = { scanItem, name, status ->
-                        nav.navigate(DiecastEditRoute(status = status?.key, scanItem = scanItem, name = name))
-                    },
-                    onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
-                )
-            }
-            composable<DashboardRoute> {
-                DashboardScreen(
-                    onTab = openTab,
-                    onOpen = openDiecast,
-                    onOpenCatalog = openCatalog,
-                    onCollection = openCollection,
-                    onAdd = dropUnlessResumed { nav.navigate(DiecastEditRoute()) },
-                    onBulkScan = dropUnlessResumed { nav.navigate(BulkScanRoute) },
-                )
-            }
-            composable<BulkScanRoute> {
-                BulkScanScreen(
-                    onBack = dropUnlessResumed { nav.popBackStack() },
-                    onOpen = openDiecast,
-                    onComplete = { item -> nav.navigate(DiecastEditRoute(scanItem = item)) },
-                    onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
-                )
-            }
-            composable<ExploreRoute> {
-                ExploreScreen(onTab = openTab, onOpen = openDiecast)
-            }
-            composable<DexRoute> {
-                DexScreen(onTab = openTab, onOpen = openCatalog, onMatches = dropUnlessResumed { nav.navigate(DexMatchesRoute) })
-            }
-            composable<DexCatalogRoute> {
-                DexCatalogScreen(
-                    onBack = dropUnlessResumed { nav.popBackStack() },
-                    onAdd = { item, status -> nav.navigate(DiecastEditRoute(status = status.key, dexItem = item)) },
-                    onOpenDiecast = openDiecast,
-                    onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
-                )
-            }
-            composable<DexMatchesRoute> {
-                DexMatchesScreen(
-                    onBack = dropUnlessResumed { nav.popBackStack() },
-                    onOpenDiecast = openDiecast,
-                    onOpenCatalog = openCatalog,
-                )
-            }
-            composable<DiecastEditRoute> {
-                DiecastEditScreen(
-                    onClose = { nav.popBackStack<DiecastEditRoute>(inclusive = true) },
-                    onOpen = { id -> nav.navigate(DiecastEditRoute(id = id)) },
-                    onOpenCatalog = openCatalog,
-                    onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
-                )
-            }
-            composable<DataRoute> {
-                DataScreen(onBack = dropUnlessResumed { nav.popBackStack() })
-            }
-            composable<AiSettingsRoute> {
-                AiSettingsScreen(onClose = { nav.popBackStack<AiSettingsRoute>(inclusive = true) })
-            }
+        }
+    }
+}
+
+/** A destination whose screen can grow out of what opened it, with its enter/exit for shared bounds. */
+private inline fun <reified T : Any> NavGraphBuilder.screen(noinline content: @Composable (NavBackStackEntry) -> Unit) {
+    composable<T> { entry ->
+        CompositionLocalProvider(LocalScreenVisibility provides this) {
+            RevealedScreen(entry) { content(entry) }
         }
     }
 }
