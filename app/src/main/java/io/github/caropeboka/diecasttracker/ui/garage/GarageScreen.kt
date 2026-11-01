@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
@@ -73,6 +74,8 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -91,6 +94,7 @@ import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
 import io.github.caropeboka.diecasttracker.ui.components.SubHeading
+import io.github.caropeboka.diecasttracker.ui.components.rememberTexts
 import io.github.caropeboka.diecasttracker.ui.sharedDiecastCard
 import io.github.caropeboka.diecasttracker.ui.sharedGarage
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
@@ -169,21 +173,21 @@ private val COVER = Color(0xFFDCD8D1)
  * Render settings to try on the phone: full, without any post-processing, without shadows/AO/bloom. The emulator's
  * software GPU renders nothing but white with post-processing and aborts compiling the "Hemat" one.
  */
-private val QUALITIES = listOf("Normal", "Polos", "Hemat")
+private val QUALITIES = listOf(R.string.garage_quality_normal, R.string.garage_quality_plain, R.string.garage_quality_light)
 private const val PLAIN = 1
 private const val LIGHT = 2
 
 /** What the camera looks at. The shelves' nodes are named after these, so tapping one brings it into view. */
-enum class Focus(val label: String, val eye: Position, val target: Position) {
+enum class Focus(@StringRes val label: Int, val eye: Position, val target: Position) {
     /** From a little above, like the photo; seen level, the undersides of the case's shelves show as dark bars. */
-    All("Semua", Position(0.08f, 1.87f, 5.6f), Position(0.08f, 0.48f, 0.1f)),
+    All(R.string.garage_focus_all, Position(0.08f, 1.87f, 5.6f), Position(0.08f, 0.48f, 0.1f)),
 
     /** From the front corner of the room, like the photo, so both walls' carving shows. */
-    Shelf("Laci", Position(0.52f, 0.9f, 1.48f), Position(-0.78f, 0.55f, 0.18f)),
+    Shelf(R.string.garage_focus_shelf, Position(0.52f, 0.9f, 1.48f), Position(-0.78f, 0.55f, 0.18f)),
 
     /** Both boards across the screen. */
-    Board("Papan", Position(BOARDS_X, 0.6f, 2.5f), Position(BOARDS_X, 0.4f, 0f)),
-    Case("Rak putih", Position(CASE_X, 0.8f, 1.55f), Position(CASE_X, 0.25f, 0.06f)),
+    Board(R.string.garage_focus_boards, Position(BOARDS_X, 0.6f, 2.5f), Position(BOARDS_X, 0.4f, 0f)),
+    Case(R.string.garage_focus_case, Position(CASE_X, 0.8f, 1.55f), Position(CASE_X, 0.25f, 0.06f)),
     ;
 
     internal val sight get() = Sight(eye, target)
@@ -378,6 +382,7 @@ fun GarageScreen(
     onOpen: (Long) -> Unit,
     viewModel: GarageViewModel = viewModel(factory = GarageViewModel.Factory),
 ) {
+    val texts = rememberTexts()
     val scene by viewModel.scene.collectAsStateWithLifecycle()
     val art by viewModel.art.collectAsStateWithLifecycle()
     // Still in hand when its page closes again.
@@ -464,15 +469,15 @@ fun GarageScreen(
         modifier = sharedGarage(page = true),
         topBar = {
             TopAppBar(
-                title = { Heading("Garasi 3D") },
+                title = { Heading(stringResource(R.string.garage_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Kembali")
+                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     // G0: to compare how the phone copes with each.
-                    TextButton(onClick = { quality = (quality + 1) % QUALITIES.size }) { Text(QUALITIES[quality]) }
+                    TextButton(onClick = { quality = (quality + 1) % QUALITIES.size }) { Text(stringResource(QUALITIES[quality])) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
@@ -570,7 +575,7 @@ fun GarageScreen(
                         if (tappedDecor != null) {
                             when {
                                 decorMoving == tappedDecor -> decorMoving = null
-                                moving != null || decorMoving != null -> viewModel.say("Di situ sudah ada hiasan.")
+                                moving != null || decorMoving != null -> viewModel.say(texts(R.string.garage_decor_there))
                                 else -> {
                                     pulled = null
                                     decorHeld = if (decorHeld == tappedDecor) null else tappedDecor
@@ -584,7 +589,7 @@ fun GarageScreen(
                             val spot = view.motionEventToRay(event)?.let { spotAt(focus, it) }
                             when {
                                 spot?.shelf == Shelf.Corner -> scope.launch { if (viewModel.placeDecoration(movingDecor, spot)) decorMoving = null }
-                                spot != null || tapped != null -> viewModel.say("Tap tempat kosong di laci hitam.")
+                                spot != null || tapped != null -> viewModel.say(texts(R.string.garage_tap_corner))
                                 name.startsWith(FOCUS) -> Focus.valueOf(name.removePrefix(FOCUS)).takeIf { it != focus }?.let(::look)
                             }
                             return@onTap
@@ -616,8 +621,8 @@ fun GarageScreen(
                             }
                             occupant != null -> pull(occupant)
                             current.fitting(spot).isNotEmpty() || spot.shelf == Shelf.Corner -> picking = spot
-                            current.tray.isEmpty() -> viewModel.say("Nampan kosong: semua sudah di rak.")
-                            else -> viewModel.say("Tidak ada diecast di nampan yang muat di sini.")
+                            current.tray.isEmpty() -> viewModel.say(texts(R.string.garage_tray_empty))
+                            else -> viewModel.say(texts(R.string.garage_none_fits))
                         }
                     },
                 ),
@@ -697,45 +702,45 @@ fun GarageScreen(
                 val decorMoved = decorMoving?.let { scene?.decoration(it) }
                 val decorPicked = decorHeld?.let { scene?.decoration(it) }
                 when {
-                    decorMoved != null -> DecorBar(decorMoved, "Tap tempat kosong di laci hitam.") {
-                        TextButton(onClick = { decorMoving = null }) { Text("Batal") }
+                    decorMoved != null -> DecorBar(decorMoved, stringResource(R.string.garage_tap_corner)) {
+                        TextButton(onClick = { decorMoving = null }) { Text(stringResource(R.string.cancel)) }
                     }
-                    decorPicked != null -> DecorBar(decorPicked, "Hiasan · ${ShelfLayout.label(Shelf.Corner, decorPicked.tier)}") {
+                    decorPicked != null -> DecorBar(decorPicked, stringResource(R.string.garage_decor_at, ShelfLayout.label(texts, Shelf.Corner, decorPicked.tier))) {
                         TextButton(
                             onClick = {
                                 decorMoving = decorPicked.id
                                 decorHeld = null
                                 if (focus != Focus.Shelf) look(Focus.Shelf)
                             },
-                        ) { Text("Pindahkan") }
-                        TextButton(onClick = { decorEditing = decorPicked.id }) { Text("Ubah") }
-                        TextButton(onClick = { decorDeleting = decorPicked.id }) { Text("Hapus") }
+                        ) { Text(stringResource(R.string.garage_move)) }
+                        TextButton(onClick = { decorEditing = decorPicked.id }) { Text(stringResource(R.string.edit)) }
+                        TextButton(onClick = { decorDeleting = decorPicked.id }) { Text(stringResource(R.string.delete)) }
                     }
                     moving != null -> {
                         val hint = if (focus == Focus.All) {
-                            "Pilih raknya di bawah, lalu tap tempatnya."
+                            stringResource(R.string.garage_pick_shelf)
                         } else {
-                            "Tap tempat kosong, atau diecast lain untuk bertukar tempat."
+                            stringResource(R.string.garage_tap_spot)
                         }
                         Bar(moving, hint) {
-                            TextButton(onClick = { carrying = null }) { Text("Batal") }
+                            TextButton(onClick = { carrying = null }) { Text(stringResource(R.string.cancel)) }
                         }
                     }
-                    holding != null -> Bar(holding, holding.slot?.let(ShelfLayout::label) ?: "Di nampan") {
+                    holding != null -> Bar(holding, holding.slot?.let { ShelfLayout.label(texts, it) } ?: stringResource(R.string.garage_in_tray)) {
                         TextButton(
                             onClick = {
                                 carrying = holding.id
                                 pulled = null
                             },
-                        ) { Text("Pindahkan") }
+                        ) { Text(stringResource(R.string.garage_move)) }
                         TextButton(
                             onClick = {
                                 releasing = holding.id
                                 pulled = null
                                 viewModel.release(holding.id)
                             },
-                        ) { Text("Ke nampan") }
-                        TextButton(onClick = { open(holding.id) }) { Text("Detail") }
+                        ) { Text(stringResource(R.string.garage_to_tray)) }
+                        TextButton(onClick = { open(holding.id) }) { Text(stringResource(R.string.garage_details)) }
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -746,7 +751,7 @@ fun GarageScreen(
                                 pulled = null
                                 look(option)
                             },
-                            label = { Text(option.label) },
+                            label = { Text(stringResource(option.label)) },
                             colors = FilterChipDefaults.filterChipColors(
                                 containerColor = Garage.Card,
                                 selectedContainerColor = Garage.Brand,
@@ -762,8 +767,8 @@ fun GarageScreen(
     val current = scene
     if (trayOpen && current != null) {
         TraySheet(
-            title = "Belum ditaruh",
-            hint = "Pilih satu, lalu tap tempatnya di rak. Lokasi simpannya ikut terisi.",
+            title = stringResource(R.string.garage_unplaced),
+            hint = stringResource(R.string.garage_unplaced_hint),
             rows = current.tray,
             withoutPhoto = current.withoutPhoto,
             onArrange = {
@@ -782,10 +787,10 @@ fun GarageScreen(
     val spot = picking
     if (spot != null && current != null) {
         TraySheet(
-            title = "Taruh di sini",
-            hint = ShelfLayout.label(spot.shelf, spot.spot),
+            title = stringResource(R.string.garage_put_here),
+            hint = ShelfLayout.label(texts, spot.shelf, spot.spot),
             rows = current.fitting(spot),
-            empty = "Tidak ada diecast di nampan yang muat di sini.",
+            empty = stringResource(R.string.garage_none_fits),
             header = if (spot.shelf != Shelf.Corner) {
                 null
             } else {
@@ -799,7 +804,7 @@ fun GarageScreen(
                             try {
                                 shootDecor.launch(uri)
                             } catch (_: ActivityNotFoundException) {
-                                viewModel.say("Tidak ada aplikasi kamera.")
+                                viewModel.say(texts(R.string.edit_no_camera))
                             }
                         },
                         onGallery = {
@@ -876,7 +881,7 @@ private fun TrayButton(count: Int, modifier: Modifier = Modifier, onClick: () ->
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Icon(painterResource(R.drawable.ic_collections_bookmark), contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
-        Text("Nampan · $shown", style = MaterialTheme.typography.labelLarge, color = content)
+        Text(stringResource(R.string.garage_tray, shown), style = MaterialTheme.typography.labelLarge, color = content)
     }
 }
 
@@ -911,7 +916,7 @@ private fun TraySheet(
     hint: String,
     rows: List<ShelfRow>,
     withoutPhoto: Int = 0,
-    empty: String = "Semua sudah di rak.",
+    empty: String = stringResource(R.string.garage_all_placed),
     header: (@Composable () -> Unit)? = null,
     onArrange: (() -> Unit)? = null,
     onPick: (ShelfRow) -> Unit,
@@ -921,7 +926,7 @@ private fun TraySheet(
         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp).navigationBarsPadding()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SubHeading(title, Modifier.weight(1f))
-                if (onArrange != null && rows.isNotEmpty()) TextButton(onClick = onArrange) { Text("Taruh semua otomatis") }
+                if (onArrange != null && rows.isNotEmpty()) TextButton(onClick = onArrange) { Text(stringResource(R.string.garage_arrange_all)) }
             }
             Text(hint, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
             header?.let {
@@ -935,7 +940,7 @@ private fun TraySheet(
             }
             if (withoutPhoto > 0) {
                 Text(
-                    "$withoutPhoto diecast tanpa foto tidak tampil di garasi.",
+                    pluralStringResource(R.plurals.garage_without_photo, withoutPhoto, withoutPhoto),
                     Modifier.padding(top = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
@@ -961,13 +966,13 @@ private fun TrayRow(row: ShelfRow, onClick: () -> Unit) {
         Column(Modifier.padding(start = 12.dp).weight(1f)) {
             Text(row.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                listOfNotNull(row.packaging.label, row.scale).joinToString(" · "),
+                listOfNotNull(stringResource(row.packaging.label), row.scale).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
             // Put somewhere that's run out of room (or no longer fits): it waits here again.
             row.slot?.let {
-                Text("Tidak muat lagi di ${ShelfLayout.label(it)}", style = MaterialTheme.typography.bodySmall, color = Garage.Brand2)
+                Text(stringResource(R.string.garage_no_longer_fits, ShelfLayout.label(rememberTexts(), it)), style = MaterialTheme.typography.bodySmall, color = Garage.Brand2)
             }
         }
     }

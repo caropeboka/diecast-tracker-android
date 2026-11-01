@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -51,10 +52,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
+import io.github.caropeboka.diecasttracker.util.Currency
+import io.github.caropeboka.diecasttracker.util.Formats
+import io.github.caropeboka.diecasttracker.util.convertFromIdr
+import io.github.caropeboka.diecasttracker.util.convertToIdr
 import io.github.caropeboka.diecasttracker.util.formatDate
+import io.github.caropeboka.diecasttracker.util.groupThousands
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.util.Locale
 
 /** shadcn's dark input: a faint fill and the input border. */
 @Composable
@@ -115,14 +122,18 @@ private fun FieldLabel(text: String, highlighted: Boolean) {
     if (highlighted) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(text)
-            Icon(painterResource(R.drawable.ic_sparkles), contentDescription = "Diisi oleh AI", tint = Garage.Brand, modifier = Modifier.size(14.dp))
+            Icon(painterResource(R.drawable.ic_sparkles), contentDescription = stringResource(R.string.filled_by_ai), tint = Garage.Brand, modifier = Modifier.size(14.dp))
         }
     } else {
         Text(text)
     }
 }
 
-/** Whole Rupiah; [value] holds digits only and is shown grouped ("35.000"). */
+/**
+ * A price. [value] always holds whole Rupiah as digits, whatever it is typed in: in Rupiah it's shown grouped
+ * ("35.000"); in dollars or yuan it's converted at the day's rate and may have cents. Only what is typed is converted
+ * back, so a price left alone keeps its exact Rupiah.
+ */
 @Composable
 fun MoneyInput(
     value: String,
@@ -132,33 +143,78 @@ fun MoneyInput(
     placeholder: String? = null,
     error: String? = null,
 ) {
+    val currency = Formats.shownCurrency
+    if (currency == Currency.IDR) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = { text ->
+                val digits = text.filter(Char::isDigit).trimStart('0').take(12)
+                onValueChange(if (digits.isEmpty() && text.any(Char::isDigit)) "0" else digits)
+            },
+            label = { Text(label) },
+            prefix = { Text("Rp ") },
+            placeholder = placeholder?.let { { Text(it) } },
+            isError = error != null,
+            supportingText = errorText(error),
+            singleLine = true,
+            visualTransformation = remember(Formats.locale) { ThousandsTransformation(groupThousands(1000)[1]) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+            colors = fieldColors(),
+            modifier = modifier.fillMaxWidth(),
+        )
+        return
+    }
+
+    // What's shown is kept while typing, so converting back and forth doesn't rewrite it under the finger; a value
+    // changed from outside (the AI, "Pakai") is shown afresh.
+    var text by remember(currency) { mutableStateOf(foreignAmount(value)) }
+    var sent by remember(currency) { mutableStateOf(value) }
+    if (value != sent) {
+        text = foreignAmount(value)
+        sent = value
+    }
     OutlinedTextField(
-        value = value,
-        onValueChange = { text ->
-            val digits = text.filter(Char::isDigit).trimStart('0').take(12)
-            onValueChange(if (digits.isEmpty() && text.any(Char::isDigit)) "0" else digits)
+        value = text,
+        onValueChange = { typed ->
+            val clean = decimalAmount(typed)
+            text = clean
+            sent = clean.toDoubleOrNull()?.let { convertToIdr(it).toString() }.orEmpty()
+            onValueChange(sent)
         },
         label = { Text(label) },
-        prefix = { Text("Rp ") },
+        prefix = { Text(currency.symbol) },
         placeholder = placeholder?.let { { Text(it) } },
         isError = error != null,
         supportingText = errorText(error),
         singleLine = true,
-        visualTransformation = ThousandsTransformation,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
         colors = fieldColors(),
         modifier = modifier.fillMaxWidth(),
     )
 }
 
-/** Shows "1234567" as "1.234.567" and keeps the cursor on the same digit. */
-private object ThousandsTransformation : VisualTransformation {
+/** Rupiah digits as the chosen currency's amount for typing: "35000" → "1.93". */
+private fun foreignAmount(idr: String): String {
+    val amount = convertFromIdr(idr.toLongOrNull() ?: return "")
+    return String.format(Locale.ROOT, "%.2f", amount).removeSuffix(".00")
+}
+
+/** Digits with at most one decimal point (a comma counts as one) and two decimals. */
+private fun decimalAmount(typed: String): String {
+    val normalized = typed.replace(',', '.').filter { it.isDigit() || it == '.' }
+    val whole = normalized.substringBefore('.').trimStart('0').take(9).ifEmpty { if ('.' in normalized || normalized.isNotEmpty()) "0" else "" }
+    if ('.' !in normalized) return whole
+    return whole + "." + normalized.substringAfter('.').filter(Char::isDigit).take(2)
+}
+
+/** Shows "1234567" as "1.234.567" (or with commas) and keeps the cursor on the same digit. */
+private class ThousandsTransformation(private val mark: Char) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val digits = text.text
         val length = digits.length
         val formatted = buildString {
             digits.forEachIndexed { i, c ->
-                if (i > 0 && (length - i) % 3 == 0) append('.')
+                if (i > 0 && (length - i) % 3 == 0) append(mark)
                 append(c)
             }
         }
@@ -180,7 +236,7 @@ private object ThousandsTransformation : VisualTransformation {
 fun <T> ChoiceInput(
     selected: T,
     options: List<T>,
-    optionLabel: (T) -> String,
+    optionLabel: @Composable (T) -> String,
     onSelect: (T) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
@@ -303,12 +359,12 @@ fun DateInput(
         readOnly = true,
         singleLine = true,
         label = { Text(label) },
-        placeholder = { Text("Pilih tanggal") },
+        placeholder = { Text(stringResource(R.string.pick_date)) },
         leadingIcon = { Icon(painterResource(R.drawable.ic_calendar), contentDescription = null, Modifier.size(20.dp)) },
         trailingIcon = if (clearable && date != null) {
             {
                 IconButton(onClick = { onDateChange(null) }) {
-                    Icon(painterResource(R.drawable.ic_close), contentDescription = "Kosongkan $label")
+                    Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.field_clear, label))
                 }
             }
         } else {
@@ -337,9 +393,9 @@ fun DateInput(
                 TextButton(onClick = {
                     state.selectedDateMillis?.let { onDateChange(it.toUtcDate()) }
                     picking = false
-                }) { Text("Pilih") }
+                }) { Text(stringResource(R.string.choose)) }
             },
-            dismissButton = { TextButton(onClick = { picking = false }) { Text("Batal") } },
+            dismissButton = { TextButton(onClick = { picking = false }) { Text(stringResource(R.string.cancel)) } },
         ) {
             DatePicker(state = state)
         }
@@ -379,7 +435,7 @@ fun TagInput(
                         onClick = { onTagsChange(tags - tag) },
                         label = { Text(tag) },
                         trailingIcon = {
-                            Icon(painterResource(R.drawable.ic_close), contentDescription = "Hapus tag $tag", Modifier.size(16.dp))
+                            Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.tag_remove, tag), Modifier.size(16.dp))
                         },
                     )
                 }
@@ -388,8 +444,8 @@ fun TagInput(
         OutlinedTextField(
             value = draft,
             onValueChange = { text -> if (',' in text) add(text) else draft = text },
-            label = { Text("Tag") },
-            placeholder = { Text("JDM, Favorit…") },
+            label = { Text(stringResource(R.string.field_tags)) },
+            placeholder = { Text(stringResource(R.string.tag_placeholder)) },
             isError = error != null,
             supportingText = errorText(error),
             singleLine = true,
@@ -398,7 +454,7 @@ fun TagInput(
             trailingIcon = if (draft.isNotBlank()) {
                 {
                     IconButton(onClick = { add(draft) }) {
-                        Icon(painterResource(R.drawable.ic_add), contentDescription = "Tambah tag")
+                        Icon(painterResource(R.drawable.ic_add), contentDescription = stringResource(R.string.tag_add))
                     }
                 }
             } else {

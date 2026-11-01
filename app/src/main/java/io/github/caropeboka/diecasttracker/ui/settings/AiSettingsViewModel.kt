@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.toRoute
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.ai.AiException
 import io.github.caropeboka.diecasttracker.data.ai.AiProvider
 import io.github.caropeboka.diecasttracker.data.ai.AiSettings
@@ -24,6 +25,7 @@ import io.github.caropeboka.diecasttracker.data.ai.OPEN_MODEL_NAME
 import io.github.caropeboka.diecasttracker.data.ai.OpenAiClient
 import io.github.caropeboka.diecasttracker.data.ai.ProviderChange
 import io.github.caropeboka.diecasttracker.data.ai.ProviderSettings
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.ui.AiSettingsRoute
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -65,6 +67,7 @@ class AiSettingsViewModel(
     private val gemini: GeminiClient,
     private val openAi: OpenAiClient,
     private val messages: Messages,
+    private val texts: Texts,
 ) : ViewModel() {
     val fromScan = saved.toRoute<AiSettingsRoute>().fromScan
 
@@ -143,11 +146,11 @@ class AiSettingsViewModel(
         val draft = drafts.getValue(provider)
         val settings = typed(provider)
         if (settings.key.isNullOrBlank() && provider != AiProvider.Custom) {
-            draft.test = KeyTest.Failed("Isi API key dulu.")
+            draft.test = KeyTest.Failed(texts(R.string.ai_key_needed))
             return
         }
         if (provider == AiProvider.Custom && !validUrl(draft.baseUrl)) {
-            draft.test = KeyTest.Failed("Isi alamat server dulu, mis. https://…/v1.")
+            draft.test = KeyTest.Failed(texts(R.string.ai_url_needed))
             return
         }
 
@@ -182,7 +185,7 @@ class AiSettingsViewModel(
                     ProviderChange(provider, draft.model, draft.on, draft.keyInput, draft.baseUrl, draft.name)
                 },
             )
-            messages.show("Pengaturan AI disimpan.")
+            messages.show(texts(R.string.ai_settings_saved))
             _closed.send(Unit)
         }
     }
@@ -195,7 +198,7 @@ class AiSettingsViewModel(
                 test = KeyTest.Idle
             }
             val left = settings.setup.first().isEnabled
-            messages.show("API key ${provider.title} dihapus." + if (left) "" else " AI tidak aktif.")
+            messages.show(texts(if (left) R.string.ai_key_removed else R.string.ai_key_removed_off, provider.title))
         }
     }
 
@@ -214,13 +217,13 @@ class AiSettingsViewModel(
         if (!used) return true
 
         if (provider == AiProvider.Custom && !validUrl(draft.baseUrl)) {
-            draft.urlError = "Alamat harus diawali https:// (atau http://), mis. https://integrate.api.nvidia.com/v1."
+            draft.urlError = texts(R.string.ai_url_invalid)
         }
         val pattern = if (provider == AiProvider.Gemini) MODEL_NAME else OPEN_MODEL_NAME
         draft.modelError = when {
-            draft.model.isEmpty() -> "Isi nama model."
-            !pattern.matches(draft.model) && provider == AiProvider.Gemini -> "Nama model hanya boleh huruf kecil, angka, titik, dan tanda minus."
-            !pattern.matches(draft.model) -> "Nama model tidak boleh berisi spasi."
+            draft.model.isEmpty() -> texts(R.string.ai_model_needed)
+            !pattern.matches(draft.model) && provider == AiProvider.Gemini -> texts(R.string.ai_model_gemini_chars)
+            !pattern.matches(draft.model) -> texts(R.string.ai_model_no_spaces)
             else -> null
         }
         return draft.modelError == null && draft.urlError == null
@@ -232,7 +235,7 @@ class AiSettingsViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                with(app.container) { AiSettingsViewModel(createSavedStateHandle(), aiSettings, gemini, openAi, messages) }
+                with(app.container) { AiSettingsViewModel(createSavedStateHandle(), aiSettings, gemini, openAi, messages, texts) }
             }
         }
     }

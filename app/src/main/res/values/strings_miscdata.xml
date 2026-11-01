@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/miscdata.json; edit all three languages together. -->
+<resources>
+    <string name="shelf_tier_bottom">bottom</string>
+    <string name="shelf_tier_middle">middle</string>
+    <string name="shelf_tier_top">top</string>
+    <string name="shelf_label_board">Board %1$d · lane %2$d</string>
+    <string name="shelf_label_corner">Black shelf · %1$s tier</string>
+    <string name="shelf_label_case">White case · row %1$d column %2$d</string>
+    <string name="scan_failed">The scan failed (%1$s). Fill it in by hand or try again.</string>
+    <string name="check_failed">The check failed (%1$s).</string>
+    <string name="check_no_name">The AI didn\'t find this diecast\'s name — add it through the form.</string>
+    <string name="location_denied">Location permission denied. Allow Diecast Tracker to use the location in the phone\'s settings.</string>
+    <string name="location_off">The phone\'s location is off. Turn on location (GPS) and try again.</string>
+    <string name="location_not_found">Location not found. Try again somewhere with a better signal.</string>
+    <string name="studio_model_missing">The background remover isn\'t downloaded yet. Connect to the internet (just this once) and try again.</string>
+    <string name="studio_not_found">No diecast was found in this photo. Try a photo on a plain background in bright light.</string>
+    <string name="studio_no_card">The four points must make a quadrilateral on the card\'s corners.</string>
+    <string name="decor_not_found">Nothing was found in the photo. Try a photo on a plain background in bright light.</string>
+    <string name="photo_unsupported">This photo format isn\'t supported. Use JPG, PNG or WEBP.</string>
+    <string name="dashboard_no_brand">No brand</string>
+    <string name="place_unnamed">No place name</string>
+    <string name="place_unnamed_spot">Unnamed spot</string>
+</resources>

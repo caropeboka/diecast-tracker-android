@@ -28,7 +28,7 @@ import java.time.LocalDate
 
 /** Web: `tests/Feature/ScanQueueTest.php` (the store check part) and `CheckController`. */
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class StoreCheckTest {
     private val env = TestEnvironment(now = { 1_000L })
@@ -36,10 +36,11 @@ class StoreCheckTest {
     private val scanner = DiecastScanner(
         fake.vision(),
         env.photos,
+        env.texts,
         currentYear = { 2026 },
     )
-    private val check = StoreCheck(env.db, env.photos, scanner, CollectionMatcher(env.repository), env.repository, clock = { NOW })
-    private val queue = ScanQueue(env.db, env.photos, scanner)
+    private val check = StoreCheck(env.db, env.photos, scanner, CollectionMatcher(env.repository), env.repository, env.texts, clock = { NOW })
+    private val queue = ScanQueue(env.db, env.photos, scanner, env.texts)
     private val today = LocalDate.of(2026, 10, 22)
     private val store = PlaceValue("Toys Kingdom GI", -6.19, 106.82, accuracy = 12, at = NOW - 60_000)
 

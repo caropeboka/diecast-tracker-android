@@ -51,7 +51,7 @@ data class DexEntry(
     val diecasts: List<LinkedDiecastRow>,
 )
 
-data class SeriesProgress(val series: String, val total: Int, val seen: Int, val caught: Int)
+data class SeriesProgress(val series: String?, val total: Int, val seen: Int, val caught: Int)
 
 /**
  * Pokédex-style progress (web: `CatalogProgress.php`): an entry (number) is seen once a diecast linked to any of
@@ -95,7 +95,7 @@ object DexProgress {
 
     /** Completion per series ("HW J-Imports 3/10"), in the order the series first appear. */
     fun series(entries: List<DexEntry>): List<SeriesProgress> = entries
-        .groupBy { it.series ?: "Lainnya" }
+        .groupBy { it.series }
         .map { (series, group) ->
             SeriesProgress(series, group.size, group.count { it.state.seen }, group.count { it.state.caught })
         }

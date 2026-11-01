@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/miscdata.json; edit all three languages together. -->
+<resources>
+    <string name="shelf_tier_bottom">下</string>
+    <string name="shelf_tier_middle">中</string>
+    <string name="shelf_tier_top">上</string>
+    <string name="shelf_label_board">展板 %1$d · 第 %2$d 道</string>
+    <string name="shelf_label_corner">黑色角架 · %1$s层</string>
+    <string name="shelf_label_case">白色收纳柜 · 第 %1$d 行第 %2$d 列</string>
+    <string name="scan_failed">扫描失败（%1$s）。请手动填写或重试。</string>
+    <string name="check_failed">查询失败（%1$s）。</string>
+    <string name="check_no_name">AI 没有识别出这辆合金车的名称——请通过表单添加。</string>
+    <string name="location_denied">位置权限被拒绝。请在手机设置中允许 Diecast Tracker 访问位置。</string>
+    <string name="location_off">手机定位已关闭。请打开定位（GPS）后重试。</string>
+    <string name="location_not_found">找不到位置。请到信号更好的地方再试。</string>
+    <string name="studio_model_missing">背景去除模型尚未下载。请连接网络（只需这一次）后重试。</string>
+    <string name="studio_not_found">这张照片中没有检测到合金车。请在纯色背景、明亮光线下拍摄。</string>
+    <string name="studio_no_card">四个点必须在卡片的四个角上构成四边形。</string>
+    <string name="decor_not_found">照片中没有检测到物体。请在纯色背景、明亮光线下拍摄。</string>
+    <string name="photo_unsupported">不支持此照片格式。请使用 JPG、PNG 或 WEBP。</string>
+    <string name="dashboard_no_brand">无品牌</string>
+    <string name="place_unnamed">无地点名称</string>
+    <string name="place_unnamed_spot">未命名地点</string>
+</resources>

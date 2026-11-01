@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/dex.json; edit all three languages together. -->
+<resources>
+    <string name="dex_intro">Seberapa banyak rilisan yang sudah kamu temui dan miliki, per tahun dan per seri.</string>
+    <string name="dex_delete_text">Daftarnya dan foto-fotonya dihapus dari HP. Diecast di koleksimu tetap ada, hanya tautannya ke Dex ini yang lepas.</string>
+    <plurals name="dex_review_count">
+        <item quantity="other">%d diecast perlu dicek</item>
+    </plurals>
+    <string name="dex_review_text">Konfirmasi yang dicocokkan otomatis, pilih saran, dan perbaiki tahun yang keliru.</string>
+    <string name="dex_review_open">Cocokkan</string>
+    <plurals name="dex_images_downloading">
+        <item quantity="other">Mengunduh foto katalog… %d lagi</item>
+    </plurals>
+    <plurals name="dex_images_retrying">
+        <item quantity="other">%d foto katalog belum terunduh, dicoba lagi otomatis.</item>
+    </plurals>
+    <plurals name="dex_images_wait_connection">
+        <item quantity="other">%d foto katalog menunggu koneksi.</item>
+    </plurals>
+    <plurals name="dex_images_wait_wifi">
+        <item quantity="other">%d foto katalog menunggu Wi-Fi.</item>
+    </plurals>
+    <string name="dex_cellular">Pakai data seluler juga</string>
+    <string name="dex_cellular_hint">Sekitar 5–8 MB per tahun. Mati: foto hanya diunduh lewat Wi-Fi.</string>
+    <string name="dex_empty_title">Dex masih kosong</string>
+    <string name="dex_empty_text">Sinkronkan daftar rilisan Hot Wheels atau Matchbox di bawah, atau buat dex sendiri untuk merek lain. Koleksimu langsung dicocokkan, dan kamu bisa melihat berapa yang sudah ditemui dan dimiliki.</string>
+    <string name="dex_counts">dimiliki %1$d · dilihat %2$d dari %3$d</string>
+    <string name="dex_counts_wanted">%1$d diincar</string>
+    <string name="dex_menu_for">Menu %1$s</string>
+    <string name="dex_resync">Sinkron ulang</string>
+    <string name="dex_edit">Ubah dex</string>
+    <string name="dex_remove">Hapus dari Dex</string>
+    <string name="dex_own">Dex sendiri</string>
+    <string name="dex_own_text">Untuk merek yang tidak punya daftar di wiki (Mini GT, Tarmac, Inno64, Roll Speed…). Isi daftarnya manual, dari Excel, dari screenshot checklist (dibaca AI), atau dari koleksimu.</string>
+    <string name="dex_own_create">Buat dex sendiri</string>
+    <string name="dex_sync_title">Sinkron katalog</string>
+    <string name="dex_sync_text">Ambil daftar rilisan resmi per tahun dari Hot Wheels Wiki atau Matchbox Wiki (CC BY-SA). Sinkron ulang tahun yang sama memperbarui daftarnya tanpa melepas tautan koleksimu.</string>
+    <string name="dex_from">Dari</string>
+    <string name="dex_to">Sampai</string>
+    <string name="dex_sync_one">Sinkron %1$d</string>
+    <plurals name="dex_sync_range">
+        <item quantity="other">Sinkron %1$d–%2$d (%3$d tahun)</item>
+    </plurals>
+    <string name="dex_syncing">Menyinkron %1$d (%2$d dari %3$d)…</string>
+    <string name="waiting_for_connection">Menunggu koneksi internet…</string>
+    <plurals name="dex_sync_releases">
+        <item quantity="other">%1$s: %2$d rilisan</item>
+    </plurals>
+    <string name="dex_sync_new">, %1$d baru</string>
+    <string name="dex_sync_removed">, %1$d dihapus</string>
+    <plurals name="dex_sync_linked">
+        <item quantity="other">%d diecast tertaut</item>
+    </plurals>
+    <string name="dex_removed">%1$s dihapus dari Dex.</string>
+    <string name="dex_created">Dex %1$s dibuat. Sekarang isi daftarnya.</string>
+    <string name="dex_saved">Dex disimpan.</string>
+    <string name="dex_meter_description">Dilihat %1$d, dimiliki %2$d, dari %3$d</string>
+    <string name="dex_legend_owned">Dimiliki %1$d (%2$d%%)</string>
+    <string name="dex_legend_seen">Dilihat %1$d (%2$d%%)</string>
+    <string name="dex_legend_of">dari %1$d</string>
+    <string name="dex_state_owned">Dimiliki</string>
+    <string name="dex_state_seen">Dilihat</string>
+    <string name="dex_state_wanted">Diincar</string>
+    <string name="dex_state_none">Belum ditelusuri</string>
+    <string name="dex_matches_title">Cocokkan Dex</string>
+    <string name="dex_matches_intro">Cek entri Dex untuk setiap diecast. Yang dicocokkan otomatis cukup dikonfirmasi; tahun yang keliru bisa langsung diperbaiki.</string>
+    <string name="dex_matches_done">Semua sudah dicek</string>
+    <plurals name="dex_matches_more">
+        <item quantity="other">%d diecast berikutnya muncul setelah yang di atas selesai dicek.</item>
+    </plurals>
+    <string name="dex_no_number">Tanpa nomor</string>
+    <string name="dex_msg_year_fixed">Benar, tahun diubah ke %1$d.</string>
+    <string name="dex_correct_fix_year">Benar &amp; ubah tahun ke %1$d</string>
+    <string name="dex_msg_confirmed">Dikonfirmasi.</string>
+    <string name="dex_correct_keep_year">Benar, tahun tetap</string>
+    <string name="dex_msg_unlinked">Dilepas dari Dex.</string>
+    <string name="dex_not_this">Bukan ini</string>
+    <string name="dex_year_mismatch">Di koleksi tercatat %1$s, tapi rilis ini dari %2$d. Tahun di kartu biasanya tahun hak cipta model, bukan tahun rilis.</string>
+    <string name="dex_no_year">tanpa tahun</string>
+    <string name="dex_msg_linked_year">Ditautkan, tahun diubah ke %1$d.</string>
+    <string name="dex_msg_linked">Ditautkan.</string>
+    <string name="dex_this_is_it_year">Ini dia (tahun %1$d)</string>
+    <string name="dex_this_is_it">Ini dia</string>
+    <string name="dex_not_here">Tidak ada di sini</string>
+    <string name="dex_not_found_synced">Tidak ditemukan di Dex yang sudah disinkron.</string>
+    <string name="dex_filter_all">Semua</string>
+    <string name="dex_filter_missing">Belum</string>
+    <plurals name="dex_numbers">
+        <item quantity="other">%d nomor</item>
+    </plurals>
+    <string name="dex_open_wiki">Buka di wiki</string>
+    <string name="dex_menu">Menu dex</string>
+    <string name="dex_delete">Hapus dex</string>
+    <string name="dex_wanted_wishlist">%1$d diincar (wishlist)</string>
+    <string name="dex_search">Cari nama, nomor, seri…</string>
+    <string name="dex_group_series">Kelompokkan per seri</string>
+    <string name="dex_custom_empty">Belum ada entri. Tambah satu per satu, atau isi banyak sekaligus dari Excel/CSV, screenshot checklist, atau koleksimu.</string>
+    <string name="dex_catalog_empty">Dex ini masih kosong.</string>
+    <string name="dex_no_match">Tidak ada entri yang cocok.</string>
+    <string name="dex_other_series">Lainnya</string>
+    <string name="dex_owned_of">%1$d/%2$d dimiliki</string>
+    <string name="dex_new_model">Model baru</string>
+    <string name="dex_exclusive">Eksklusif %1$s</string>
+    <string name="dex_variants">Varian (%1$d)</string>
+    <string name="dex_main_colour">Warna utama</string>
+    <string name="dex_log">Catat</string>
+    <string name="dex_log_variant">Catat (%1$s)</string>
+    <string name="dex_add_variant">Tambah varian</string>
+    <string name="dex_matched_auto_lower">dicocokkan otomatis</string>
+    <plurals name="dex_entry_delete_linked">
+        <item quantity="other">%d diecast di koleksimu tertaut ke entri ini; tautannya lepas, diecastnya tetap ada.</item>
+    </plurals>
+    <string name="dex_entry_delete">Entri ini dihapus dari dex.</string>
+    <string name="ai_hint_checklist">Bisa sampai satu menit, tergantung panjang daftarnya.</string>
+    <string name="dex_entry_added">%1$s ditambahkan.</string>
+    <string name="dex_checklist_max">Maksimal %1$d screenshot sekali baca; %1$d pertama yang dibaca.</string>
+    <string name="dex_preparing_images">Menyiapkan gambar</string>
+    <string name="dex_checklist_none">AI tidak menemukan rilisan di gambar itu.</string>
+    <string name="dex_checking_known">Mengecek yang sudah ada di daftar</string>
+    <string name="dex_checklist_failed">Gagal membaca checklist (%1$s).</string>
+    <string name="dex_add_failed">Gagal menambahkan: %1$s</string>
+    <string name="dex_file_too_big">File maksimal 5 MB.</string>
+    <string name="dex_import_failed">Gagal mengimpor (%1$s).</string>
+    <string name="dex_collection_none">Belum ada diecast %1$s di koleksimu yang bisa dimasukkan.</string>
+    <string name="dex_collection_failed">Gagal mengambil dari koleksi: %1$s</string>
+    <string name="dex_add_entry">Tambah entri</string>
+    <string name="dex_fill_many">Isi banyak</string>
+    <string name="dex_create_own_hint">Untuk merek yang tidak punya daftar di wiki (Mini GT, Tarmac, Inno64, Roll Speed…).</string>
+    <string name="dex_name_label">Nama dex *</string>
+    <string name="dex_name_placeholder">Mini GT 2026, Roll Speed Polisi…</string>
+    <string name="dex_year_optional">Tahun (opsional)</string>
+    <string name="dex_create">Buat dex</string>
+    <string name="dex_edit_entry">Ubah entri</string>
+    <string name="dex_add_entry_hint">Satu rilisan. Nomor yang sama dengan varian berbeda jadi varian dari entri itu.</string>
+    <string name="dex_added_next">%1$s Lanjut entri berikutnya, atau Selesai.</string>
+    <string name="dex_number_code">Nomor / kode</string>
+    <string name="dex_number_placeholder">MGT00512 (kosongkan = urut otomatis)</string>
+    <string name="dex_series_number">Nomor seri</string>
+    <string name="dex_series_number_placeholder">mis. 3/5</string>
+    <string name="dex_variant_colour">Varian / warna</string>
+    <string name="dex_variant_placeholder">Bayside Blue, LHD…</string>
+    <string name="dex_entry_photo">Foto entri</string>
+    <string name="dex_photo_optional">Foto (opsional)</string>
+    <string name="dex_fill_many_title">Isi banyak sekaligus</string>
+    <string name="dex_fill_many_hint">Entri yang sudah ada tidak digandakan.</string>
+    <string name="dex_from_checklist">Dari screenshot checklist (AI)</string>
+    <string name="dex_from_checklist_text">Screenshot daftar rilisan (post checklist, katalog, pre-order toko), maks. %1$d, atau foto lembar checklist. AI yang mengetik daftarnya; kamu periksa dulu sebelum ditambahkan.</string>
+    <string name="dex_pick_screenshots">Pilih screenshot</string>
+    <string name="dex_open_ai_settings">Buka Pengaturan AI</string>
+    <string name="dex_from_sheet">Dari Excel / CSV</string>
+    <string name="dex_from_sheet_text">Baris pertama berisi judul kolom: Nomor, Nama, Seri, Nomor seri, Varian. Minimal kolom Nama. Hanya sheet pertama yang dibaca.</string>
+    <string name="dex_from_collection">Dari koleksiku</string>
+    <string name="dex_from_collection_text">Semua diecast %1$s di koleksimu jadi entri, langsung tertaut (dengan fotonya).</string>
+    <string name="dex_review_title">Periksa hasil AI</string>
+    <string name="dex_already_there">sudah ada di dex</string>
+    <plurals name="dex_add_count">
+        <item quantity="other">Tambahkan %d entri</item>
+    </plurals>
+    <plurals name="dex_checklist_review">
+        <item quantity="other">AI membaca %d rilisan. Hapus centang yang salah baca; yang keliru sedikit bisa diubah setelah ditambahkan.</item>
+    </plurals>
+</resources>

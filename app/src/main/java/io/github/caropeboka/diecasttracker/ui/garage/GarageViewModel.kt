@@ -3,6 +3,7 @@ package io.github.caropeboka.diecasttracker.ui.garage
 import android.content.res.AssetManager
 import android.graphics.Bitmap
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -11,6 +12,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.PhotoStore
@@ -21,6 +23,7 @@ import io.github.caropeboka.diecasttracker.data.decor.DecorCutout
 import io.github.caropeboka.diecasttracker.data.decor.DecorMaker
 import io.github.caropeboka.diecasttracker.data.decor.DecorRepository
 import io.github.caropeboka.diecasttracker.data.decor.DecorStore
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.shelf.Shelf
 import io.github.caropeboka.diecasttracker.data.shelf.ShelfLayout
 import io.github.caropeboka.diecasttracker.data.shelf.ShelfMove
@@ -89,6 +92,7 @@ class GarageViewModel(
     private val decorStore: DecorStore,
     private val decorMaker: DecorMaker,
     private val messages: Messages,
+    private val texts: Texts,
     assets: AssetManager,
 ) : ViewModel() {
     /** Each photo decoded once (by diecast, cover, packaging and scale), for those on the shelves. */
@@ -111,7 +115,7 @@ class GarageViewModel(
     private val _draft = MutableStateFlow<DecorDraft?>(null)
     val draft: StateFlow<DecorDraft?> = _draft.asStateFlow()
 
-    private val log = AiProgressLog("Diproses di HP; fotonya tidak dikirim ke mana pun.")
+    private val log = AiProgressLog(texts, R.string.ai_hint_decor)
     val progress: StateFlow<AiProgress?> = log.state
 
     private val _art = MutableStateFlow<GarageArt?>(null)
@@ -131,7 +135,7 @@ class GarageViewModel(
     fun makeDecoration(spot: Spot, uri: Uri? = null, file: File? = null) {
         _draft.value = DecorDraft(spot)
         viewModelScope.launch {
-            log.start("Membaca foto")
+            log.start(texts(R.string.decor_reading_photo))
             val result = runCatching {
                 val name = withContext(Dispatchers.IO) { if (file != null) photos.addFromCamera(file) else photos.addFromUri(uri!!) }
                 val photo = try {
@@ -139,17 +143,17 @@ class GarageViewModel(
                 } finally {
                     photos.delete(name)
                 }
-                log.step("Memisahkan benda dari latar")
+                log.step(texts(R.string.decor_separating))
                 decorMaker.make(photo) { step ->
-                    if (step is StudioStep.Downloading) log.step("Mengunduh pemisah latar (sekali saja)")
-                    if (step is StudioStep.Composing) log.step("Merapikan tepi, membersihkan debu")
+                    if (step is StudioStep.Downloading) log.step(texts(R.string.decor_downloading))
+                    if (step is StudioStep.Composing) log.step(texts(R.string.decor_tidying))
                 }
             }
             log.stop()
             if (_draft.value?.spot != spot) return@launch
             _draft.value = result.fold(
                 onSuccess = { DecorDraft(spot, it) },
-                onFailure = { DecorDraft(spot, error = it.message ?: "Fotonya tidak bisa diproses.") },
+                onFailure = { DecorDraft(spot, error = it.message ?: texts(R.string.decor_photo_failed)) },
             )
         }
     }
@@ -167,21 +171,21 @@ class GarageViewModel(
             val position = (draft.spot.angle * 10).roundToInt()
             val id = decorations.add(name, if (cleaned) cutout.cleaned else cutout.original, heightMm, draft.spot.spot, position)
             settleDecoration(id)
-            messages.show("$name ditaruh di ${ShelfLayout.label(Shelf.Corner, draft.spot.spot)}.")
+            messages.show(texts(R.string.decor_placed, name, ShelfLayout.label(texts, Shelf.Corner, draft.spot.spot)))
         }
     }
 
     /** A decoration to [spot] on the black shelf; false, with a message, when there's no room. */
     suspend fun placeDecoration(id: Long, spot: Spot): Boolean {
         val scene = scene.value ?: return false
-        if (spot.shelf != Shelf.Corner) return false.also { messages.show("Hiasan hanya bisa di laci hitam.") }
+        if (spot.shelf != Shelf.Corner) return false.also { messages.show(texts(R.string.decor_corner_only)) }
         val position = (spot.angle * 10).roundToInt()
         val moved = scene.decor.map { if (it.id == id) DecorItem(it.id, it.name, it.image, it.heightMm, spot.spot, position) else it }
         val items = items(scene.rows.filter { it.slot != null })
         val after = withContext(Dispatchers.Default) { layOut(scene.rows, items, moved) }
         val angle = after.decorAngles[id]
         if (angle == null || (after.overflow - scene.layout.overflow).isNotEmpty()) {
-            messages.show("Tidak ada ruang lagi di sana.")
+            messages.show(texts(R.string.garage_no_room))
             return false
         }
         decorations.move(id, spot.spot, (angle * 10).roundToInt())
@@ -196,7 +200,7 @@ class GarageViewModel(
         viewModelScope.launch {
             val name = scene.value?.decoration(id)?.name
             decorations.delete(id)
-            name?.let { messages.show("$it dihapus dari garasi.") }
+            name?.let { messages.show(texts(R.string.decor_deleted, it)) }
         }
     }
 
@@ -245,9 +249,9 @@ class GarageViewModel(
             val left = waiting.size - moves.size
             messages.show(
                 when {
-                    moves.isEmpty() -> "Tidak ada tempat kosong yang muat."
-                    left == 0 -> "${moves.size} diecast ditaruh di rak."
-                    else -> "${moves.size} diecast ditaruh; $left tidak muat dan masih di nampan."
+                    moves.isEmpty() -> texts(R.string.garage_arrange_none)
+                    left == 0 -> texts.plural(R.plurals.garage_arranged, moves.size, moves.size)
+                    else -> texts.plural(R.plurals.garage_arranged_some, moves.size, moves.size) + " " + texts.plural(R.plurals.garage_arranged_left, left, left)
                 },
             )
         }
@@ -258,12 +262,12 @@ class GarageViewModel(
     private suspend fun carryOut(scene: GarageScene, id: Long, shelf: Shelf, move: ShelfMove): Boolean {
         val row = scene.row(id) ?: return false
         val moves = when (move) {
-            ShelfMove.Full -> null.also { messages.show("Jalur itu sudah penuh: ${ShelfLayout.LANE_CARDS} kartu.") }
-            ShelfMove.DoesNotFit -> null.also { messages.show(doesNotFit(row, shelf)) }
-            is ShelfMove.Done -> settle(scene, move.moves).also { if (it == null) messages.show("Tidak ada ruang lagi di sana.") }
+            ShelfMove.Full -> null.also { messages.show(texts(R.string.garage_lane_full, ShelfLayout.LANE_CARDS)) }
+            ShelfMove.DoesNotFit -> null.also { messages.show(texts(doesNotFit(row, shelf))) }
+            is ShelfMove.Done -> settle(scene, move.moves).also { if (it == null) messages.show(texts(R.string.garage_no_room)) }
         } ?: return false
         shelves.apply(moves)
-        moves.forEach { (other, slot) -> if (other != id && slot == null) scene.row(other)?.let { messages.show("${it.name} masuk nampan.") } }
+        moves.forEach { (other, slot) -> if (other != id && slot == null) scene.row(other)?.let { messages.show(texts(R.string.garage_to_tray_done, it.name)) } }
         return true
     }
 
@@ -300,18 +304,19 @@ class GarageViewModel(
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 with(app.container) {
-                    GarageViewModel(repository, shelves, photos, decorations, decorStore, decorMaker, messages, app.assets)
+                    GarageViewModel(repository, shelves, photos, decorations, decorStore, decorMaker, messages, texts, app.assets)
                 }
             }
         }
     }
 }
 
+@StringRes
 private fun doesNotFit(row: ShelfRow, shelf: Shelf) = when {
-    row.packaging == Packaging.Carded -> "Kartu (blister) hanya bisa di papan."
-    shelf == Shelf.Boards -> "Papan hanya untuk kartu (blister)."
-    shelf == Shelf.Case -> "Rak putih hanya muat skala 1:64 atau lebih kecil."
-    else -> "Tidak muat di sana."
+    row.packaging == Packaging.Carded -> R.string.garage_cards_on_boards
+    shelf == Shelf.Boards -> R.string.garage_boards_cards_only
+    shelf == Shelf.Case -> R.string.garage_case_small_only
+    else -> R.string.garage_does_not_fit
 }
 
 private fun shelfItem(row: ShelfRow, photos: PhotoStore): ShelfItem {

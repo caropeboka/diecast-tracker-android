@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,7 +51,7 @@ fun Badge(
 fun RarityBadge(rarity: Rarity, modifier: Modifier = Modifier) {
     val color = Garage.rarityColor(rarity) ?: return
     Badge(
-        text = rarity.label,
+        text = stringResource(rarity.label),
         background = color,
         content = Garage.OnBrand,
         icon = if (rarity == Rarity.SuperTreasureHunt) R.drawable.ic_sparkles else null,
@@ -71,7 +72,7 @@ fun DiecastStatus.icon(): Int = when (this) {
 fun StatusBadge(status: DiecastStatus, modifier: Modifier = Modifier) {
     if (status == DiecastStatus.Owned) return
     Badge(
-        text = status.label,
+        text = stringResource(status.label),
         background = Color.Black.copy(alpha = 0.72f),
         content = Color.White,
         icon = status.icon(),

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/app.json; edit all three languages together. -->
+<resources>
+    <string name="shortcut_check_short">店内查询</string>
+    <string name="shortcut_check_long">店内查询：我有这款吗？</string>
+</resources>

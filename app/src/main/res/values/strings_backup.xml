@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/backup.json; edit all three languages together. -->
+<resources>
+    <string name="backup_not_a_backup">This isn\'t a Diecast Tracker backup file.</string>
+    <string name="backup_item_invalid">Item %1$d (%2$s): %3$s</string>
+    <string name="valid_invalid">%1$s isn\'t valid.</string>
+    <string name="valid_required">%1$s is required.</string>
+    <string name="valid_max_chars">%1$s can be at most %2$d characters.</string>
+    <string name="valid_integer">%1$s must be a whole number.</string>
+    <string name="valid_between">%1$s must be between %2$s and %3$s.</string>
+    <string name="valid_number">%1$s must be a number.</string>
+    <string name="valid_date">%1$s isn\'t a valid date.</string>
+    <string name="valid_not_future">%1$s can\'t be after today.</string>
+    <string name="valid_unknown">%1$s is unknown: \"%2$s\".</string>
+    <string name="valid_boolean">%1$s must be true or false.</string>
+    <string name="valid_incomplete">%1$s is incomplete.</string>
+    <string name="valid_out_of_range">%1$s is out of range.</string>
+    <string name="valid_tags_list">Tags must be a list.</string>
+    <string name="valid_tags_max">At most %1$d tags.</string>
+    <string name="valid_tags_text">Tags must be text.</string>
+    <string name="valid_tag_length">A tag can be at most %1$d characters.</string>
+    <string name="import_unreadable">The file can\'t be read: %1$s</string>
+    <string name="import_failed">The import failed; the collection wasn\'t changed. (%1$s)</string>
+    <string name="import_cant_open">The file can\'t be opened.</string>
+    <string name="import_zip_cant_open">The ZIP file can\'t be opened.</string>
+    <string name="import_nothing">Nothing in this backup could be restored. The collection wasn\'t changed.</string>
+    <string name="import_dex_broken">The Dex data in this backup is damaged, so the Dex wasn\'t restored.</string>
+    <string name="import_decor_broken">The garage decoration data in this backup is damaged, so it wasn\'t restored.</string>
+    <string name="export_target_cant_open">the target file can\'t be opened</string>
+    <string name="export_cant_write">The file can\'t be written: %1$s</string>
+    <string name="export_failed">Couldn\'t make the file. (%1$s)</string>
+</resources>

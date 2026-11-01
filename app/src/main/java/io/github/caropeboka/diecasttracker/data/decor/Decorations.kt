@@ -2,8 +2,11 @@ package io.github.caropeboka.diecasttracker.data.decor
 
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
+import androidx.annotation.StringRes
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
 import io.github.caropeboka.diecasttracker.data.db.DecorationEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.studio.StudioComposer
 import io.github.caropeboka.diecasttracker.data.studio.StudioException
 import io.github.caropeboka.diecasttracker.data.studio.StudioStep
@@ -100,12 +103,12 @@ class DecorRepository(
 class DecorCutout(val original: Bitmap, val cleaned: Bitmap)
 
 /** Cuts the subject out of a photo with [cutter] and cleans it (see [Dusting]). */
-class DecorMaker(private val cutter: SubjectCutter) {
+class DecorMaker(private val texts: Texts, private val cutter: SubjectCutter) {
     suspend fun make(photo: Bitmap, onStep: (StudioStep) -> Unit = {}): DecorCutout {
-        val cutout = cutter.cut(photo, onStep) ?: throw StudioException(NOT_FOUND)
+        val cutout = cutter.cut(photo, onStep) ?: throw StudioException(texts(NOT_FOUND))
         onStep(StudioStep.Composing)
         return withContext(Dispatchers.Default) {
-            val subject = StudioComposer.isolate(cutout) ?: throw StudioException(NOT_FOUND)
+            val subject = StudioComposer.isolate(cutout) ?: throw StudioException(texts(NOT_FOUND))
             val fitted = fit(subject, DecorStore.MAX_EDGE)
             DecorCutout(fitted, Dusting.clean(fitted))
         }
@@ -119,6 +122,6 @@ class DecorMaker(private val cutter: SubjectCutter) {
     }
 
     companion object {
-        const val NOT_FOUND = "Benda di foto tidak terdeteksi. Coba foto dengan latar polos dan cahaya terang."
+        @StringRes val NOT_FOUND = R.string.decor_not_found
     }
 }

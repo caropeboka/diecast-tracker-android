@@ -26,12 +26,12 @@ import java.time.LocalDate
 
 /** Ports of the web app's `CustomDexTest`, plus editing entries (which the web can't do). */
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class CustomDexTest {
     private val env = TestEnvironment()
     private val matcher = DexMatcher(env.db.dex())
-    private val custom = DexCustom(env.db, matcher, env.photos, env.root, today = { LocalDate.of(2026, 10, 20) })
+    private val custom = DexCustom(env.db, matcher, env.photos, env.texts, env.root, today = { LocalDate.of(2026, 10, 20) })
     private val dao = env.db.dex()
 
     @After
@@ -235,7 +235,7 @@ class CustomDexTest {
         custom.edit(typo.id, DexRow("MGT00512", "Nissan Skyline GT-R (R34)", variantLabel = "Midnight Purple"), PhotoEdit.Remove)
         assertNull(dao.item(typo.id)!!.imagePath)
         assertTrue(dexFiles(id).isEmpty())
-        assertEquals(mapOf(RowField.Name to "Nama model wajib diisi."), DexCustom.checkRow(DexRow(number = "1", name = " ")))
+        assertEquals(mapOf(RowField.Name to "Nama model wajib diisi."), DexCustom.checkRow(DexRow(number = "1", name = " "), env.texts))
     }
 
     @Test

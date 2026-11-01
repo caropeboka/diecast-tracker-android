@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/scan.json; edit all three languages together. -->
+<resources>
+    <string name="confidence_low_short">Kurang yakin</string>
+    <string name="bulk_needs_ai">Scan AI belum aktif. Foto tetap masuk antrean dan dibaca begitu API key diisi.</string>
+    <string name="bulk_intro">Satu foto = satu diecast. Foto depan kartunya dengan cahaya terang. Kamera terbuka lagi setelah tiap foto sampai kamu menekan Kembali.</string>
+    <string name="camera">Kamera</string>
+    <string name="bulk_pick_many">Pilih banyak foto</string>
+    <plurals name="bulk_adding">
+        <item quantity="other">Menyiapkan %d foto…</item>
+    </plurals>
+    <string name="bulk_counts">%1$d menunggu AI · %2$d siap dicek · %3$d gagal</string>
+    <string name="bulk_paused">Dijeda. Foto menunggu sampai dilanjutkan.</string>
+    <string name="bulk_reading">AI sedang membaca… (tetap jalan walau aplikasi ditutup)</string>
+    <string name="bulk_waiting">AI sibuk, kuota habis, atau tidak ada koneksi. %1$s</string>
+    <string name="bulk_queued">Menunggu giliran… (butuh koneksi internet)</string>
+    <string name="resume">Lanjutkan</string>
+    <string name="pause">Jeda</string>
+    <string name="bulk_save_safe">Simpan semua yang yakin (%1$d)</string>
+    <string name="bulk_save_safe_hint">Yang AI kurang yakin atau mirip dengan koleksimu dilewati — cek satu per satu.</string>
+    <plurals name="bulk_resume_in">
+        <item quantity="other">Lanjut otomatis dalam %d detik.</item>
+    </plurals>
+    <string name="bulk_resume_soon">Lanjut sebentar lagi.</string>
+    <string name="bulk_shared">Isian yang sama untuk semua</string>
+    <string name="bulk_save_as">Simpan sebagai</string>
+    <string name="bulk_date_spotted">Tanggal ditemui</string>
+    <string name="bulk_queue_photo">Foto antrean</string>
+    <string name="bulk_item_reading">AI sedang membaca…</string>
+    <string name="bulk_item_waiting">Menunggu giliran…</string>
+    <string name="bulk_unreadable">AI tidak bisa membaca foto ini.</string>
+    <string name="bulk_similar">Mirip koleksimu</string>
+    <string name="bulk_discard_photo">Buang foto ini</string>
+    <string name="bulk_number">No. koleksi</string>
+    <string name="bulk_full">Lengkap</string>
+    <plurals name="bulk_banner">
+        <item quantity="other">%d foto di antrean scan massal belum disimpan.</item>
+    </plurals>
+    <string name="continue_arrow">Lanjutkan →</string>
+    <string name="saved_named">%1$s disimpan.</string>
+    <plurals name="bulk_saved_many">
+        <item quantity="other">%d diecast disimpan ke koleksi.</item>
+    </plurals>
+    <string name="named_problem">%1$s: %2$s</string>
+    <string name="bulk_save_failed">%1$s: gagal menyimpan (%2$s).</string>
+</resources>

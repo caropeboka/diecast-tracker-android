@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -47,28 +48,28 @@ fun DexEditPanel(
     onOpenCatalog: (Long) -> Unit,
 ) {
     DexBox {
-        DexTitle("Dex")
+        DexTitle(stringResource(R.string.tab_dex))
         val linked = state.linked
         when {
             linked != null -> {
                 DexEntryCard(linked) { onOpenCatalog(linked.row.item.catalogId) }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
                     if (state.match == CatalogMatch.Auto) {
-                        Note(R.drawable.ic_auto_fix_high, "Dicocokkan otomatis", Modifier.align(Alignment.CenterVertically))
+                        Note(R.drawable.ic_auto_fix_high, stringResource(R.string.dex_matched_auto), Modifier.align(Alignment.CenterVertically))
                         Button(onClick = { onLink(LinkAction.Confirm, null) }, enabled = !busy, shape = MaterialTheme.shapes.medium) {
-                            IconLabel(R.drawable.ic_check, "Benar")
+                            IconLabel(R.drawable.ic_check, stringResource(R.string.dex_correct))
                         }
                     } else {
-                        Note(R.drawable.ic_check, "Terkonfirmasi", Modifier.align(Alignment.CenterVertically))
+                        Note(R.drawable.ic_check, stringResource(R.string.dex_confirmed), Modifier.align(Alignment.CenterVertically))
                     }
                     TextButton(onClick = { onLink(LinkAction.Ignore, null) }, enabled = !busy, shape = MaterialTheme.shapes.medium) {
-                        IconLabel(R.drawable.ic_block, "Lepas")
+                        IconLabel(R.drawable.ic_block, stringResource(R.string.dex_unlink))
                     }
                 }
                 YearFix(linked, year, onYear)
             }
             state.suggestions.isNotEmpty() -> {
-                Text("Mungkin salah satu ini:", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                Text(stringResource(R.string.dex_maybe), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                 state.suggestions.forEach { suggestion ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DexEntryCard(suggestion, Modifier.weight(1f)) { onOpenCatalog(suggestion.row.item.catalogId) }
@@ -76,12 +77,12 @@ fun DexEditPanel(
                             onClick = { onLink(LinkAction.Link, suggestion.row.item.id) },
                             enabled = !busy,
                             shape = MaterialTheme.shapes.medium,
-                        ) { IconLabel(R.drawable.ic_check, "Ini") }
+                        ) { IconLabel(R.drawable.ic_check, stringResource(R.string.dex_this_one)) }
                     }
                 }
             }
             else -> Text(
-                if (state.match == CatalogMatch.Ignored) "Ditandai tidak ada di Dex." else "Belum ada di Dex.",
+                stringResource(if (state.match == CatalogMatch.Ignored) R.string.dex_marked_absent else R.string.dex_not_in_dex),
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
@@ -105,9 +106,9 @@ fun DexCreatePanel(
     if (chosen != null) {
         DexBox(highlight = true) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                DexTitle("Ditautkan ke Dex", Modifier.weight(1f))
+                DexTitle(stringResource(R.string.dex_linked), Modifier.weight(1f))
                 TextButton(onClick = { onChoose(null) }, shape = MaterialTheme.shapes.medium) {
-                    IconLabel(R.drawable.ic_close, "Lepas")
+                    IconLabel(R.drawable.ic_close, stringResource(R.string.dex_unlink))
                 }
             }
             DexEntryCard(chosen) { onOpenCatalog(chosen.row.item.catalogId) }
@@ -121,7 +122,7 @@ fun DexCreatePanel(
     val yearDiffers = release != null && release.toString() != year.trim()
 
     DexBox {
-        DexTitle("Sepertinya ini di Dex")
+        DexTitle(stringResource(R.string.dex_looks_like))
         DexEntryCard(suggestion) { onOpenCatalog(suggestion.row.item.catalogId) }
         Button(
             onClick = {
@@ -129,10 +130,10 @@ fun DexCreatePanel(
                 if (yearDiffers) onYear(release!!)
             },
             shape = MaterialTheme.shapes.medium,
-        ) { IconLabel(R.drawable.ic_check, if (yearDiffers) "Tautkan & pakai tahun $release" else "Tautkan") }
+        ) { IconLabel(R.drawable.ic_check, if (yearDiffers) stringResource(R.string.dex_link_with_year, release) else stringResource(R.string.dex_link)) }
         if (yearDiffers) {
             Text(
-                "AI membaca tahun ${year.trim().ifEmpty { "—" }} dari kartu; rilisnya $release.",
+                stringResource(R.string.dex_ai_year, year.trim().ifEmpty { "—" }, release),
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
@@ -152,17 +153,19 @@ private fun YearFix(entry: DexRef, year: String, onYear: (Int) -> Unit) {
             .background(Garage.Muted, MaterialTheme.shapes.medium)
             .padding(start = 10.dp, top = 8.dp, end = 4.dp, bottom = 2.dp),
     ) {
+        val note = stringResource(R.string.dex_year_note, year.trim().ifEmpty { stringResource(R.string.dex_year_empty) }, MARK)
         Text(
             buildAnnotatedString {
-                append("Tahun di form ${year.trim().ifEmpty { "kosong" }}, tapi rilis ini dari ")
+                val (before, after) = note.split(MARK)
+                append(before)
                 withStyle(SpanStyle(color = Garage.Foreground, fontWeight = FontWeight.SemiBold)) { append(release.toString()) }
-                append(" (tahun di kartu biasanya tahun hak cipta model).")
+                append(after)
             },
             style = MaterialTheme.typography.bodySmall,
             color = Garage.MutedForeground,
         )
         TextButton(onClick = { onYear(release) }, shape = MaterialTheme.shapes.medium, modifier = Modifier.align(Alignment.End)) {
-            Text("Pakai $release")
+            Text(stringResource(R.string.dex_use_year, release))
         }
     }
 }
@@ -196,3 +199,6 @@ private fun Note(icon: Int, text: String, modifier: Modifier = Modifier) {
         Text(text, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
     }
 }
+
+/** Stands in for the release year in [R.string.dex_year_note], which is drawn bold. */
+private const val MARK = "\u0000"

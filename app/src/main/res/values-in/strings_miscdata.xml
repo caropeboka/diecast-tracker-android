@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/miscdata.json; edit all three languages together. -->
+<resources>
+    <string name="shelf_tier_bottom">bawah</string>
+    <string name="shelf_tier_middle">tengah</string>
+    <string name="shelf_tier_top">atas</string>
+    <string name="shelf_label_board">Papan %1$d · jalur %2$d</string>
+    <string name="shelf_label_corner">Laci hitam · susun %1$s</string>
+    <string name="shelf_label_case">Rak putih · baris %1$d kolom %2$d</string>
+    <string name="scan_failed">Scan gagal (%1$s). Isi manual atau coba lagi.</string>
+    <string name="check_failed">Cek gagal (%1$s).</string>
+    <string name="check_no_name">AI tidak menemukan nama diecast ini — tambahkan lewat form.</string>
+    <string name="location_denied">Izin lokasi ditolak. Izinkan akses lokasi untuk Diecast Tracker di pengaturan HP.</string>
+    <string name="location_off">Lokasi HP mati. Nyalakan lokasi (GPS) lalu coba lagi.</string>
+    <string name="location_not_found">Lokasi tidak ditemukan. Coba lagi di tempat yang sinyalnya lebih baik.</string>
+    <string name="studio_model_missing">Pemisah latar belum terunduh. Sambungkan ke internet (cukup sekali ini), lalu coba lagi.</string>
+    <string name="studio_not_found">Diecast-nya tidak terdeteksi di foto ini. Coba foto dengan latar polos dan cahaya terang.</string>
+    <string name="studio_no_card">Keempat titik harus membentuk segi empat di sudut-sudut kartu.</string>
+    <string name="decor_not_found">Benda di foto tidak terdeteksi. Coba foto dengan latar polos dan cahaya terang.</string>
+    <string name="photo_unsupported">Format foto tidak didukung. Gunakan JPG, PNG, atau WEBP.</string>
+    <string name="dashboard_no_brand">Tanpa merek</string>
+    <string name="place_unnamed">Tanpa nama tempat</string>
+    <string name="place_unnamed_spot">Titik tanpa nama</string>
+</resources>

@@ -1,30 +1,52 @@
 package io.github.caropeboka.diecasttracker.data.backup
 
+import android.app.Application
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.backup.WebBackupFormat.Record
+import io.github.caropeboka.diecasttracker.data.testTexts
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import io.github.caropeboka.diecasttracker.util.Formats
+import io.github.caropeboka.diecasttracker.util.INDONESIAN
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import java.time.LocalDate
+import java.util.Locale
 import java.util.zip.ZipInputStream
 
+@RunWith(AndroidJUnit4::class)
+@Config(application = Application::class, qualifiers = "in")
 class WebBackupFormatTest {
     private val today = LocalDate.of(2026, 10, 18)
+
+    @Before
+    fun indonesian() {
+        Formats.locale = INDONESIAN
+    }
+
+    @After
+    fun reset() {
+        Formats.locale = Locale.ENGLISH
+    }
 
     /** diecasts.json of the fixture made by the web app's own CollectionBackup (tools/make-web-backup-fixture.php). */
     private val manifest by lazy {
         val zip = ZipInputStream(javaClass.getResourceAsStream("/web-backup-v1.zip")!!)
         generateSequence { zip.nextEntry }.first { it.name == "diecasts.json" }
-        WebBackupFormat.parseManifest(zip.readBytes().decodeToString())
+        WebBackupFormat.parseManifest(zip.readBytes().decodeToString(), testTexts())
     }
 
-    private fun parse(json: String): Record = WebBackupFormat.parseRecord(0, Json.parseToJsonElement(json), today)
+    private fun parse(json: String): Record = WebBackupFormat.parseRecord(0, Json.parseToJsonElement(json), today, testTexts())
 
     private fun record(extra: String = "") =
         """{"name": "Datsun", "rarity": "regular", "packaging": "carded", "status": "owned", "quantity": 1 $extra}"""
@@ -34,7 +56,7 @@ class WebBackupFormatTest {
         assertEquals(LocalDate.of(2026, 10, 18), manifest.exportedOn)
         assertEquals(9, manifest.records.size)
 
-        val datsun = WebBackupFormat.parseRecord(0, manifest.records[0], today) as Record.Valid
+        val datsun = WebBackupFormat.parseRecord(0, manifest.records[0], today, testTexts()) as Record.Valid
         with(datsun.diecast) {
             assertEquals("'71 Datsun 510", name)
             assertEquals("61/250 · 2/10", collectionNumber)
@@ -50,7 +72,7 @@ class WebBackupFormatTest {
         assertEquals(listOf("Favorit", "JDM"), datsun.tags)
         assertEquals(2, datsun.photos.size)
 
-        val porsche = manifest.records.mapIndexed { i, it -> WebBackupFormat.parseRecord(i, it, today) }
+        val porsche = manifest.records.mapIndexed { i, it -> WebBackupFormat.parseRecord(i, it, today, testTexts()) }
             .filterIsInstance<Record.Valid>()
             .single { it.diecast.status == DiecastStatus.Spotted }
         assertEquals(listOf(55_000L, 45_000L), porsche.sightings.map { it.entity.price })
@@ -59,7 +81,7 @@ class WebBackupFormatTest {
 
     @Test
     fun `invalid records are skipped with a reason`() {
-        val reasons = manifest.records.mapIndexed { i, it -> WebBackupFormat.parseRecord(i, it, today) }
+        val reasons = manifest.records.mapIndexed { i, it -> WebBackupFormat.parseRecord(i, it, today, testTexts()) }
             .filterIsInstance<Record.Invalid>()
             .map { it.reason }
 
@@ -72,7 +94,7 @@ class WebBackupFormatTest {
     @Test
     fun `other files are not backups`() {
         listOf("""{"format": "something-else", "diecasts": []}""", """{"format": "diecast-tracker-backup"}""", "not json")
-            .forEach { assertThrows(BackupException::class.java) { WebBackupFormat.parseManifest(it) } }
+            .forEach { assertThrows(BackupException::class.java) { WebBackupFormat.parseManifest(it, testTexts()) } }
     }
 
     @Test

@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.data.scan
 
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.CollectionFilter
 import io.github.caropeboka.diecasttracker.data.CollectionMatcher
 import io.github.caropeboka.diecasttracker.data.DEFAULT_SCALE
@@ -17,6 +18,7 @@ import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.db.ScanItemEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -50,6 +52,7 @@ class StoreCheck(
     private val scanner: DiecastScanner,
     private val matcher: CollectionMatcher,
     private val repository: DiecastRepository,
+    private val texts: Texts,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val dao = db.scanItems()
@@ -77,7 +80,7 @@ class StoreCheck(
         } catch (e: AiException) {
             item.copy(status = ScanItemStatus.Failed, error = e.message)
         } catch (e: Exception) {
-            item.copy(status = ScanItemStatus.Failed, error = "Cek gagal (${e.message ?: e::class.simpleName}).")
+            item.copy(status = ScanItemStatus.Failed, error = texts(R.string.check_failed, e.message ?: e::class.simpleName.orEmpty()))
         }
         dao.update(read)
         return read
@@ -124,7 +127,7 @@ class StoreCheck(
         photo: String? = null,
     ): Long {
         val name = fields.name?.trim().orEmpty()
-        if (name.isEmpty()) throw StoreCheckException("AI tidak menemukan nama diecast ini — tambahkan lewat form.")
+        if (name.isEmpty()) throw StoreCheckException(texts(R.string.check_no_name))
 
         val diecast = DiecastEntity(
             name = name,

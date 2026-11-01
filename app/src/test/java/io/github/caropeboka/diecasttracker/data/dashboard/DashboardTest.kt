@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class DashboardTest {
     /** Every save is a moment later, so "newest" is the order of saving. */
@@ -40,7 +40,7 @@ class DashboardTest {
     private suspend fun save(diecast: DiecastEntity, photo: Boolean = false, tags: List<String> = emptyList()) =
         repository.save(diecast, if (photo) listOf(env.pendingPhoto()) else emptyList(), tags)
 
-    private suspend fun dashboard() = Dashboard.build(repository.observeDashboard().first(), dex.observeCatalogs().first())
+    private suspend fun dashboard() = Dashboard.build(repository.observeDashboard().first(), dex.observeCatalogs().first(), "(no brand)")
 
     /** Owned: Datsun (2 pcs, gain), AE86 (loss), Skyline (no purchase price), Civic (no market value, no year). */
     private suspend fun seed() {
@@ -105,7 +105,8 @@ class DashboardTest {
             listOf(Rarity.TreasureHunt to 2, Rarity.SuperTreasureHunt to 1, Rarity.Regular to 2),
             dashboard.rarities.map { it.rarity to it.total },
         )
-        assertEquals(listOf("'20" to 1, "'21" to 0, "'22" to 0, "'23" to 1, "'24" to 2), dashboard.years.map { it.label to it.total })
+        assertEquals(listOf(2020 to 1, 2021 to 0, 2022 to 0, 2023 to 1, 2024 to 2), dashboard.years.map { it.start to it.total })
+        assertEquals(setOf(1), dashboard.years.map { it.span }.toSet())
         assertEquals(1, dashboard.unknownYears)
         assertEquals(listOf(Count("1:64", 4), Count("1:43", 1)), dashboard.scales)
     }
@@ -131,7 +132,8 @@ class DashboardTest {
 
         val years = dashboard().years
 
-        assertEquals(listOf("1990an", "1995an", "2000an", "2005an", "2010an", "2015an", "2020an"), years.map { it.label })
+        assertEquals(listOf(1990, 1995, 2000, 2005, 2010, 2015, 2020), years.map { it.start })
+        assertEquals(setOf(5), years.map { it.span }.toSet())
         assertEquals(listOf(1, 0, 0, 0, 0, 0, 2), years.map { it.total })
     }
 

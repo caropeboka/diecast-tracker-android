@@ -1,11 +1,14 @@
 package io.github.caropeboka.diecasttracker.data.dex
 
+import androidx.annotation.StringRes
+import io.github.caropeboka.diecasttracker.R
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
 
-class SheetException(message: String) : Exception(message)
+/** [reason]: why, as a string resource. */
+class SheetException(@StringRes val reason: Int) : Exception()
 
 /**
  * The rows of a spreadsheet: the first sheet of an .xlsx (Excel, Google Sheets, LibreOffice) or a .csv
@@ -69,7 +72,7 @@ object SheetReader {
         val parts = unzip(bytes, setOf("xl/workbook.xml", "xl/_rels/workbook.xml.rels", "xl/sharedStrings.xml")) { it.startsWith("xl/worksheets/") }
         val sheet = firstSheetPath(parts)?.let(parts::get)
             ?: parts.keys.filter { it.startsWith("xl/worksheets/sheet") }.minOrNull()?.let(parts::get)
-            ?: throw SheetException("File Excel tidak berisi sheet.")
+            ?: throw SheetException(R.string.sheet_empty)
         val strings = parts["xl/sharedStrings.xml"]?.let(::sharedStrings).orEmpty()
         return cells(sheet, strings)
     }
@@ -90,7 +93,7 @@ object SheetReader {
                 }
             }
         } catch (_: Exception) {
-            throw SheetException("File Excel tidak terbaca.")
+            throw SheetException(R.string.sheet_unreadable)
         }
         return parts
     }
@@ -196,7 +199,7 @@ object SheetReader {
         try {
             while (parser.next() != XmlPullParser.END_DOCUMENT) onEvent(parser)
         } catch (_: Exception) {
-            throw SheetException("File Excel tidak terbaca.")
+            throw SheetException(R.string.sheet_unreadable)
         }
     }
 }

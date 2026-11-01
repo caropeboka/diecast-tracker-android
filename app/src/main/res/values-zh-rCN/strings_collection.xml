@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/collection.json; edit all three languages together. -->
+<resources>
+    <string name="collection_title">收藏</string>
+    <plurals name="collection_count">
+        <item quantity="other">共 %d 件</item>
+    </plurals>
+    <string name="collection_show_list">以列表显示</string>
+    <string name="collection_show_grid">以网格显示</string>
+    <string name="collection_more_menu">更多选项</string>
+    <string name="menu_store_check">店内查询</string>
+    <string name="menu_bulk_scan">批量扫描</string>
+    <string name="collection_search">搜索名称、系列、颜色、位置…</string>
+    <string name="collection_clear_search">清除搜索</string>
+    <string name="collection_all_completeness">全部完整度</string>
+    <string name="collection_all_but_spotted">除“见过”外全部</string>
+    <string name="collection_all_brands">全部品牌</string>
+    <string name="collection_all_rarities">全部稀有度</string>
+    <string name="collection_tag">标签：%1$s</string>
+    <string name="collection_all_tags">全部标签</string>
+    <plurals name="backup_reminder_days">
+        <item quantity="other">上次备份在 %d 天前</item>
+    </plurals>
+    <string name="backup_reminder_never">你的收藏从未在这部手机上备份过</string>
+    <string name="backup_reminder_text">把备份存到 Google 云端硬盘或电脑，万一手机丢失或应用被删除，收藏也不会丢。</string>
+    <string name="backup_reminder_now">立即备份</string>
+    <string name="collection_empty_title">你的收藏还是空的</string>
+    <string name="collection_empty_text">添加你的第一辆合金车，或从备份文件恢复收藏。</string>
+    <string name="collection_add_first">添加第一辆</string>
+    <string name="restore_from_backup">从备份恢复</string>
+    <string name="collection_no_matches">没有匹配的结果</string>
+    <string name="collection_reset_filter">重置筛选</string>
+    <string name="card_price_from">%1$s 起</string>
+    <string name="card_spotted_times">见过 %1$d 次</string>
+    <string name="collection_selected">已选择</string>
+</resources>

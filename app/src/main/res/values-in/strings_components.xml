@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/components.json; edit all three languages together. -->
+<resources>
+    <string name="field_clear">Kosongkan %1$s</string>
+    <string name="choose">Pilih</string>
+    <string name="tag_remove">Hapus tag %1$s</string>
+    <string name="tag_placeholder">JDM, Favorit…</string>
+    <string name="tag_add">Tambah tag</string>
+    <string name="ai_step_done">Selesai</string>
+    <string name="ai_step_missed">Terkendala</string>
+    <string name="ai_step_seconds">%1$s · %2$d dtk</string>
+    <string name="ai_resting">%1$s dilewati dulu: kuotanya habis sampai %2$s</string>
+    <string name="ai_switching">Pindah ke %1$s</string>
+    <string name="ai_trimmed">%1$s hanya menerima %2$d dari %3$d foto</string>
+    <string name="ai_listing_models">Memeriksa model %1$s yang bisa dipakai</string>
+    <string name="ai_sending">Mengirim ke %1$s (%2$s)</string>
+    <string name="ai_fallback_model">%1$s · model cadangan %2$d</string>
+    <string name="ai_waiting">Menunggu jawaban</string>
+    <string name="ai_missed">%1$s %2$s</string>
+    <string name="ai_missed_retrying">%1$s %2$s, mencoba lagi</string>
+    <string name="ai_answered">Mengolah jawaban</string>
+    <string name="ai_tomorrow_at">besok %1$s</string>
+    <string name="tab_collection">Koleksi</string>
+    <string name="tab_garage">Garasi</string>
+    <string name="tab_map">Peta</string>
+    <string name="tab_dex">Dex</string>
+    <string name="create_menu_description">Tambah: scan, isi manual, atau cek di toko</string>
+    <string name="create_manual">Isi manual</string>
+    <string name="create_scan">Scan dengan AI</string>
+    <string name="create_scan_needs_key">Isi API key AI dulu</string>
+</resources>

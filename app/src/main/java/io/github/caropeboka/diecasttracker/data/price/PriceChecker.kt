@@ -1,6 +1,7 @@
 package io.github.caropeboka.diecasttracker.data.price
 
 import androidx.room.withTransaction
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ai.AiEvent
@@ -8,6 +9,7 @@ import io.github.caropeboka.diecasttracker.data.ai.AiVision
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.util.array
 import io.github.caropeboka.diecasttracker.util.string
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +35,7 @@ const val MAX_PRICE_SCREENSHOTS = 6
 class PriceChecker(
     private val vision: AiVision,
     private val db: AppDatabase,
+    private val texts: Texts,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val dao = db.priceChecks()
@@ -44,9 +47,9 @@ class PriceChecker(
     /** [images]: JPEG screenshots; at most [MAX_PRICE_SCREENSHOTS] are read. */
     suspend fun check(diecast: DiecastEntity, images: List<ByteArray>, onEvent: (AiEvent) -> Unit = {}): PriceCheckEntity {
         val sent = images.take(MAX_PRICE_SCREENSHOTS)
-        val read = vision.extract(sent, SYSTEM_PROMPT, instruction(diecast, sent.size), SCHEMA, onEvent).data
+        val read = vision.extract(sent, SYSTEM_PROMPT.replace("{language}", texts(R.string.ai_answer_language)), instruction(diecast, sent.size), SCHEMA, onEvent).data
 
-        val analysis = PriceAnalyzer.analyze(read.array("listings").orEmpty().mapNotNull { (it as? JsonObject)?.let(::listing) })
+        val analysis = PriceAnalyzer.analyze(read.array("listings").orEmpty().mapNotNull { (it as? JsonObject)?.let(::listing) }, texts)
         val hint = read.string("search_hint")?.trim()?.ifEmpty { null }
         val check = PriceCheckEntity(
             diecastId = diecast.id,
@@ -55,7 +58,7 @@ class PriceChecker(
             stats = analysis.stats,
             accuracy = analysis.accuracy,
             reasons = analysis.reasons,
-            tips = analysis.tips + listOfNotNull(hint?.let { "Coba cari dengan kata kunci: \"$it\"." }),
+            tips = analysis.tips + listOfNotNull(hint?.let { texts(R.string.price_tip_search_hint, it) }),
             aiNote = read.string("note")?.trim()?.ifEmpty { null },
             createdAt = clock(),
         )
@@ -64,7 +67,7 @@ class PriceChecker(
 
     /** Uses the check's suggested price (or [value]) as the diecast's market value; returns the diecast. */
     suspend fun apply(check: PriceCheckEntity, value: Long? = null): DiecastEntity {
-        val price = value ?: check.stats?.suggested ?: throw IllegalStateException("Belum ada harga untuk dipakai.")
+        val price = value ?: check.stats?.suggested ?: throw IllegalStateException(texts(R.string.price_nothing_to_use))
         val now = clock()
 
         return db.withTransaction {
@@ -155,10 +158,10 @@ class PriceChecker(
               "different_item": a different car or product.
               "unclear": the title and picture don't let you tell.
               A listing title that doesn't mention "loose" is normally carded.
-            - reason: a few words in Indonesian explaining the match decision.
+            - reason: a few words in {language} explaining the match decision.
 
             Also give:
-            - note: one or two sentences in Indonesian about what you saw (e.g. many loose listings, prices cluster around X).
+            - note: one or two sentences in {language} about what you saw (e.g. many loose listings, prices cluster around X).
             - search_hint: better Tokopedia search keywords for this diecast if the results look off-target, else null.
         """.trimIndent()
 

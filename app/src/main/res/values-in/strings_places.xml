@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/places.json; edit all three languages together. -->
+<resources>
+    <string name="place_permission_denied">Izin lokasi ditolak. Geser peta atau cari tempatnya.</string>
+    <string name="place_pick_title">Pilih lokasi</string>
+    <string name="place_pick_hint">Geser peta sampai pin tepat di tempatnya, atau cari nama tempatnya.</string>
+    <string name="place_name">Nama tempat</string>
+    <string name="place_name_placeholder">Nama toko / tempat</string>
+    <string name="place_drag_to">Geser peta ke lokasinya</string>
+    <string name="place_finding_name">Mencari nama tempat…</string>
+    <string name="place_use_this">Pakai lokasi ini</string>
+    <string name="place_search_placeholder">Cari tempat, mis. Toys Kingdom GI</string>
+    <string name="place_search">Cari</string>
+    <string name="place_not_found">Tidak ditemukan. Coba nama lain, atau geser peta ke lokasinya.</string>
+    <string name="place_visited">Pernah kamu kunjungi</string>
+    <string name="place_my_location">Lokasi saya</string>
+    <string name="place_finding_name_here">Mencari nama tempat di titik ini…</string>
+    <string name="place_no_name_here">Nama tempat di titik ini tidak ditemukan — ketik sendiri.</string>
+    <string name="place_at_this_spot">"Di titik ini: "</string>
+    <string name="place_use_name">pakai nama ini</string>
+    <string name="place_from_history">Dari riwayatmu</string>
+    <string name="place_from_history_distance">Dari riwayatmu (%1$d m dari pin)</string>
+    <string name="place_from_osm">Nama dari OpenStreetMap — ubah kalau kurang tepat</string>
+    <string name="place_pick_on_map">Pilih titik di peta</string>
+    <string name="place_change_point">ubah titik</string>
+    <string name="place_remove_point">hapus titik</string>
+</resources>

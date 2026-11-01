@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/settings.json; edit all three languages together. -->
+<resources>
+    <string name="settings_title">设置</string>
+    <string name="settings_menu">设置</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_language_system_now">跟随手机（当前为%1$s）</string>
+    <string name="settings_language_note">如果手机使用其他语言，应用将显示英文。</string>
+    <string name="settings_currency">货币</string>
+    <string name="settings_currency_idr">印尼盾 (Rp)</string>
+    <string name="settings_currency_usd">美元 ($)</string>
+    <string name="settings_currency_cny">人民币 (¥)</string>
+    <string name="settings_currency_note">价格始终以印尼盾保存。其他货币按当天汇率换算，你输入的价格会换算回印尼盾。</string>
+    <string name="settings_rates">1 美元 = %1$s · 1 人民币 = %2$s</string>
+    <string name="settings_rates_source">汇率来自 %1$s，%2$s</string>
+    <string name="settings_rates_none">暂无汇率：手机联网前价格以印尼盾显示。</string>
+    <string name="settings_rates_refresh">更新汇率</string>
+    <string name="settings_rates_updated">汇率已更新。</string>
+    <string name="settings_rates_failed">无法获取汇率，请检查网络连接。</string>
+    <string name="settings_date_format">日期格式</string>
+    <string name="settings_date_language">跟随语言（%1$s）</string>
+    <string name="settings_more">更多</string>
+    <string name="settings_ai">AI 设置</string>
+    <string name="settings_ai_note">AI 服务的密钥和顺序</string>
+    <string name="settings_data">数据与备份</string>
+    <string name="settings_data_note">备份、恢复、导出 Excel</string>
+    <string name="settings_tour">重新查看导览</string>
+    <string name="settings_tour_note">首次打开应用时的简短导览</string>
+    <string name="ai_key_needed">请先填写 API 密钥。</string>
+    <string name="ai_url_needed">请先填写服务器地址，例如 https://…/v1。</string>
+    <string name="ai_settings_saved">AI 设置已保存。</string>
+    <string name="ai_key_removed">%1$s API 密钥已删除。</string>
+    <string name="ai_key_removed_off">%1$s API 密钥已删除。AI 已停用。</string>
+    <string name="ai_url_invalid">地址必须以 https://（或 http://）开头，例如 https://integrate.api.nvidia.com/v1。</string>
+    <string name="ai_model_needed">请填写模型名称。</string>
+    <string name="ai_model_gemini_chars">模型名称只能包含小写字母、数字、点和连字符。</string>
+    <string name="ai_model_no_spaces">模型名称不能包含空格。</string>
+    <string name="ai_scan_off_text">扫描尚未启用。请先为其中一个 AI 填写 API 密钥（Gemini 最简单）。之后，“AI 扫描”（底部中间的 + 按钮）会打开相机：拍下每一面，然后点按“用 AI 扫描”。</string>
+    <string name="ai_settings_intro">AI 会读取卡片或车辆的照片并填写表单。只有在你让 AI 读取时才会发送照片。AI 按从上到下的顺序尝试：某个配额用完、繁忙或太慢时，同样的照片会立即发送给下一个。</string>
+    <string name="ai_remove_key_title">删除 %1$s API 密钥？</string>
+    <string name="ai_remove_key_text">在你重新填写密钥之前不会使用 %1$s。</string>
+    <string name="ai_status_unsaved">新密钥尚未保存</string>
+    <string name="ai_status_not_set">未设置</string>
+    <string name="ai_status_off">已关闭</string>
+    <string name="ai_status_resting">配额已用完，直到 %1$s</string>
+    <string name="ai_status_on">已启用 · %1$s</string>
+    <string name="ai_move_up">上移 %1$s</string>
+    <string name="ai_move_down">下移 %1$s</string>
+    <string name="ai_open">展开</string>
+    <string name="ai_use">使用 %1$s</string>
+    <string name="ai_custom_name">名称（可选）</string>
+    <string name="ai_custom_name_placeholder">例如 NVIDIA</string>
+    <string name="ai_server_address">服务器地址</string>
+    <string name="ai_saved_key">已保存的密钥：%1$s</string>
+    <string name="ai_remove_key">删除密钥</string>
+    <string name="ai_replace_key">更换 API 密钥</string>
+    <string name="ai_key_optional">API 密钥（可选）</string>
+    <string name="ai_key">API 密钥</string>
+    <string name="ai_keep_key_hint">留空则继续使用已保存的密钥。</string>
+    <string name="ai_hide_key">隐藏密钥</string>
+    <string name="ai_show_key">显示密钥</string>
+    <string name="ai_test_server">测试服务器</string>
+    <string name="ai_test_key">测试密钥</string>
+    <string name="ai_make_key">在 %1$s 获取密钥 ↗</string>
+    <string name="ai_test_no_vision">已连接，但没有可以读取照片的模型。</string>
+    <plurals name="ai_test_models_pick">
+        <item quantity="other">已连接。共 %d 个模型——请选择能读取照片的（vision）。</item>
+    </plurals>
+    <plurals name="ai_test_models_vision">
+        <item quantity="other">密钥有效。%d 个模型可以读取照片——请在下方选择。</item>
+    </plurals>
+    <string name="ai_model">模型</string>
+    <string name="ai_model_placeholder">模型名称</string>
+    <string name="ai_note_gemini">Google 提供的每日免费配额。某个模型繁忙或配额用完时，会先尝试其他 Gemini 模型，再换到下一个 AI。</string>
+    <string name="ai_note_groq">免费且非常快（每天约 1,000 次请求）。每次最多发送 3 张照片，其余的不会发送。</string>
+    <string name="ai_note_mistral">通过 Experiment 套餐免费（需验证手机号）。免费套餐下，Mistral 可以用你发送的照片训练模型。</string>
+    <string name="ai_note_openrouter">免费模型：每天 50 次请求（一次性充值 10 美元后每天 1,000 次）。openrouter/free 模型会自动选择能读取照片的免费模型。</string>
+    <string name="ai_note_custom">其他兼容 OpenAI API 格式的服务。地址示例——NVIDIA NIM：https://integrate.api.nvidia.com/v1，Cloudflare Workers AI：https://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID>/ai/v1。请选择能读取照片的模型。</string>
+    <string name="ai_custom_key_placeholder">如果服务器不需要密钥请留空</string>
+</resources>

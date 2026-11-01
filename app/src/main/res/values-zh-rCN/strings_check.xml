@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/check.json; edit all three languages together. -->
+<resources>
+    <string name="check_earlier">之前的查询</string>
+    <string name="check_needs_ai">拍照查询需要 AI 扫描。请在 AI 设置中填写 API 密钥——打字搜索仍可使用。</string>
+    <string name="open_ai_settings">打开 AI 设置 →</string>
+    <string name="checking">正在查询…</string>
+    <string name="check_hero">拍下货架上的合金车</string>
+    <string name="check_hero_text">立刻知道是已拥有、在心愿单中，还是还没有。</string>
+    <string name="check_another">再拍一辆</string>
+    <string name="check_change_store">更改商店</string>
+    <string name="check_store">商店</string>
+    <string name="check_store_empty">在哪家店？点击填写</string>
+    <string name="check_store_place">商店 / 地点</string>
+    <string name="check_store_name">商店名称</string>
+    <string name="check_type_name">或输入名称（无需 AI）</string>
+    <string name="check_type_hint">例如 Nissan Skyline</string>
+    <string name="search">搜索</string>
+    <string name="verdict_owned">已拥有</string>
+    <string name="verdict_wishlist">在你的心愿单中！</string>
+    <string name="verdict_spotted">你见过它</string>
+    <string name="verdict_new">还没有</string>
+    <string name="verdict_failed">无法识别</string>
+    <string name="check_unfold">展开此查询</string>
+    <string name="check_logged_short">· 已记录</string>
+    <string name="check_saved_short">· 已保存</string>
+    <string name="check_fold">收起</string>
+    <string name="check_unrecognised">AI 无法识别这辆合金车。</string>
+    <string name="check_logged_at">已记为在 %1$s 的发现。</string>
+    <string name="check_logged_here">已记为在此处的发现。</string>
+    <string name="check_bought_after_all">还是买了——入手</string>
+    <string name="check_saved_by_form">已通过表单保存。</string>
+    <string name="check_shelf_price">货架价格</string>
+    <string name="check_log_here">在此记录发现</string>
+    <string name="check_separate_item">单独一件</string>
+    <string name="add_to_collection">加入收藏</string>
+    <string name="check_typed">通过输入搜索</string>
+    <string name="check_in_collection">在你的收藏中</string>
+    <string name="check_buy_one_more">再买一件（数量 +1）</string>
+    <string name="check_got_it">入手</string>
+    <string name="check_searching">正在搜索你的收藏</string>
+    <string name="check_type_more">请至少输入 2 个字。</string>
+    <string name="check_photo_gone">这张照片已不存在。</string>
+    <string name="check_still_unread">仍然无法识别。</string>
+    <string name="check_now_own">%1$s：现在拥有 %2$d 件</string>
+    <string name="check_moved_to_collection">%1$s 已移入收藏 🎉</string>
+    <string name="failed_because">失败（%1$s）。</string>
+</resources>

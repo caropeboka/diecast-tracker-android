@@ -1,5 +1,8 @@
 package io.github.caropeboka.diecasttracker.data.price
 
+import androidx.annotation.StringRes
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.math.ceil
@@ -9,13 +12,13 @@ import kotlin.math.roundToLong
 
 /** How a listing compares with the diecast being priced, as the AI judged it. */
 @Serializable
-enum class ListingMatch(val key: String, val reason: String) {
-    @SerialName("match") Match("match", ""),
-    @SerialName("different_variant") DifferentVariant("different_variant", "Varian berbeda"),
-    @SerialName("different_condition") DifferentCondition("different_condition", "Kondisi berbeda"),
-    @SerialName("bundle") Bundle("bundle", "Paket / borongan"),
-    @SerialName("different_item") DifferentItem("different_item", "Barang lain"),
-    @SerialName("unclear") Unclear("unclear", "Tidak jelas");
+enum class ListingMatch(val key: String, @StringRes val reason: Int?) {
+    @SerialName("match") Match("match", null),
+    @SerialName("different_variant") DifferentVariant("different_variant", R.string.listing_different_variant),
+    @SerialName("different_condition") DifferentCondition("different_condition", R.string.listing_different_condition),
+    @SerialName("bundle") Bundle("bundle", R.string.listing_bundle),
+    @SerialName("different_item") DifferentItem("different_item", R.string.listing_different_item),
+    @SerialName("unclear") Unclear("unclear", R.string.listing_unclear);
 
     companion object {
         fun fromKey(key: String?): ListingMatch = entries.find { it.key == key } ?: Unclear
@@ -66,11 +69,11 @@ data class PriceStats(
     val spread: Double,
 )
 
-enum class PriceAccuracy(val key: String, val label: String) {
-    High("high", "Akurasi tinggi"),
-    Medium("medium", "Akurasi sedang"),
-    Low("low", "Akurasi rendah"),
-    Insufficient("insufficient", "Data kurang");
+enum class PriceAccuracy(val key: String, @StringRes val label: Int) {
+    High("high", R.string.accuracy_high),
+    Medium("medium", R.string.accuracy_medium),
+    Low("low", R.string.accuracy_low),
+    Insufficient("insufficient", R.string.accuracy_insufficient);
 
     companion object {
         fun fromKey(key: String?): PriceAccuracy = entries.find { it.key == key } ?: Insufficient
@@ -91,19 +94,19 @@ data class PriceAnalysis(
  * and how far the result can be trusted (web: `PriceAnalyzer.php`). Pure arithmetic, no AI, so the numbers are exact.
  */
 object PriceAnalyzer {
-    fun analyze(read: List<PriceListing>): PriceAnalysis {
+    fun analyze(read: List<PriceListing>, texts: Texts): PriceAnalysis {
         var listings = dedupe(read).map { listing ->
             val usable = listing.match == ListingMatch.Match && listing.price > 0
             listing.copy(
                 status = if (usable) ListingStatus.Included else ListingStatus.Excluded,
-                excludedReason = if (usable) null else listing.match.takeIf { it != ListingMatch.Match }?.reason ?: ListingMatch.Unclear.reason,
+                excludedReason = if (usable) null else texts(listing.match.reason ?: R.string.listing_unclear),
             )
         }
-        listings = markOutliers(listings)
+        listings = markOutliers(listings, texts)
 
         val prices = listings.filter { it.status == ListingStatus.Included }.map { it.price }.sorted()
         val stats = if (prices.isEmpty()) null else stats(prices)
-        val (accuracy, reasons, tips) = judge(listings, stats)
+        val (accuracy, reasons, tips) = judge(listings, stats, texts)
 
         val sorted = listings.sortedWith(compareBy<PriceListing> { it.status.ordinal }.thenBy { it.price })
 
@@ -122,7 +125,7 @@ object PriceAnalyzer {
         }
 
     /** Tukey fences: with enough listings, prices far outside the middle half are typos, wrong items or wishful sellers. */
-    private fun markOutliers(listings: List<PriceListing>): List<PriceListing> {
+    private fun markOutliers(listings: List<PriceListing>, texts: Texts): List<PriceListing> {
         val prices = listings.filter { it.status == ListingStatus.Included }.map { it.price }.sorted()
         if (prices.size < 5) return listings
 
@@ -135,7 +138,7 @@ object PriceAnalyzer {
             if (listing.status == ListingStatus.Included && (price < q1 - fence || price > q3 + fence)) {
                 listing.copy(
                     status = ListingStatus.Outlier,
-                    excludedReason = if (price > q3) "Harga jauh di atas yang lain" else "Harga jauh di bawah yang lain",
+                    excludedReason = texts(if (price > q3) R.string.listing_far_above else R.string.listing_far_below),
                 )
             } else {
                 listing
@@ -169,8 +172,8 @@ object PriceAnalyzer {
         return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower)
     }
 
-    /** Scores how much to trust the median, and says why, in plain Indonesian. */
-    private fun judge(listings: List<PriceListing>, stats: PriceStats?): Triple<PriceAccuracy, List<String>, List<String>> {
+    /** Scores how much to trust the median, and says why, in plain words. */
+    private fun judge(listings: List<PriceListing>, stats: PriceStats?, texts: Texts): Triple<PriceAccuracy, List<String>, List<String>> {
         val count = stats?.count ?: 0
         val reasons = mutableListOf<String>()
         val tips = mutableListOf<String>()
@@ -181,11 +184,11 @@ object PriceAnalyzer {
 
         if (stats == null || count < 2) {
             reasons += if (count == 1) {
-                "Hanya 1 listing yang cocok — belum bisa disebut harga pasaran."
+                texts(R.string.price_reason_one)
             } else {
-                "Tidak ada listing yang cocok dengan diecast ini."
+                texts(R.string.price_reason_none)
             }
-            tips += "Coba kata kunci lain (misalnya tanpa nomor seri), lalu screenshot lagi."
+            tips += texts(R.string.price_tip_keywords)
             return Triple(PriceAccuracy.Insufficient, reasons, tips)
         }
 
@@ -195,38 +198,38 @@ object PriceAnalyzer {
             count >= 3 -> 1
             else -> 0
         }
-        reasons += "$count listing cocok dihitung" + if (score >= 2) " — cukup banyak." else " — masih sedikit."
+        reasons += texts.plural(if (score >= 2) R.plurals.price_reason_counted_many else R.plurals.price_reason_counted_few, count, count)
 
         val spreadPercent = (stats.spread * 100).roundToInt()
         when {
             stats.spread <= 0.25 -> {
                 score += 2
-                reasons += "Harga cukup seragam (selisih tengah $spreadPercent% dari median)."
+                reasons += texts(R.string.price_reason_even, spreadPercent)
             }
             stats.spread <= 0.5 -> {
                 score += 1
-                reasons += "Harga agak bervariasi (selisih tengah $spreadPercent% dari median)."
+                reasons += texts(R.string.price_reason_varied, spreadPercent)
             }
             else -> {
-                reasons += "Harga sangat bervariasi (selisih tengah $spreadPercent% dari median)."
-                tips += "Harga sangat beragam — pastikan varian dan kondisinya sama (misalnya STH vs biasa, carded vs loose)."
+                reasons += texts(R.string.price_reason_scattered, spreadPercent)
+                tips += texts(R.string.price_tip_same_variant)
             }
         }
 
         if (sold >= 3) {
             score += 1
-            reasons += "$sold listing menunjukkan jumlah terjual — ada bukti harga yang laku."
+            reasons += texts.plural(R.plurals.price_reason_sold, sold, sold)
         } else {
-            tips += "Urutkan hasil pencarian berdasarkan \"Terlaris\" supaya terlihat harga yang benar-benar laku."
+            tips += texts(R.string.price_tip_best_selling)
         }
 
         if (unclear > 0 && unclear.toDouble() / listings.size.coerceAtLeast(1) > 0.4) {
             score -= 1
-            reasons += "Banyak listing yang tidak jelas cocok atau tidak."
+            reasons += texts(R.string.price_reason_unclear)
         }
 
-        if (count < 5) tips += "Tambah screenshot (scroll ke bawah) supaya lebih banyak listing terbaca."
-        if (otherCondition >= 3) tips += "Banyak listing beda kondisi — tambahkan kata \"carded\" atau \"loose\" di pencarian."
+        if (count < 5) tips += texts(R.string.price_tip_more_screenshots)
+        if (otherCondition >= 3) tips += texts(R.string.price_tip_condition)
 
         val accuracy = when {
             score >= 5 -> PriceAccuracy.High

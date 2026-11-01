@@ -63,6 +63,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -104,17 +106,17 @@ import kotlinx.coroutines.delay
 private const val SLOW_LOAD = 400L
 
 private val SECTION_TITLES = mapOf(
-    DiecastStatus.Owned to "Kepemilikan & harga",
-    DiecastStatus.Wishlist to "Buruan & target harga",
-    DiecastStatus.Spotted to "Temuan",
-    DiecastStatus.Sold to "Riwayat & harga",
+    DiecastStatus.Owned to R.string.edit_section_owned,
+    DiecastStatus.Wishlist to R.string.edit_section_wishlist,
+    DiecastStatus.Spotted to R.string.edit_section_spotted,
+    DiecastStatus.Sold to R.string.edit_section_sold,
 )
 
 private val STATUS_HINTS = mapOf(
-    DiecastStatus.Owned to "Sudah di garasi",
-    DiecastStatus.Wishlist to "Masih diburu",
-    DiecastStatus.Spotted to "Pernah lihat",
-    DiecastStatus.Sold to "Pernah punya",
+    DiecastStatus.Owned to R.string.edit_hint_owned,
+    DiecastStatus.Wishlist to R.string.edit_hint_wishlist,
+    DiecastStatus.Spotted to R.string.edit_hint_spotted,
+    DiecastStatus.Sold to R.string.edit_hint_sold,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -159,16 +161,16 @@ fun DiecastEditScreen(
         modifier = if (viewModel.isNew) Modifier else sharedDiecastPage(viewModel.diecastId),
         topBar = {
             TopAppBar(
-                title = { Heading(if (viewModel.isNew) "Tambah diecast" else "Edit diecast") },
+                title = { Heading(stringResource(if (viewModel.isNew) R.string.edit_title_new else R.string.edit_title)) },
                 navigationIcon = {
                     IconButton(onClick = leave) {
-                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Kembali")
+                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     if (!viewModel.isNew && viewModel.existing != null) {
                         IconButton(onClick = { confirmDelete = true }) {
-                            Icon(painterResource(R.drawable.ic_delete), contentDescription = "Hapus diecast", tint = Garage.Loss)
+                            Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.edit_delete), tint = Garage.Loss)
                         }
                     }
                 },
@@ -220,30 +222,30 @@ fun DiecastEditScreen(
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text("Buang perubahan?") },
-            text = { Text("Isian dan foto yang baru ditambahkan tidak akan disimpan.") },
+            title = { Text(stringResource(R.string.edit_discard_title)) },
+            text = { Text(stringResource(R.string.edit_discard_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDiscard = false
                     viewModel.discard()
-                }) { Text("Buang", color = Garage.Loss) }
+                }) { Text(stringResource(R.string.discard), color = Garage.Loss) }
             },
-            dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text("Lanjut mengisi") } },
+            dismissButton = { TextButton(onClick = { confirmDiscard = false }) { Text(stringResource(R.string.edit_keep_editing)) } },
         )
     }
 
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Hapus ${viewModel.existing?.name}?") },
-            text = { Text("Foto, tag, dan catatan temuannya ikut terhapus. Ini tidak bisa dibatalkan.") },
+            title = { Text(stringResource(R.string.delete_named, viewModel.existing?.name.orEmpty())) },
+            text = { Text(stringResource(R.string.edit_delete_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     viewModel.delete()
-                }) { Text("Ya, hapus", color = Garage.Loss) }
+                }) { Text(stringResource(R.string.yes_delete), color = Garage.Loss) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Batal") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -285,13 +287,13 @@ private fun StatusToggle(value: DiecastStatus, onChange: (DiecastStatus) -> Unit
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
-                    status.label,
+                    stringResource(status.label),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (active) MaterialTheme.colorScheme.onSurface else Garage.MutedForeground,
                 )
                 Text(
-                    STATUS_HINTS.getValue(status),
+                    stringResource(STATUS_HINTS.getValue(status)),
                     fontSize = 10.sp,
                     lineHeight = 12.sp,
                     color = Garage.MutedForeground,
@@ -327,7 +329,7 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
         ) {
             val current = photos.getOrNull(selected)
             if (current != null) {
-                DiecastPhoto(current, "Foto diecast", Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+                DiecastPhoto(current, stringResource(R.string.edit_photo), Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
             } else {
                 Column(
                     Modifier.padding(24.dp),
@@ -335,12 +337,12 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(painterResource(R.drawable.ic_add_photo), contentDescription = null, tint = Garage.MutedForeground, modifier = Modifier.size(40.dp))
-                    Text("Foto diecast kamu", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.edit_photos_title), style = MaterialTheme.typography.titleSmall)
                     Text(
                         if (scanEnabled) {
-                            "Foto semua sisinya dulu, lalu ketuk Pindai dengan AI: makin banyak sisi, makin akurat bacaannya. Foto pertama jadi cover."
+                            stringResource(R.string.edit_photos_hint_scan)
                         } else {
-                            "Foto depan kartunya. Bisa tambah foto belakang kartu atau mobilnya juga — foto pertama jadi cover."
+                            stringResource(R.string.edit_photos_hint)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
@@ -358,13 +360,13 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
                         .clip(CircleShape)
                         .background(Garage.Background.copy(alpha = 0.78f))
                         .border(1.dp, Garage.Border, CircleShape)
-                        .clickable(role = Role.Button, onClickLabel = "Buat foto studio dari foto ini") { viewModel.makeStudioPhoto(selected) }
+                        .clickable(role = Role.Button, onClickLabel = stringResource(R.string.edit_studio_from_photo)) { viewModel.makeStudioPhoto(selected) }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(painterResource(R.drawable.ic_auto_fix_high), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(18.dp))
-                    Text("Foto studio", style = MaterialTheme.typography.labelLarge, color = Garage.Foreground)
+                    Text(stringResource(R.string.studio_photo), style = MaterialTheme.typography.labelLarge, color = Garage.Foreground)
                 }
             }
 
@@ -382,7 +384,7 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
                     } else {
                         CircularProgressIndicator()
                         Text(
-                            if (viewModel.processingPhotos > 0) "Memproses ${viewModel.processingPhotos} foto…" else "AI sedang membaca foto…",
+                            if (viewModel.processingPhotos > 0) pluralStringResource(R.plurals.edit_processing_photos, viewModel.processingPhotos, viewModel.processingPhotos) else stringResource(R.string.edit_ai_reading),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -402,12 +404,12 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
                                 if (index == selected) Garage.Brand else Color.Transparent,
                                 RoundedCornerShape(6.dp),
                             )
-                            .clickable(onClickLabel = "Lihat foto ${index + 1}") { viewModel.selectPhoto(index) },
+                            .clickable(onClickLabel = stringResource(R.string.edit_view_photo, index + 1)) { viewModel.selectPhoto(index) },
                     ) {
                         DiecastPhoto(name, null, Modifier.fillMaxSize(), placeholderSize = 24.dp)
                         if (index == 0) {
                             Text(
-                                "Cover",
+                                stringResource(R.string.cover),
                                 color = Color.White,
                                 fontSize = 10.sp,
                                 modifier = Modifier
@@ -422,14 +424,14 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "${photos.size}/$MAX_PHOTOS foto",
+                    stringResource(R.string.edit_photo_count, photos.size, MAX_PHOTOS),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                     modifier = Modifier.weight(1f),
                 )
                 if (selected > 0) {
                     TextButton(onClick = { viewModel.makeCover(selected) }, shape = MaterialTheme.shapes.medium) {
-                        IconLabel(R.drawable.ic_star, "Jadikan cover")
+                        IconLabel(R.drawable.ic_star, stringResource(R.string.edit_make_cover))
                     }
                 }
                 TextButton(
@@ -437,7 +439,7 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
                     shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.textButtonColors(contentColor = Garage.Loss),
                 ) {
-                    IconLabel(R.drawable.ic_delete, "Hapus foto")
+                    IconLabel(R.drawable.ic_delete, stringResource(R.string.edit_delete_photo))
                 }
             }
         }
@@ -453,7 +455,7 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
         val readyToScan = beforeScan && photos.isNotEmpty()
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val cameraLabel = if (photos.isEmpty()) "Ambil foto" else "Foto lagi"
+            val cameraLabel = stringResource(if (photos.isEmpty()) R.string.edit_take_photo else R.string.edit_take_another)
             if (readyToScan) {
                 OutlinedButton(onClick = onCamera, enabled = !busy && !full, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
                     IconLabel(R.drawable.ic_photo_camera, cameraLabel)
@@ -469,16 +471,16 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.weight(1f),
             ) {
-                IconLabel(R.drawable.ic_photo_library, "Galeri")
+                IconLabel(R.drawable.ic_photo_library, stringResource(R.string.gallery))
             }
         }
 
         if (scanEnabled && photos.isNotEmpty()) {
-            val label = if (viewModel.scan == ScanState.Idle) "Pindai dengan AI" else "Pindai ulang dengan AI"
+            val label = stringResource(if (viewModel.scan == ScanState.Idle) R.string.edit_scan else R.string.edit_rescan)
             val count = minOf(photos.size, MAX_SCAN_PHOTOS)
             val text = when {
-                photos.size > MAX_SCAN_PHOTOS -> "$label ($count foto pertama)"
-                photos.size > 1 -> "$label ($count foto)"
+                photos.size > MAX_SCAN_PHOTOS -> stringResource(R.string.edit_scan_first_photos, label, count)
+                photos.size > 1 -> stringResource(R.string.edit_scan_photos, label, count)
                 else -> label
             }
             if (readyToScan) {
@@ -506,7 +508,11 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
  */
 @Composable
 private fun ShotGuide(packaging: Packaging, photoCount: Int, onPackaging: (Packaging) -> Unit) {
-    val sides = if (packaging == Packaging.Loose) listOf("Depan", "Samping", "Atas", "Bawah (sasis)") else listOf("Depan", "Belakang")
+    val sides = if (packaging == Packaging.Loose) {
+        listOf(R.string.side_front, R.string.side_side, R.string.side_top, R.string.side_bottom)
+    } else {
+        listOf(R.string.side_front, R.string.side_back)
+    }.map { stringResource(it) }
     val shape = MaterialTheme.shapes.medium
 
     Column(
@@ -518,16 +524,16 @@ private fun ShotGuide(packaging: Packaging, photoCount: Int, onPackaging: (Packa
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            "Foto semua sisinya dulu, baru pindai. Makin lengkap, makin akurat.",
+            stringResource(R.string.edit_shot_guide),
             style = MaterialTheme.typography.bodySmall,
             color = Garage.MutedForeground,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(Packaging.Carded to "Blister", Packaging.Boxed to "Box", Packaging.Loose to "Loose").forEach { (option, label) ->
+            listOf(Packaging.Carded to R.string.shot_blister, Packaging.Boxed to R.string.packaging_boxed, Packaging.Loose to R.string.packaging_loose).forEach { (option, label) ->
                 FilterChip(
                     selected = option == packaging,
                     onClick = { onPackaging(option) },
-                    label = { Text(label) },
+                    label = { Text(stringResource(label)) },
                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Garage.Brand.copy(alpha = 0.18f)),
                 )
             }
@@ -537,7 +543,7 @@ private fun ShotGuide(packaging: Packaging, photoCount: Int, onPackaging: (Packa
                 val taken = index < photoCount
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (taken) {
-                        Icon(painterResource(R.drawable.ic_check_circle), contentDescription = "Sudah difoto", tint = Garage.Gain, modifier = Modifier.size(16.dp))
+                        Icon(painterResource(R.drawable.ic_check_circle), contentDescription = stringResource(R.string.edit_side_done), tint = Garage.Gain, modifier = Modifier.size(16.dp))
                     } else {
                         Box(Modifier.size(16.dp).padding(1.dp).border(1.5.dp, Garage.MutedForeground, CircleShape))
                     }
@@ -577,59 +583,59 @@ private fun IdentitySection(viewModel: DiecastEditViewModel, suggestions: Sugges
         viewModel.fieldEdited(field)
     }
 
-    SectionCard("Identitas") {
+    SectionCard(stringResource(R.string.edit_identity)) {
         TextInput(
-            form.name, { v -> set(Field.Name) { it.copy(name = v) } }, "Nama model *",
+            form.name, { v -> set(Field.Name) { it.copy(name = v) } }, stringResource(R.string.edit_model_name),
             placeholder = "'71 Datsun 510", error = errors[Field.Name], capitalization = KeyboardCapitalization.Words,
             highlighted = Field.Name in ai,
         )
         SuggestInput(
-            form.brand, { v -> set(Field.Brand) { it.copy(brand = v) } }, suggestions.brands, "Merek",
+            form.brand, { v -> set(Field.Brand) { it.copy(brand = v) } }, suggestions.brands, stringResource(R.string.field_brand),
             placeholder = "Hot Wheels", error = errors[Field.Brand], highlighted = Field.Brand in ai,
         )
         TextInput(
-            form.make, { v -> set(Field.Make) { it.copy(make = v) } }, "Pabrikan mobil",
+            form.make, { v -> set(Field.Make) { it.copy(make = v) } }, stringResource(R.string.edit_car_make),
             placeholder = "Nissan", error = errors[Field.Make], capitalization = KeyboardCapitalization.Words,
             highlighted = Field.Make in ai,
         )
         SuggestInput(
-            form.series, { v -> set(Field.Series) { it.copy(series = v) } }, suggestions.series, "Seri",
+            form.series, { v -> set(Field.Series) { it.copy(series = v) } }, suggestions.series, stringResource(R.string.field_series),
             placeholder = "HW J-Imports", error = errors[Field.Series], highlighted = Field.Series in ai,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextInput(
-                form.collectionNumber, { v -> set(Field.CollectionNumber) { it.copy(collectionNumber = v) } }, "Nomor koleksi",
+                form.collectionNumber, { v -> set(Field.CollectionNumber) { it.copy(collectionNumber = v) } }, stringResource(R.string.field_collection_number),
                 placeholder = "123/250", error = errors[Field.CollectionNumber], modifier = Modifier.weight(1f),
                 highlighted = Field.CollectionNumber in ai,
             )
             TextInput(
-                form.color, { v -> set(Field.Color) { it.copy(color = v) } }, "Warna",
+                form.color, { v -> set(Field.Color) { it.copy(color = v) } }, stringResource(R.string.field_color),
                 placeholder = "Metallic Blue", error = errors[Field.Color], modifier = Modifier.weight(1f),
                 capitalization = KeyboardCapitalization.Words, highlighted = Field.Color in ai,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TextInput(
-                form.year, { v -> set(Field.Year) { it.copy(year = v.filter(Char::isDigit).take(4)) } }, "Tahun rilis",
+                form.year, { v -> set(Field.Year) { it.copy(year = v.filter(Char::isDigit).take(4)) } }, stringResource(R.string.sort_year),
                 placeholder = "${LocalDate.now().year}", error = errors[Field.Year], keyboardType = KeyboardType.Number,
                 modifier = Modifier.weight(1f), highlighted = Field.Year in ai,
             )
             SuggestInput(
-                form.scale, { v -> set(Field.Scale) { it.copy(scale = v) } }, SCALES, "Skala",
+                form.scale, { v -> set(Field.Scale) { it.copy(scale = v) } }, SCALES, stringResource(R.string.field_scale),
                 error = errors[Field.Scale], modifier = Modifier.weight(1f), highlighted = Field.Scale in ai,
             )
         }
         ChoiceInput(
-            form.rarity, Rarity.entries, Rarity::label, { v -> set(Field.Rarity) { it.copy(rarity = v) } }, "Kelangkaan",
+            form.rarity, Rarity.entries, { stringResource(it.label) }, { v -> set(Field.Rarity) { it.copy(rarity = v) } }, stringResource(R.string.field_rarity),
             highlighted = Field.Rarity in ai,
         )
         ChoiceInput(
-            form.packaging, Packaging.entries, Packaging::label, { v -> set(Field.Packaging) { it.copy(packaging = v) } }, "Kemasan",
+            form.packaging, Packaging.entries, { stringResource(it.label) }, { v -> set(Field.Packaging) { it.copy(packaging = v) } }, stringResource(R.string.field_packaging),
             highlighted = Field.Packaging in ai,
         )
         ChoiceInput(
-            form.condition, listOf<Condition?>(null) + Condition.entries, { it?.label ?: "Belum dinilai" },
-            { v -> set(Field.Condition) { it.copy(condition = v) } }, "Kondisi", highlighted = Field.Condition in ai,
+            form.condition, listOf<Condition?>(null) + Condition.entries, { it?.let { condition -> stringResource(condition.label) } ?: stringResource(R.string.edit_condition_none) },
+            { v -> set(Field.Condition) { it.copy(condition = v) } }, stringResource(R.string.field_condition), highlighted = Field.Condition in ai,
         )
     }
 }
@@ -645,70 +651,70 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
         viewModel.fieldEdited(field)
     }
 
-    SectionCard(SECTION_TITLES.getValue(form.status)) {
+    SectionCard(stringResource(SECTION_TITLES.getValue(form.status))) {
         if (form.status != DiecastStatus.Spotted) {
             TextInput(
-                form.quantity, { v -> set(Field.Quantity) { it.copy(quantity = v.filter(Char::isDigit).take(4)) } }, "Jumlah",
+                form.quantity, { v -> set(Field.Quantity) { it.copy(quantity = v.filter(Char::isDigit).take(4)) } }, stringResource(R.string.field_quantity),
                 error = errors[Field.Quantity], keyboardType = KeyboardType.Number,
             )
         }
 
         when {
             form.status == DiecastStatus.Spotted && !viewModel.isNew -> Text(
-                "Tempat, tanggal, dan harga setiap kali ditemui ada di Catatan temuan di bawah.",
+                stringResource(R.string.edit_sightings_below),
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
             form.status == DiecastStatus.Spotted -> {
                 LocationField(
                     form.sightingLocation, { place -> set(Field.SightingPlace) { it.withSightingLocation(place) } }, suggestions.places,
-                    "Ditemui di", placeholder = "Toys Kingdom GI, teman, event…", error = errors[Field.SightingPlace],
+                    stringResource(R.string.edit_spotted_at), placeholder = stringResource(R.string.edit_spotted_at_hint), error = errors[Field.SightingPlace],
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateInput(
                         form.sightingDate.toLocalDateOrNull(),
                         { date -> set(Field.SightingDate) { it.copy(sightingDate = (date ?: today).toString()) } },
-                        "Tanggal",
+                        stringResource(R.string.field_date),
                         clearable = false,
                         latest = today,
                         error = errors[Field.SightingDate],
                         modifier = Modifier.weight(1f),
                     )
                     MoneyInput(
-                        form.sightingPrice, { v -> set(Field.SightingPrice) { it.copy(sightingPrice = v) } }, "Harga di sana",
-                        placeholder = "Opsional", error = errors[Field.SightingPrice], modifier = Modifier.weight(1f),
+                        form.sightingPrice, { v -> set(Field.SightingPrice) { it.copy(sightingPrice = v) } }, stringResource(R.string.edit_price_there),
+                        placeholder = stringResource(R.string.optional), error = errors[Field.SightingPrice], modifier = Modifier.weight(1f),
                     )
                 }
             }
             form.status == DiecastStatus.Wishlist -> MoneyInput(
-                form.targetPrice, { v -> set(Field.TargetPrice) { it.copy(targetPrice = v) } }, "Target harga maksimal",
+                form.targetPrice, { v -> set(Field.TargetPrice) { it.copy(targetPrice = v) } }, stringResource(R.string.edit_target_price),
                 placeholder = "500.000", error = errors[Field.TargetPrice],
             )
             else -> {
                 MoneyInput(
-                    form.purchasePrice, { v -> set(Field.PurchasePrice) { it.copy(purchasePrice = v) } }, "Harga beli (per pcs)",
+                    form.purchasePrice, { v -> set(Field.PurchasePrice) { it.copy(purchasePrice = v) } }, stringResource(R.string.edit_purchase_price),
                     placeholder = "35.000", error = errors[Field.PurchasePrice],
                 )
                 MoneyInput(
-                    form.marketValue, { v -> set(Field.MarketValue) { it.copy(marketValue = v) } }, "Harga pasaran sekarang (per pcs)",
-                    placeholder = "Opsional", error = errors[Field.MarketValue],
+                    form.marketValue, { v -> set(Field.MarketValue) { it.copy(marketValue = v) } }, stringResource(R.string.edit_market_value),
+                    placeholder = stringResource(R.string.optional), error = errors[Field.MarketValue],
                 )
                 val existing = viewModel.existing
                 if (existing?.marketValueSource == ValueSource.PriceCheck && form.marketValue == existing.marketValue?.toString()) {
-                    Text("Dari cek harga screenshot marketplace", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                    Text(stringResource(R.string.edit_value_from_check), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                 }
                 DateInput(
                     form.purchaseDate?.toLocalDateOrNull(),
                     { date -> viewModel.update { it.copy(purchaseDate = date?.toString()) } },
-                    "Tanggal beli",
+                    stringResource(R.string.field_purchase_date),
                 )
                 LocationField(
                     form.purchaseLocation, { place -> set(Field.PurchasePlace) { it.withPurchaseLocation(place) } }, suggestions.places,
-                    "Beli di", placeholder = "Toko / marketplace / teman", error = errors[Field.PurchasePlace],
+                    stringResource(R.string.edit_bought_at), placeholder = stringResource(R.string.edit_bought_at_hint), error = errors[Field.PurchasePlace],
                 )
                 SuggestInput(
                     form.storageLocation, { v -> set(Field.StorageLocation) { it.copy(storageLocation = v) } },
-                    suggestions.storageLocations, "Lokasi simpan", placeholder = "Rak A / Box 3", error = errors[Field.StorageLocation],
+                    suggestions.storageLocations, stringResource(R.string.field_storage_location), placeholder = stringResource(R.string.edit_storage_hint), error = errors[Field.StorageLocation],
                 )
             }
         }
@@ -717,8 +723,8 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
             form.tags, { tags -> set(Field.Tags) { it.copy(tags = tags) } }, suggestions.tags, error = errors[Field.Tags],
         )
         TextInput(
-            form.notes, { v -> set(Field.Notes) { it.copy(notes = v) } }, "Catatan",
-            placeholder = "Varian, kondisi kartu, cerita dapetinnya…", error = errors[Field.Notes],
+            form.notes, { v -> set(Field.Notes) { it.copy(notes = v) } }, stringResource(R.string.field_notes),
+            placeholder = stringResource(R.string.edit_notes_hint), error = errors[Field.Notes],
             singleLine = false, minLines = 3, highlighted = Field.Notes in viewModel.aiFields,
         )
     }
@@ -744,7 +750,7 @@ private fun SaveBar(viewModel: DiecastEditViewModel) {
                     shape = MaterialTheme.shapes.medium,
                     contentPadding = PaddingValues(horizontal = 16.dp),
                 ) {
-                    Text("Simpan & tambah lagi", maxLines = 1)
+                    Text(stringResource(R.string.edit_save_add_another), maxLines = 1)
                 }
             }
             Button(
@@ -756,7 +762,7 @@ private fun SaveBar(viewModel: DiecastEditViewModel) {
                 if (viewModel.saving) {
                     CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                 } else {
-                    Text(if (viewModel.isNew) "Simpan" else "Simpan perubahan")
+                    Text(stringResource(if (viewModel.isNew) R.string.save else R.string.save_changes))
                 }
             }
         }

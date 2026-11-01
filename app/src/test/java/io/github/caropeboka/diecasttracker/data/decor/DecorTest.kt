@@ -38,7 +38,7 @@ import java.util.zip.ZipFile
 import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class DecorTest {
     private val env = TestEnvironment()

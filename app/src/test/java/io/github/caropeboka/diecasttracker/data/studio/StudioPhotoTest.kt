@@ -30,7 +30,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class StudioPhotoTest {
     private val env = TestEnvironment()
@@ -256,13 +256,13 @@ class StudioPhotoTest {
 
     @Test
     fun `the background remover's cut-out gives the card's corners to start from`() = runBlocking {
-        val studio = StudioPhoto(env.photos) { _, _ -> cardFromBelow() }
+        val studio = StudioPhoto(env.photos, env.texts) { _, _ -> cardFromBelow() }
 
         val corners = studio.guessCorners(createBitmap(900, 900))!!
 
         corners.forEachIndexed { i, value -> assertEquals("corner value $i", cardFromBelowCorners[i], value, 3f) }
-        assertNull(StudioPhoto(env.photos) { _, _ -> throw StudioException(StudioPhoto.NOT_FOUND) }.guessCorners(createBitmap(900, 900)))
-        assertNull(StudioPhoto(env.photos) { _, _ -> null }.guessCorners(createBitmap(900, 900)))
+        assertNull(StudioPhoto(env.photos, env.texts) { _, _ -> throw StudioException(env.texts(StudioPhoto.NOT_FOUND)) }.guessCorners(createBitmap(900, 900)))
+        assertNull(StudioPhoto(env.photos, env.texts) { _, _ -> null }.guessCorners(createBitmap(900, 900)))
     }
 
     /**
@@ -331,7 +331,7 @@ class StudioPhotoTest {
     @Test
     fun `a card's studio photo is a new pending photo too`() = runBlocking {
         val original = env.pendingPhoto()
-        val studio = StudioPhoto(env.photos) { _, _ -> throw AssertionError("The card goes by its corners") }
+        val studio = StudioPhoto(env.photos, env.texts) { _, _ -> throw AssertionError("The card goes by its corners") }
         val image = studio.load(original)
         val card = studio.cutCard(image, floatArrayOf(0f, 0f, image.width / 2f, 0f, image.width / 2f, image.height / 2f, 0f, image.height / 2f), rounded = true)
 
@@ -344,7 +344,7 @@ class StudioPhotoTest {
             studio.cutCard(image, floatArrayOf(0f, 0f, 10f, 0f, 5f, 2f, 0f, 10f), rounded = true)
             fail("Expected a StudioException")
         } catch (e: StudioException) {
-            assertEquals(StudioPhoto.NO_CARD, e.message)
+            assertEquals(env.texts(StudioPhoto.NO_CARD), e.message)
         }
     }
 
@@ -352,7 +352,7 @@ class StudioPhotoTest {
     fun `the studio photo is a new pending photo and the original stays`() = runBlocking {
         val original = env.pendingPhoto()
         val steps = mutableListOf<StudioStep>()
-        val studio = StudioPhoto(env.photos) { image, onStep ->
+        val studio = StudioPhoto(env.photos, env.texts) { image, onStep ->
             onStep(StudioStep.Cutting)
             cutout(image.width, image.height, image.width / 2f, image.height * 0.6f, degrees = 0f)
         }
@@ -369,13 +369,13 @@ class StudioPhotoTest {
     @Test
     fun `no diecast found says how to take a better photo`() = runBlocking {
         val original = env.pendingPhoto()
-        val studio = StudioPhoto(env.photos) { _, _ -> null }
+        val studio = StudioPhoto(env.photos, env.texts) { _, _ -> null }
 
         try {
             studio.make(original)
             fail("Expected a StudioException")
         } catch (e: StudioException) {
-            assertEquals(StudioPhoto.NOT_FOUND, e.message)
+            assertEquals(env.texts(StudioPhoto.NOT_FOUND), e.message)
         }
         assertEquals(setOf(original), env.pendingFiles)
     }

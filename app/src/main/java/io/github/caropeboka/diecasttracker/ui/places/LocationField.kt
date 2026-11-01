@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.container
@@ -65,7 +66,7 @@ fun LocationField(
                 ),
                 modifier = Modifier.padding(top = 8.dp).size(48.dp),
             ) {
-                Icon(painterResource(R.drawable.ic_my_location), contentDescription = "Pilih titik di peta")
+                Icon(painterResource(R.drawable.ic_my_location), contentDescription = stringResource(R.string.place_pick_on_map))
             }
         }
 
@@ -77,9 +78,9 @@ fun LocationField(
                     color = Garage.MutedForeground,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { picking = true }) { Text("ubah titik", style = MaterialTheme.typography.labelSmall) }
+                TextButton(onClick = { picking = true }) { Text(stringResource(R.string.place_change_point), style = MaterialTheme.typography.labelSmall) }
                 TextButton(onClick = { onChange(value.withoutPoint()) }) {
-                    Text("hapus titik", style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground)
+                    Text(stringResource(R.string.place_remove_point), style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground)
                 }
             }
         }

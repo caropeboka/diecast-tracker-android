@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.ui.dex
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -9,6 +10,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.toRoute
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexCounts
 import io.github.caropeboka.diecasttracker.data.dex.DexEntry
@@ -18,12 +20,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
-enum class EntryFilter(val label: String) {
-    All("Semua"),
-    Missing("Belum"),
-    Seen("Dilihat"),
-    Caught("Dimiliki"),
-    Wanted("Diincar");
+enum class EntryFilter(@StringRes val label: Int) {
+    All(R.string.dex_filter_all),
+    Missing(R.string.dex_filter_missing),
+    Seen(R.string.dex_state_seen),
+    Caught(R.string.dex_state_owned),
+    Wanted(R.string.dex_state_wanted);
 
     fun matches(entry: DexEntry) = when (this) {
         All -> true

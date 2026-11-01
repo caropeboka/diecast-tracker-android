@@ -1,16 +1,18 @@
 package io.github.caropeboka.diecasttracker.data
 
+import androidx.annotation.StringRes
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteQuery
+import io.github.caropeboka.diecasttracker.R
 
-enum class CollectionSort(val key: String, val label: String, internal val orderBy: String) {
-    Newest("newest", "Terbaru", "d.created_at DESC, d.id DESC"),
-    Oldest("oldest", "Terlama", "d.created_at ASC, d.id ASC"),
-    Name("name", "Nama A–Z", "d.name COLLATE NOCASE ASC, d.id DESC"),
-    Brand("brand", "Merek", "d.brand IS NULL, d.brand COLLATE NOCASE ASC, d.name COLLATE NOCASE ASC"),
-    Year("year", "Tahun rilis", "d.year IS NULL, d.year DESC, d.name COLLATE NOCASE ASC"),
-    Price("price", "Harga beli tertinggi", "d.purchase_price IS NULL, d.purchase_price DESC, d.id DESC"),
-    Value("value", "Nilai pasaran tertinggi", "d.market_value IS NULL, d.market_value DESC, d.id DESC");
+enum class CollectionSort(val key: String, @StringRes val label: Int, internal val orderBy: String) {
+    Newest("newest", R.string.sort_newest, "d.created_at DESC, d.id DESC"),
+    Oldest("oldest", R.string.sort_oldest, "d.created_at ASC, d.id ASC"),
+    Name("name", R.string.sort_name, "d.name COLLATE NOCASE ASC, d.id DESC"),
+    Brand("brand", R.string.sort_brand, "d.brand IS NULL, d.brand COLLATE NOCASE ASC, d.name COLLATE NOCASE ASC"),
+    Year("year", R.string.sort_year, "d.year IS NULL, d.year DESC, d.name COLLATE NOCASE ASC"),
+    Price("price", R.string.sort_price, "d.purchase_price IS NULL, d.purchase_price DESC, d.id DESC"),
+    Value("value", R.string.sort_value, "d.market_value IS NULL, d.market_value DESC, d.id DESC");
 
     companion object {
         fun fromKey(key: String?): CollectionSort = entries.find { it.key == key } ?: Newest
@@ -18,12 +20,12 @@ enum class CollectionSort(val key: String, val label: String, internal val order
 }
 
 /** A piece of data a diecast may still lack: the dashboard's "Kelengkapan data" (web: the `missing` filter). */
-enum class MissingField(val key: String, val label: String, internal val condition: String) {
-    Photo("photo", "Foto", "NOT EXISTS (SELECT 1 FROM diecast_photos p WHERE p.diecast_id = d.id)"),
-    PurchasePrice("purchase_price", "Harga beli", "d.purchase_price IS NULL"),
-    MarketValue("market_value", "Harga pasaran", "d.market_value IS NULL"),
-    StorageLocation("storage_location", "Lokasi simpan", "d.storage_location IS NULL"),
-    Tags("tags", "Tag", "NOT EXISTS (SELECT 1 FROM diecast_tag dt WHERE dt.diecast_id = d.id)");
+enum class MissingField(val key: String, @StringRes val label: Int, @StringRes val missing: Int, internal val condition: String) {
+    Photo("photo", R.string.field_photo, R.string.missing_photo, "NOT EXISTS (SELECT 1 FROM diecast_photos p WHERE p.diecast_id = d.id)"),
+    PurchasePrice("purchase_price", R.string.field_purchase_price, R.string.missing_purchase_price, "d.purchase_price IS NULL"),
+    MarketValue("market_value", R.string.field_market_value, R.string.missing_market_value, "d.market_value IS NULL"),
+    StorageLocation("storage_location", R.string.field_storage_location, R.string.missing_storage_location, "d.storage_location IS NULL"),
+    Tags("tags", R.string.field_tags, R.string.missing_tags, "NOT EXISTS (SELECT 1 FROM diecast_tag dt WHERE dt.diecast_id = d.id)");
 
     companion object {
         fun fromKey(key: String?): MissingField? = entries.find { it.key == key }

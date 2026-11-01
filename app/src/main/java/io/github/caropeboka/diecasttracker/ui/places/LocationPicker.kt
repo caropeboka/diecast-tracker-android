@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,6 +73,7 @@ import io.github.caropeboka.diecasttracker.data.places.round6
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.TextInput
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
+import io.github.caropeboka.diecasttracker.ui.components.rememberTexts
 import io.github.caropeboka.diecasttracker.ui.map.GarageMap
 import io.github.caropeboka.diecasttracker.ui.map.JAKARTA
 import io.github.caropeboka.diecasttracker.ui.map.toHex
@@ -118,6 +120,7 @@ private sealed interface Lookup {
 @Composable
 fun LocationPicker(initial: PlaceValue, onDismiss: () -> Unit, onPick: (PlaceValue) -> Unit) {
     val container = LocalContext.current.container
+    val texts = rememberTexts()
     val scope = rememberCoroutineScope()
     val state = remember { PickerState(initial, container.places, container.location, scope) }
 
@@ -125,7 +128,7 @@ fun LocationPicker(initial: PlaceValue, onDismiss: () -> Unit, onPick: (PlaceVal
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         when {
             granted.values.any { it } -> state.locate(auto = autoLocate)
-            !autoLocate -> state.gpsError = "Izin lokasi ditolak. Geser peta atau cari tempatnya."
+            !autoLocate -> state.gpsError = texts(R.string.place_permission_denied)
         }
     }
 
@@ -144,9 +147,9 @@ fun LocationPicker(initial: PlaceValue, onDismiss: () -> Unit, onPick: (PlaceVal
             Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
                 Row(Modifier.padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onDismiss) {
-                        Icon(painterResource(R.drawable.ic_close), contentDescription = "Batal")
+                        Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.cancel))
                     }
-                    Heading("Pilih lokasi")
+                    Heading(stringResource(R.string.place_pick_title))
                 }
 
                 Column(
@@ -157,7 +160,7 @@ fun LocationPicker(initial: PlaceValue, onDismiss: () -> Unit, onPick: (PlaceVal
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
-                        "Geser peta sampai pin tepat di tempatnya, atau cari nama tempatnya.",
+                        stringResource(R.string.place_pick_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Garage.MutedForeground,
                     )
@@ -171,8 +174,8 @@ fun LocationPicker(initial: PlaceValue, onDismiss: () -> Unit, onPick: (PlaceVal
                             state.name = text
                             state.nameLocked = text.isNotBlank()
                         },
-                        "Nama tempat",
-                        placeholder = "Nama toko / tempat",
+                        stringResource(R.string.place_name),
+                        placeholder = stringResource(R.string.place_name_placeholder),
                     )
                     NameNote(state.lookup, state.name) { suggested ->
                         state.name = suggested
@@ -194,7 +197,7 @@ fun LocationPicker(initial: PlaceValue, onDismiss: () -> Unit, onPick: (PlaceVal
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
-                    TextButton(onClick = onDismiss, shape = MaterialTheme.shapes.medium) { Text("Batal") }
+                    TextButton(onClick = onDismiss, shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.cancel)) }
                     Button(
                         onClick = {
                             onPick(state.confirm())
@@ -205,9 +208,9 @@ fun LocationPicker(initial: PlaceValue, onDismiss: () -> Unit, onPick: (PlaceVal
                     ) {
                         Text(
                             when {
-                                !state.placed -> "Geser peta ke lokasinya"
-                                state.waitingForName -> "Mencari nama tempat…"
-                                else -> "Pakai lokasi ini"
+                                !state.placed -> stringResource(R.string.place_drag_to)
+                                state.waitingForName -> stringResource(R.string.place_finding_name)
+                                else -> stringResource(R.string.place_use_this)
                             },
                         )
                     }
@@ -226,7 +229,7 @@ private fun SearchRow(state: PickerState) {
                 state.query = it
                 if (it.isEmpty()) state.results = null
             },
-            placeholder = { Text("Cari tempat, mis. Toys Kingdom GI") },
+            placeholder = { Text(stringResource(R.string.place_search_placeholder)) },
             leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null, Modifier.size(20.dp)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -239,7 +242,7 @@ private fun SearchRow(state: PickerState) {
             enabled = !state.searching && state.query.isNotBlank(),
             shape = MaterialTheme.shapes.medium,
         ) {
-            if (state.searching) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text("Cari")
+            if (state.searching) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(stringResource(R.string.place_search))
         }
     }
 }
@@ -263,7 +266,7 @@ private fun RecentPlaces(places: List<PlaceResult>, onChoose: (PlaceResult) -> U
 private fun PlaceList(places: List<PlaceResult>, onChoose: (PlaceResult) -> Unit) {
     if (places.isEmpty()) {
         Text(
-            "Tidak ditemukan. Coba nama lain, atau geser peta ke lokasinya.",
+            stringResource(R.string.place_not_found),
             style = MaterialTheme.typography.bodyMedium,
             color = Garage.MutedForeground,
         )
@@ -291,7 +294,7 @@ private fun PlaceList(places: List<PlaceResult>, onChoose: (PlaceResult) -> Unit
                 Column(Modifier.weight(1f)) {
                     Text(place.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        if (history) "Pernah kamu kunjungi" else place.address.orEmpty(),
+                        if (history) stringResource(R.string.place_visited) else place.address.orEmpty(),
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                         maxLines = 1,
@@ -347,7 +350,7 @@ private fun MapWithPin(state: PickerState, onLocate: () -> Unit) {
             } else {
                 Icon(painterResource(R.drawable.ic_my_location), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(16.dp))
             }
-            Text("Lokasi saya", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = 6.dp))
+            Text(stringResource(R.string.place_my_location), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = 6.dp))
         }
     }
 }
@@ -360,23 +363,23 @@ private fun NameNote(lookup: Lookup, name: String, onUse: (String) -> Unit) {
         Lookup.Idle -> Unit
         Lookup.Loading -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 1.5.dp)
-            Text("Mencari nama tempat di titik ini…", style = style, color = Garage.MutedForeground)
+            Text(stringResource(R.string.place_finding_name_here), style = style, color = Garage.MutedForeground)
         }
         is Lookup.Done -> {
             val result = lookup.result
             when {
-                result.name == null -> Text("Nama tempat di titik ini tidak ditemukan — ketik sendiri.", style = style, color = Garage.MutedForeground)
+                result.name == null -> Text(stringResource(R.string.place_no_name_here), style = style, color = Garage.MutedForeground)
                 result.name != name.trim() -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Di titik ini: ", style = style, color = Garage.MutedForeground)
+                    Text(stringResource(R.string.place_at_this_spot), style = style, color = Garage.MutedForeground)
                     Text(result.name, style = style, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f, fill = false), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    TextButton(onClick = { onUse(result.name) }) { Text("pakai nama ini", style = style, color = Garage.Brand) }
+                    TextButton(onClick = { onUse(result.name) }) { Text(stringResource(R.string.place_use_name), style = style, color = Garage.Brand) }
                 }
                 result.source == PlaceSource.History -> Text(
-                    "Dari riwayatmu" + (result.distance?.let { " ($it m dari pin)" } ?: ""),
+                    result.distance?.let { stringResource(R.string.place_from_history_distance, it) } ?: stringResource(R.string.place_from_history),
                     style = style,
                     color = Garage.MutedForeground,
                 )
-                else -> Text("Nama dari OpenStreetMap — ubah kalau kurang tepat", style = style, color = Garage.MutedForeground)
+                else -> Text(stringResource(R.string.place_from_osm), style = style, color = Garage.MutedForeground)
             }
         }
     }

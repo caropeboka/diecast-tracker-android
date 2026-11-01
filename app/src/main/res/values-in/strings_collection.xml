@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/collection.json; edit all three languages together. -->
+<resources>
+    <string name="collection_title">Koleksi</string>
+    <plurals name="collection_count">
+        <item quantity="other">%d item tercatat</item>
+    </plurals>
+    <string name="collection_show_list">Tampilkan sebagai daftar</string>
+    <string name="collection_show_grid">Tampilkan sebagai grid</string>
+    <string name="collection_more_menu">Menu lain</string>
+    <string name="menu_store_check">Cek di toko</string>
+    <string name="menu_bulk_scan">Scan massal</string>
+    <string name="collection_search">Cari nama, seri, warna, lokasi…</string>
+    <string name="collection_clear_search">Hapus pencarian</string>
+    <string name="collection_all_completeness">Semua kelengkapan</string>
+    <string name="collection_all_but_spotted">Semua kecuali ditemui</string>
+    <string name="collection_all_brands">Semua merek</string>
+    <string name="collection_all_rarities">Semua kelangkaan</string>
+    <string name="collection_tag">Tag: %1$s</string>
+    <string name="collection_all_tags">Semua tag</string>
+    <plurals name="backup_reminder_days">
+        <item quantity="other">Backup terakhir %d hari lalu</item>
+    </plurals>
+    <string name="backup_reminder_never">Koleksimu belum pernah di-backup dari HP ini</string>
+    <string name="backup_reminder_text">Simpan backup ke Google Drive atau laptop supaya aman kalau HP hilang atau aplikasinya terhapus.</string>
+    <string name="backup_reminder_now">Backup sekarang</string>
+    <string name="collection_empty_title">Koleksimu masih kosong</string>
+    <string name="collection_empty_text">Tambah diecast pertamamu, atau pulihkan koleksi dari file backup.</string>
+    <string name="collection_add_first">Tambah diecast pertama</string>
+    <string name="restore_from_backup">Pulihkan dari backup</string>
+    <string name="collection_no_matches">Tidak ada yang cocok</string>
+    <string name="collection_reset_filter">Reset filter</string>
+    <string name="card_price_from">mulai %1$s</string>
+    <string name="card_spotted_times">Ditemui %1$d×</string>
+    <string name="collection_selected">Dipilih</string>
+</resources>

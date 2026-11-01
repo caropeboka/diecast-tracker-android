@@ -1,15 +1,39 @@
 package io.github.caropeboka.diecasttracker.ui.components
 
+import android.app.Application
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.ai.AiEvent
+import io.github.caropeboka.diecasttracker.data.testTexts
+import io.github.caropeboka.diecasttracker.util.Formats
+import io.github.caropeboka.diecasttracker.util.formatBytes
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import java.time.Instant
 import java.time.ZoneOffset
+import java.util.Locale
 
+@RunWith(AndroidJUnit4::class)
+@Config(application = Application::class, qualifiers = "in")
 class AiProgressLogTest {
     private var now = 0L
-    private val log = AiProgressLog("Biasanya 10–30 detik.", clock = { now }, zone = ZoneOffset.UTC)
+    private val texts = testTexts()
+    private val log = AiProgressLog(texts, R.string.ai_hint_quick, clock = { now }, zone = ZoneOffset.UTC)
+
+    @Before
+    fun indonesian() {
+        Formats.locale = Locale.forLanguageTag("id")
+    }
+
+    @After
+    fun reset() {
+        Formats.locale = Locale.ENGLISH
+    }
 
     private val progress get() = log.state.value!!
     private val lines get() = progress.steps.map { step -> "${step.state} ${step.text}" + step.detail?.let { " [$it]" }.orEmpty() }
@@ -46,7 +70,7 @@ class AiProgressLogTest {
             ),
             lines,
         )
-        assertEquals("Biasanya 10–30 detik.", progress.hint)
+        assertEquals(R.string.ai_hint_quick, progress.hint)
     }
 
     @Test
@@ -111,7 +135,7 @@ class AiProgressLogTest {
         assertEquals(
             listOf(
                 "Done Menyiapkan 4 foto",
-                "Missed Gemini dilewati dulu: kuotanya habis sampai ${restEnd(geminiBack, ZoneOffset.UTC)}",
+                "Missed Gemini dilewati dulu: kuotanya habis sampai ${restEnd(texts, geminiBack, ZoneOffset.UTC)}",
                 "Done Mengirim ke Mistral (293 KB) [mistral-small-latest]",
                 "Missed Mistral kuotanya habis [mistral-small-latest]",
                 "Done Pindah ke Groq",
@@ -131,14 +155,14 @@ class AiProgressLogTest {
     fun `a rest ends today or tomorrow`() {
         val now = Instant.parse("2026-10-20T10:00:00Z").toEpochMilli()
 
-        assertEquals("10.01", restEnd(now + 60_000, ZoneOffset.UTC, now))
-        assertEquals("besok 07.00", restEnd(Instant.parse("2026-10-21T07:00:00Z").toEpochMilli(), ZoneOffset.UTC, now))
+        assertEquals("10.01", restEnd(texts, now + 60_000, ZoneOffset.UTC, now))
+        assertEquals("besok 07.00", restEnd(texts, Instant.parse("2026-10-21T07:00:00Z").toEpochMilli(), ZoneOffset.UTC, now))
     }
 
     @Test
     fun `sizes read like the phone's file manager`() {
         assertEquals("850 KB", formatBytes(870_000))
-        assertEquals("1 KB", formatBytes(1))
+        assertEquals("1 B", formatBytes(1))
         assertEquals("2,5 MB", formatBytes(2_621_440))
     }
 }

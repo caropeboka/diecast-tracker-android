@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.ui.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +48,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -65,6 +68,7 @@ import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
 import io.github.caropeboka.diecasttracker.ui.components.TextInput
 import io.github.caropeboka.diecasttracker.ui.components.restEnd
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
+import io.github.caropeboka.diecasttracker.ui.components.rememberTexts
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,10 +86,10 @@ fun AiSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Heading("Pengaturan AI") },
+                title = { Heading(stringResource(R.string.settings_ai)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Kembali")
+                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
@@ -102,7 +106,7 @@ fun AiSettingsScreen(
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                 ) {
-                    Text("Simpan")
+                    Text(stringResource(R.string.save))
                 }
             }
         },
@@ -126,7 +130,7 @@ fun AiSettingsScreen(
                     Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(painterResource(R.drawable.ic_sparkles), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(18.dp))
                         Text(
-                            "Scan belum aktif. Isi API key salah satu AI dulu (Gemini paling mudah). Setelah itu, Scan dengan AI (tombol + di tengah bawah) membuka kamera: foto semua sisinya, lalu ketuk Pindai dengan AI.",
+                            stringResource(R.string.ai_scan_off_text),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -134,8 +138,7 @@ fun AiSettingsScreen(
             }
 
             Text(
-                "AI membaca foto kartu atau mobilnya lalu mengisi form. Fotonya dikirim hanya saat kamu meminta AI membaca. " +
-                    "AI dicoba dari atas ke bawah: kalau satu kuotanya habis, sibuk, atau terlalu lama, foto yang sama langsung dikirim ke berikutnya.",
+                stringResource(R.string.ai_settings_intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Garage.MutedForeground,
             )
@@ -161,15 +164,15 @@ fun AiSettingsScreen(
     confirmRemove?.let { provider ->
         AlertDialog(
             onDismissRequest = { confirmRemove = null },
-            title = { Text("Hapus API key ${provider.title}?") },
-            text = { Text("${provider.title} tidak dipakai sampai kamu mengisi key lagi.") },
+            title = { Text(stringResource(R.string.ai_remove_key_title, provider.title)) },
+            text = { Text(stringResource(R.string.ai_remove_key_text, provider.title)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmRemove = null
                     viewModel.removeKey(provider)
-                }) { Text("Hapus", color = Garage.Loss) }
+                }) { Text(stringResource(R.string.delete), color = Garage.Loss) }
             },
-            dismissButton = { TextButton(onClick = { confirmRemove = null }) { Text("Batal") } },
+            dismissButton = { TextButton(onClick = { confirmRemove = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -187,16 +190,17 @@ private fun ProviderCard(
 ) {
     val provider = draft.provider
     val uriHandler = LocalUriHandler.current
+    val texts = rememberTexts()
     var showKey by rememberSaveable(provider) { mutableStateOf(false) }
     val custom = provider == AiProvider.Custom
     val configured = if (custom) !saved.baseUrl.isNullOrBlank() else saved.keyHint != null
     val active = configured && draft.on
     val status = when {
-        !configured && draft.keyInput.isNotEmpty() -> "Key baru belum disimpan"
-        !configured -> "Belum diatur"
-        !draft.on -> "Dimatikan"
-        restUntil > System.currentTimeMillis() -> "Kuota habis sampai ${restEnd(restUntil)}"
-        else -> "Aktif · " + (if (custom) saved.label else saved.keyHint)
+        !configured && draft.keyInput.isNotEmpty() -> stringResource(R.string.ai_status_unsaved)
+        !configured -> stringResource(R.string.ai_status_not_set)
+        !draft.on -> stringResource(R.string.ai_status_off)
+        restUntil > System.currentTimeMillis() -> stringResource(R.string.ai_status_resting, restEnd(texts, restUntil))
+        else -> stringResource(R.string.ai_status_on, (if (custom) saved.label else saved.keyHint).orEmpty())
     }
 
     Surface(
@@ -227,14 +231,14 @@ private fun ProviderCard(
                     Text(status, style = MaterialTheme.typography.bodySmall, color = if (active) Garage.MutedForeground else Garage.MutedForeground.copy(alpha = 0.7f))
                 }
                 IconButton(onClick = { viewModel.move(provider, -1) }, enabled = index > 0) {
-                    Icon(painterResource(R.drawable.ic_arrow_upward), contentDescription = "Naikkan ${provider.title}", modifier = Modifier.size(20.dp))
+                    Icon(painterResource(R.drawable.ic_arrow_upward), contentDescription = stringResource(R.string.ai_move_up, provider.title), modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = { viewModel.move(provider, 1) }, enabled = index < count - 1) {
-                    Icon(painterResource(R.drawable.ic_arrow_downward), contentDescription = "Turunkan ${provider.title}", modifier = Modifier.size(20.dp))
+                    Icon(painterResource(R.drawable.ic_arrow_downward), contentDescription = stringResource(R.string.ai_move_down, provider.title), modifier = Modifier.size(20.dp))
                 }
                 Icon(
                     painterResource(R.drawable.ic_expand_more),
-                    contentDescription = if (expanded) "Tutup" else "Buka",
+                    contentDescription = stringResource(if (expanded) R.string.close else R.string.ai_open),
                     tint = Garage.MutedForeground,
                     modifier = Modifier
                         .padding(end = 8.dp)
@@ -247,19 +251,19 @@ private fun ProviderCard(
                     Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(note(provider), style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
+                    Text(stringResource(note(provider)), style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
 
                     if (configured || draft.keyInput.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Pakai ${provider.title}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Text(stringResource(R.string.ai_use, provider.title), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                             Switch(checked = draft.on, onCheckedChange = { viewModel.changeOn(provider, it) })
                         }
                     }
 
                     if (custom) {
-                        TextInput(draft.name, viewModel::changeName, "Nama (opsional)", placeholder = "mis. NVIDIA")
+                        TextInput(draft.name, viewModel::changeName, stringResource(R.string.ai_custom_name), placeholder = stringResource(R.string.ai_custom_name_placeholder))
                         TextInput(
-                            draft.baseUrl, viewModel::changeUrl, "Alamat server",
+                            draft.baseUrl, viewModel::changeUrl, stringResource(R.string.ai_server_address),
                             placeholder = "https://…/v1", error = draft.urlError,
                             keyboardType = KeyboardType.Uri, capitalization = KeyboardCapitalization.None,
                         )
@@ -271,7 +275,7 @@ private fun ProviderCard(
                             // Neutral: a saved key is not a tested one.
                             Icon(painterResource(R.drawable.ic_check_circle), contentDescription = null, tint = Garage.MutedForeground, modifier = Modifier.size(18.dp))
                             Text(
-                                "Key tersimpan: $savedKey",
+                                stringResource(R.string.ai_saved_key, savedKey),
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier
                                     .padding(start = 8.dp)
@@ -282,7 +286,7 @@ private fun ProviderCard(
                                 colors = ButtonDefaults.textButtonColors(contentColor = Garage.Loss),
                                 shape = MaterialTheme.shapes.medium,
                             ) {
-                                Text("Hapus key")
+                                Text(stringResource(R.string.ai_remove_key))
                             }
                         }
                     }
@@ -290,10 +294,10 @@ private fun ProviderCard(
                     OutlinedTextField(
                         value = draft.keyInput,
                         onValueChange = { viewModel.changeKey(provider, it) },
-                        label = { Text(if (savedKey != null) "Ganti API key" else if (custom) "API key (opsional)" else "API key") },
+                        label = { Text(stringResource(if (savedKey != null) R.string.ai_replace_key else if (custom) R.string.ai_key_optional else R.string.ai_key)) },
                         placeholder = { Text(keyPlaceholder(provider)) },
                         supportingText = if (savedKey != null) {
-                            { Text("Kosongkan untuk tetap memakai key yang tersimpan.") }
+                            { Text(stringResource(R.string.ai_keep_key_hint)) }
                         } else {
                             null
                         },
@@ -304,7 +308,7 @@ private fun ProviderCard(
                             IconButton(onClick = { showKey = !showKey }) {
                                 Icon(
                                     painterResource(R.drawable.ic_visibility),
-                                    contentDescription = if (showKey) "Sembunyikan key" else "Tampilkan key",
+                                    contentDescription = stringResource(if (showKey) R.string.ai_hide_key else R.string.ai_show_key),
                                     tint = if (showKey) Garage.Brand else Garage.MutedForeground,
                                 )
                             }
@@ -314,7 +318,7 @@ private fun ProviderCard(
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        val label = if (custom) "Tes server" else "Tes key"
+                        val label = stringResource(if (custom) R.string.ai_test_server else R.string.ai_test_key)
                         OutlinedButton(
                             onClick = { viewModel.testKey(provider) },
                             enabled = draft.test != KeyTest.Testing,
@@ -330,7 +334,7 @@ private fun ProviderCard(
                         }
                         provider.keyUrl?.let { url ->
                             TextButton(onClick = { uriHandler.openUri(url) }, shape = MaterialTheme.shapes.medium) {
-                                Text("Buat key di ${if (provider == AiProvider.Gemini) "AI Studio" else provider.title} ↗")
+                                Text(stringResource(R.string.ai_make_key, if (provider == AiProvider.Gemini) "AI Studio" else provider.title))
                             }
                         }
                     }
@@ -338,9 +342,9 @@ private fun ProviderCard(
                     when (val test = draft.test) {
                         is KeyTest.Ok -> Text(
                             when {
-                                test.models.isEmpty() -> "Tersambung, tapi tidak ada model yang bisa membaca foto."
-                                provider == AiProvider.Groq || custom -> "Tersambung. ${test.models.size} model — pilih yang bisa membaca foto (vision)."
-                                else -> "Key valid. ${test.models.size} model bisa membaca foto — pilih di bawah."
+                                test.models.isEmpty() -> stringResource(R.string.ai_test_no_vision)
+                                provider == AiProvider.Groq || custom -> pluralStringResource(R.plurals.ai_test_models_pick, test.models.size, test.models.size)
+                                else -> pluralStringResource(R.plurals.ai_test_models_vision, test.models.size, test.models.size)
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = Garage.Gain,
@@ -356,12 +360,12 @@ private fun ProviderCard(
                             options = (listOf(draft.model) + tested).filter(String::isNotEmpty).distinct(),
                             optionLabel = { it },
                             onSelect = { viewModel.changeModel(provider, it) },
-                            label = "Model",
+                            label = stringResource(R.string.ai_model),
                         )
                     } else {
                         TextInput(
-                            draft.model, { viewModel.changeModel(provider, it) }, "Model",
-                            placeholder = provider.defaultModel.ifEmpty { "nama model" }, error = draft.modelError,
+                            draft.model, { viewModel.changeModel(provider, it) }, stringResource(R.string.ai_model),
+                            placeholder = provider.defaultModel.ifEmpty { stringResource(R.string.ai_model_placeholder) }, error = draft.modelError,
                             capitalization = KeyboardCapitalization.None,
                         )
                     }
@@ -371,19 +375,20 @@ private fun ProviderCard(
     }
 }
 
+@StringRes
 private fun note(provider: AiProvider) = when (provider) {
-    AiProvider.Gemini -> "Kuota gratis harian dari Google. Kalau satu model sibuk atau kuotanya habis, model Gemini lain dicoba dulu sebelum pindah ke AI berikutnya."
-    AiProvider.Groq -> "Gratis dan sangat cepat (sekitar 1.000 permintaan sehari). Sekali kirim paling banyak 3 foto; foto lainnya tidak ikut."
-    AiProvider.Mistral -> "Gratis lewat paket Experiment (perlu verifikasi nomor HP). Di paket gratis, foto yang dikirim boleh dipakai Mistral untuk melatih modelnya."
-    AiProvider.OpenRouter -> "Model gratis: 50 permintaan sehari (1.000 sehari setelah sekali isi kredit \$10). Model openrouter/free memilih sendiri model gratis yang bisa membaca foto."
-    AiProvider.Custom -> "Layanan lain yang memakai format API OpenAI. Contoh alamat — NVIDIA NIM: https://integrate.api.nvidia.com/v1, " +
-        "Cloudflare Workers AI: https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/ai/v1. Pilih model yang bisa membaca foto."
+    AiProvider.Gemini -> R.string.ai_note_gemini
+    AiProvider.Groq -> R.string.ai_note_groq
+    AiProvider.Mistral -> R.string.ai_note_mistral
+    AiProvider.OpenRouter -> R.string.ai_note_openrouter
+    AiProvider.Custom -> R.string.ai_note_custom
 }
 
+@Composable
 private fun keyPlaceholder(provider: AiProvider) = when (provider) {
     AiProvider.Gemini -> "AIza…"
     AiProvider.Groq -> "gsk_…"
     AiProvider.OpenRouter -> "sk-or-…"
-    AiProvider.Custom -> "Kosongkan kalau servernya tanpa key"
+    AiProvider.Custom -> stringResource(R.string.ai_custom_key_placeholder)
     AiProvider.Mistral -> ""
 }

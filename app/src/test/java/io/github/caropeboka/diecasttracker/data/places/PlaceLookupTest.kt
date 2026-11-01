@@ -21,7 +21,7 @@ import java.time.ZoneOffset
 
 /** Ports of the web app's place tests (`ExploreTest`: lookup, search, distance). */
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class PlaceLookupTest {
     private val env = TestEnvironment()

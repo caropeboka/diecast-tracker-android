@@ -3,6 +3,7 @@ package io.github.caropeboka.diecasttracker.data.backup
 import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
@@ -12,6 +13,7 @@ import io.github.caropeboka.diecasttracker.data.db.DecorationEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
 import io.github.caropeboka.diecasttracker.data.decor.DecorStore
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.shelf.Shelf
 import io.github.caropeboka.diecasttracker.data.shelf.ShelfLayout
 import kotlinx.coroutines.CancellationException
@@ -66,6 +68,7 @@ class BackupImporter(
     /** After a Dex came back: its wiki thumbnails need downloading again. */
     private val onDexRestored: suspend () -> Unit = {},
 ) {
+    private val texts = Texts(context)
     private val _state = MutableStateFlow<ImportState>(ImportState.Idle)
 
     /** Lives outside any screen, so an import keeps going when the user navigates away. */
@@ -83,9 +86,9 @@ class BackupImporter(
             } catch (e: BackupException) {
                 ImportState.Failed(e.message.orEmpty())
             } catch (e: IOException) {
-                ImportState.Failed("File tidak bisa dibaca: ${e.message}")
+                ImportState.Failed(texts(R.string.import_unreadable, e.message.orEmpty()))
             } catch (e: Exception) {
-                ImportState.Failed("Impor gagal, koleksi tidak diubah. (${e.message ?: e::class.simpleName})")
+                ImportState.Failed(texts(R.string.import_failed, e.message ?: e::class.simpleName.orEmpty()))
             }
         }
     }
@@ -98,7 +101,7 @@ class BackupImporter(
         // ZipFile needs random access, and the web writes diecasts.json after the photos.
         val copy = File.createTempFile("backup", ".zip", context.cacheDir)
         try {
-            val input = context.contentResolver.openInputStream(uri) ?: throw BackupException("File tidak bisa dibuka.")
+            val input = context.contentResolver.openInputStream(uri) ?: throw BackupException(texts(R.string.import_cant_open))
             input.use { source -> copy.outputStream().use { source.copyTo(it) } }
             import(copy, replace) { done, total -> _state.value = ImportState.Running(done, total) }
         } finally {
@@ -111,7 +114,7 @@ class BackupImporter(
             val zip = try {
                 ZipFile(file)
             } catch (_: IOException) {
-                throw BackupException("File ZIP tidak bisa dibuka.")
+                throw BackupException(texts(R.string.import_zip_cant_open))
             }
 
             zip.use { importFrom(it, replace, onProgress) }
@@ -119,28 +122,28 @@ class BackupImporter(
 
     private suspend fun importFrom(zip: ZipFile, replace: Boolean, onProgress: (Int, Int) -> Unit): ImportResult {
         val entry = zip.getEntry(WebBackupFormat.MANIFEST)?.takeIf { it.size <= MAX_MANIFEST_BYTES }
-            ?: throw BackupException(WebBackupFormat.NOT_A_BACKUP)
-        val manifest = WebBackupFormat.parseManifest(zip.getInputStream(entry).bufferedReader().use { it.readText() })
+            ?: throw BackupException(texts(WebBackupFormat.NOT_A_BACKUP))
+        val manifest = WebBackupFormat.parseManifest(zip.getInputStream(entry).bufferedReader().use { it.readText() }, texts)
 
         val today = today()
-        val records = manifest.records.mapIndexed { i, record -> WebBackupFormat.parseRecord(i, record, today) }
+        val records = manifest.records.mapIndexed { i, record -> WebBackupFormat.parseRecord(i, record, today, texts) }
         val valid = records.filterIsInstance<WebBackupFormat.Record.Valid>()
         val skipped = records.filterIsInstance<WebBackupFormat.Record.Invalid>().map { it.reason }.toMutableList()
 
         if (replace && valid.isEmpty()) {
-            throw BackupException("Tidak ada diecast yang bisa dipulihkan dari backup ini. Koleksi tidak diubah.")
+            throw BackupException(texts(R.string.import_nothing))
         }
 
         val dex = zip.getEntry(DexBackup.ENTRY)?.let { entry ->
             entry.takeIf { it.size <= MAX_MANIFEST_BYTES }
                 ?.let { DexBackup.decode(zip.getInputStream(it).bufferedReader().use { reader -> reader.readText() }) }
-                .also { if (it == null) skipped.add(0, "Data Dex di backup ini rusak, jadi Dex tidak ikut dipulihkan.") }
+                .also { if (it == null) skipped.add(0, texts(R.string.import_dex_broken)) }
         }
 
         val decor = zip.getEntry(DecorBackup.ENTRY)?.let { entry ->
             entry.takeIf { it.size <= MAX_MANIFEST_BYTES }
                 ?.let { DecorBackup.decode(zip.getInputStream(it).bufferedReader().use { reader -> reader.readText() }) }
-                .also { if (it == null) skipped.add(0, "Data hiasan garasi di backup ini rusak, jadi tidak ikut dipulihkan.") }
+                .also { if (it == null) skipped.add(0, texts(R.string.import_decor_broken)) }
         }
         val decorStore = DecorStore(root)
         val decorFiles = mutableListOf<String>()

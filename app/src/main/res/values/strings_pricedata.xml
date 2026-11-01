@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/pricedata.json; edit all three languages together. -->
+<resources>
+    <string name="listing_different_variant">Different variant</string>
+    <string name="listing_different_condition">Different condition</string>
+    <string name="listing_bundle">Bundle / lot</string>
+    <string name="listing_different_item">Another item</string>
+    <string name="listing_unclear">Unclear</string>
+    <string name="accuracy_high">High accuracy</string>
+    <string name="accuracy_medium">Medium accuracy</string>
+    <string name="accuracy_low">Low accuracy</string>
+    <string name="accuracy_insufficient">Not enough data</string>
+    <string name="listing_far_above">Price far above the others</string>
+    <string name="listing_far_below">Price far below the others</string>
+    <string name="price_reason_one">Only 1 listing matches — not enough to call it a market price.</string>
+    <string name="price_reason_none">No listing matches this diecast.</string>
+    <string name="price_tip_keywords">Try other keywords (for example without the series number), then take new screenshots.</string>
+    <plurals name="price_reason_counted_many">
+        <item quantity="one">%d matching listing counted — quite a few.</item>
+        <item quantity="other">%d matching listings counted — quite a few.</item>
+    </plurals>
+    <plurals name="price_reason_counted_few">
+        <item quantity="one">%d matching listing counted — still few.</item>
+        <item quantity="other">%d matching listings counted — still few.</item>
+    </plurals>
+    <string name="price_reason_even">Prices are fairly even (middle spread %1$d%% of the median).</string>
+    <string name="price_reason_varied">Prices vary somewhat (middle spread %1$d%% of the median).</string>
+    <string name="price_reason_scattered">Prices vary a lot (middle spread %1$d%% of the median).</string>
+    <string name="price_tip_same_variant">Prices are all over the place — make sure the variant and condition are the same (for example STH vs regular, carded vs loose).</string>
+    <plurals name="price_reason_sold">
+        <item quantity="one">%d listing shows how many sold — proof of prices that sell.</item>
+        <item quantity="other">%d listings show how many sold — proof of prices that sell.</item>
+    </plurals>
+    <string name="price_tip_best_selling">Sort the search results by \"Best selling\" to see prices that actually sell.</string>
+    <string name="price_reason_unclear">Many listings may or may not match.</string>
+    <string name="price_tip_more_screenshots">Add screenshots (scroll down) so more listings are read.</string>
+    <string name="price_tip_condition">Many listings are in another condition — add \"carded\" or \"loose\" to the search.</string>
+    <string name="price_tip_search_hint">Try searching for: \"%1$s\".</string>
+    <string name="price_nothing_to_use">There\'s no price to use yet.</string>
+</resources>

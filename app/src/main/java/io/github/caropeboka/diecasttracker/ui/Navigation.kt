@@ -10,6 +10,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -18,9 +20,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.caropeboka.diecasttracker.container
 import io.github.caropeboka.diecasttracker.ui.check.CheckScreen
@@ -38,8 +42,10 @@ import io.github.caropeboka.diecasttracker.ui.explore.ExploreScreen
 import io.github.caropeboka.diecasttracker.ui.garage.GarageScreen
 import io.github.caropeboka.diecasttracker.ui.scan.BulkScanScreen
 import io.github.caropeboka.diecasttracker.ui.settings.AiSettingsScreen
+import io.github.caropeboka.diecasttracker.ui.settings.SettingsScreen
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -81,6 +87,9 @@ data object DataRoute
 @Serializable
 data class AiSettingsRoute(val fromScan: Boolean = false)
 
+@Serializable
+data object SettingsRoute
+
 /** "Peta jelajah". */
 @Serializable
 data object ExploreRoute
@@ -107,6 +116,7 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
     val container = LocalContext.current.container
     val messages = container.messages
     val scanEnabled by container.scanner.enabled.collectAsStateWithLifecycle(initialValue = false)
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(messages) {
         messages.flow.collect {
@@ -157,12 +167,27 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
         menu = menu,
     )
 
+    // The first-run tour (and again from Settings), over Koleksi with its bottom bar.
+    val tour = rememberSaveable(saver = Tour.Saver) { Tour() }
+    val tourDone by container.prefs.tourDone.collectAsStateWithLifecycle(initialValue = true)
+    val entry by nav.currentBackStackEntryAsState()
+    val onCollection = entry?.destination?.hasRoute<CollectionRoute>() == true
+    LaunchedEffect(tourDone, onCollection) {
+        if (!tourDone && onCollection && tour.step == null) tour.step = TourStep.Welcome
+    }
+    val finishTour = {
+        tour.step = null
+        scope.launch { container.prefs.setTourDone(true) }
+        Unit
+    }
+
     // Lets a diecast card grow into its diecast's page, the dashboard's button into the 3D garage, and every other
     // screen out of what opened it (see ScreenTransitions).
     SharedTransitionLayout {
         CompositionLocalProvider(
             LocalSnackbar provides snackbar,
             LocalCreateActions provides create,
+            LocalTour provides tour,
             LocalSharedTransition provides this,
         ) {
             Box(Modifier.fillMaxSize().noteTaps()) {
@@ -185,6 +210,7 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                             onBulkScan = dropUnlessResumed { nav.navigate(BulkScanRoute) },
                             onCheck = dropUnlessResumed { nav.navigate(CheckRoute) },
                             onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
+                            onSettings = dropUnlessResumed { nav.navigate(SettingsRoute) },
                         )
                     }
                     screen<CheckRoute> {
@@ -251,12 +277,30 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                     screen<DataRoute> {
                         DataScreen(onBack = dropUnlessResumed { nav.popBackStack() })
                     }
+                    screen<SettingsRoute> {
+                        SettingsScreen(
+                            onBack = dropUnlessResumed { nav.popBackStack() },
+                            onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
+                            onData = dropUnlessResumed { nav.navigate(DataRoute) },
+                            // The tour starts on Koleksi.
+                            onTour = dropUnlessResumed { nav.popBackStack<CollectionRoute>(inclusive = false) },
+                        )
+                    }
                     screen<AiSettingsRoute> {
                         AiSettingsScreen(onClose = { nav.popBackStack<AiSettingsRoute>(inclusive = true) })
                     }
                 }
                 // Over the screen and its bottom bar.
                 CreateMenuOverlay(create)
+                TourOverlay(
+                    tour,
+                    aiReady = scanEnabled,
+                    onAiSettings = {
+                        finishTour()
+                        nav.navigate(AiSettingsRoute(fromScan = true))
+                    },
+                    onFinish = finishTour,
+                )
             }
         }
     }

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/check.json; edit all three languages together. -->
+<resources>
+    <string name="check_earlier">Earlier checks</string>
+    <string name="check_needs_ai">A check by photo needs the AI scan. Add an API key in the AI settings — searching by typing still works.</string>
+    <string name="open_ai_settings">Open the AI settings →</string>
+    <string name="checking">Checking…</string>
+    <string name="check_hero">Photograph the diecast on the shelf</string>
+    <string name="check_hero_text">See at once whether you own it, want it, or not yet.</string>
+    <string name="check_another">Photograph another diecast</string>
+    <string name="check_change_store">Change store</string>
+    <string name="check_store">Store</string>
+    <string name="check_store_empty">Which store? Tap to fill in</string>
+    <string name="check_store_place">Store / place</string>
+    <string name="check_store_name">Store name</string>
+    <string name="check_type_name">Or type its name (no AI)</string>
+    <string name="check_type_hint">e.g. Nissan Skyline</string>
+    <string name="search">Search</string>
+    <string name="verdict_owned">Already own it</string>
+    <string name="verdict_wishlist">It\'s on your wishlist!</string>
+    <string name="verdict_spotted">You\'ve seen it before</string>
+    <string name="verdict_new">Don\'t have it yet</string>
+    <string name="verdict_failed">Couldn\'t read it</string>
+    <string name="check_unfold">Open this check</string>
+    <string name="check_logged_short">· logged</string>
+    <string name="check_saved_short">· saved</string>
+    <string name="check_fold">Fold</string>
+    <string name="check_unrecognised">The AI couldn\'t recognise this diecast.</string>
+    <string name="check_logged_at">Logged as a sighting at %1$s.</string>
+    <string name="check_logged_here">Logged as a sighting here.</string>
+    <string name="check_bought_after_all">Bought it after all — Got it</string>
+    <string name="check_saved_by_form">Saved through the form.</string>
+    <string name="check_shelf_price">Shelf price</string>
+    <string name="check_log_here">Log a sighting here</string>
+    <string name="check_separate_item">Separate item</string>
+    <string name="add_to_collection">Add to the collection</string>
+    <string name="check_typed">Searched by typing</string>
+    <string name="check_in_collection">In your collection</string>
+    <string name="check_buy_one_more">Bought one more (+1 quantity)</string>
+    <string name="check_got_it">Got it</string>
+    <string name="check_searching">Searching your collection</string>
+    <string name="check_type_more">Type at least 2 letters.</string>
+    <string name="check_photo_gone">This photo isn\'t there any more.</string>
+    <string name="check_still_unread">Still couldn\'t read it.</string>
+    <string name="check_now_own">%1$s: you now own %2$d×</string>
+    <string name="check_moved_to_collection">%1$s moved to the collection 🎉</string>
+    <string name="failed_because">Failed (%1$s).</string>
+</resources>

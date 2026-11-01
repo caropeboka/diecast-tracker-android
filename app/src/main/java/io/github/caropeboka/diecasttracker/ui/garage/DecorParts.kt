@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -59,7 +60,9 @@ import io.github.caropeboka.diecasttracker.ui.components.AiProgress
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.SubHeading
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
+import io.github.caropeboka.diecasttracker.ui.components.rememberTexts
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
+import io.github.caropeboka.diecasttracker.util.Formats
 import io.github.sceneview.SceneScope
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
@@ -120,9 +123,9 @@ internal fun NewDecorRow(onCamera: () -> Unit, onGallery: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(painterResource(R.drawable.ic_auto_fix_high), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(22.dp))
             Column(Modifier.weight(1f)) {
-                Text("Hiasan baru di sini", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.decor_new_here), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Figur atau pajangan dari foto: latarnya dipotong dan debunya dibersihkan di HP.",
+                    stringResource(R.string.decor_new_text),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                 )
@@ -132,12 +135,12 @@ internal fun NewDecorRow(onCamera: () -> Unit, onGallery: () -> Unit) {
             OutlinedButton(onClick = onCamera, shape = MaterialTheme.shapes.medium) {
                 Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
-                Text("Kamera")
+                Text(stringResource(R.string.camera))
             }
             OutlinedButton(onClick = onGallery, shape = MaterialTheme.shapes.medium) {
                 Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.size(8.dp))
-                Text("Galeri")
+                Text(stringResource(R.string.gallery))
             }
         }
     }
@@ -160,25 +163,25 @@ internal fun DecorDraftSheet(
             Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SubHeading("Hiasan baru")
-            Text(ShelfLayout.label(Shelf.Corner, draft.spot.spot), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+            SubHeading(stringResource(R.string.decor_new))
+            Text(ShelfLayout.label(rememberTexts(), Shelf.Corner, draft.spot.spot), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
             val cutout = draft.cutout
             when {
                 draft.error != null -> {
                     Text(draft.error, style = MaterialTheme.typography.bodyMedium)
-                    TextButton(onClick = onDismiss) { Text("Tutup") }
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
                 }
                 cutout == null -> progress?.let { AiProgressView(it) }
                 else -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Choice(cutout.original, "Seperti difoto", !cleaned, Modifier.weight(1f)) { cleaned = false }
-                        Choice(cutout.cleaned, "Dibersihkan", cleaned, Modifier.weight(1f)) { cleaned = true }
+                        Choice(cutout.original, stringResource(R.string.decor_as_shot), !cleaned, Modifier.weight(1f)) { cleaned = false }
+                        Choice(cutout.cleaned, stringResource(R.string.decor_cleaned), cleaned, Modifier.weight(1f)) { cleaned = true }
                     }
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Nama") },
-                        placeholder = { Text("mis. Figur Risky Ridho") },
+                        label = { Text(stringResource(R.string.field_name)) },
+                        placeholder = { Text(stringResource(R.string.decor_name_placeholder)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                         colors = fieldColors(),
@@ -186,12 +189,13 @@ internal fun DecorDraftSheet(
                     )
                     HeightField(height) { height = it }
                     val heightMm = heightMm(height)
+                    val defaultName = stringResource(R.string.decor_default_name)
                     Button(
-                        onClick = { onSave(name.trim().ifEmpty { "Hiasan" }, heightMm!!, cleaned) },
+                        onClick = { onSave(name.trim().ifEmpty { defaultName }, heightMm!!, cleaned) },
                         enabled = heightMm != null,
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Taruh di laci") }
+                    ) { Text(stringResource(R.string.decor_place)) }
                 }
             }
         }
@@ -243,8 +247,8 @@ private fun HeightField(value: String, onChange: (String) -> Unit) {
     OutlinedTextField(
         value = value,
         onValueChange = { text -> onChange(text.filter { it.isDigit() || it == ',' || it == '.' }.take(5)) },
-        label = { Text("Tinggi asli (cm)") },
-        supportingText = { Text("Supaya ukurannya pas di samping diecast.") },
+        label = { Text(stringResource(R.string.decor_height)) },
+        supportingText = { Text(stringResource(R.string.decor_height_hint)) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         colors = fieldColors(),
@@ -257,7 +261,7 @@ internal fun heightMm(text: String): Int? =
     text.replace(',', '.').toFloatOrNull()?.takeIf { it in 1f..60f }?.let { (it * 10).roundToInt() }
 
 private fun centimetres(heightMm: Int): String =
-    if (heightMm % 10 == 0) (heightMm / 10).toString() else "%d,%d".format(heightMm / 10, heightMm % 10)
+    if (heightMm % 10 == 0) (heightMm / 10).toString() else "${heightMm / 10}${if (Formats.language == "id") ',' else '.'}${heightMm % 10}"
 
 /** The decoration picked, where it stands, and what can be done with it. */
 @Composable
@@ -295,13 +299,13 @@ internal fun DecorEditDialog(item: DecorItem, onSave: (name: String, heightMm: I
     val heightMm = heightMm(height)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Ubah hiasan") },
+        title = { Text(stringResource(R.string.decor_edit)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nama") },
+                    label = { Text(stringResource(R.string.field_name)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     colors = fieldColors(),
@@ -311,9 +315,9 @@ internal fun DecorEditDialog(item: DecorItem, onSave: (name: String, heightMm: I
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(name.trim().ifEmpty { item.name }, heightMm!!) }, enabled = heightMm != null) { Text("Simpan") }
+            TextButton(onClick = { onSave(name.trim().ifEmpty { item.name }, heightMm!!) }, enabled = heightMm != null) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
         containerColor = Garage.Popover,
     )
 }
@@ -322,10 +326,10 @@ internal fun DecorEditDialog(item: DecorItem, onSave: (name: String, heightMm: I
 internal fun DecorDeleteDialog(item: DecorItem, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Hapus ${item.name}?") },
-        text = { Text("Hiasan ini hilang dari garasi. Koleksi diecast-mu tidak berubah.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Hapus", color = Color(0xFFE66767)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal") } },
+        title = { Text(stringResource(R.string.delete_named, item.name)) },
+        text = { Text(stringResource(R.string.decor_delete_text)) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete), color = Color(0xFFE66767)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
         containerColor = Garage.Popover,
     )
 }

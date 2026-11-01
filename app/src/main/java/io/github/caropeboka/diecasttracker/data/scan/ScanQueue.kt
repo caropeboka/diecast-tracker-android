@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.data.scan
 
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.ai.AiException
 import io.github.caropeboka.diecasttracker.data.ai.AiOfflineException
@@ -8,6 +9,7 @@ import io.github.caropeboka.diecasttracker.data.ai.Confidence
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
 import io.github.caropeboka.diecasttracker.data.db.ScanItemEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 
@@ -50,6 +52,7 @@ class ScanQueue(
     db: AppDatabase,
     private val photos: PhotoStore,
     private val scanner: DiecastScanner,
+    private val texts: Texts,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val dao = db.scanItems()
@@ -85,7 +88,7 @@ class ScanQueue(
         } catch (e: AiException) {
             item.copy(status = ScanItemStatus.Failed, error = e.message)
         } catch (e: Exception) {
-            item.copy(status = ScanItemStatus.Failed, error = "Scan gagal (${e.message ?: e::class.simpleName}). Isi manual atau coba lagi.")
+            item.copy(status = ScanItemStatus.Failed, error = texts(R.string.scan_failed, e.message ?: e::class.simpleName.orEmpty()))
         }
         // Thrown away in the meantime: nothing to update.
         if (dao.get(item.id) != null) dao.update(read)

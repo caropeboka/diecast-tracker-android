@@ -1,6 +1,8 @@
 package io.github.caropeboka.diecasttracker.data.ai
 
 import android.util.Log
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.util.array
 import io.github.caropeboka.diecasttracker.util.obj
 import io.github.caropeboka.diecasttracker.util.string
@@ -43,6 +45,7 @@ class AiOfflineException(message: String) : AiException(message)
 class GeminiClient(
     private val http: OkHttpClient,
     private val modelCache: ModelListCache,
+    private val texts: Texts,
     private val baseUrl: String = "https://generativelanguage.googleapis.com/v1beta",
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
@@ -56,12 +59,12 @@ class GeminiClient(
         val reply = try {
             http.withTimeout(LIST_TIMEOUT_S).newCall(request).fetch(::reply)
         } catch (_: IOException) {
-            throw AiException("Tidak bisa menghubungi Gemini. Cek koneksi internet.")
+            throw AiException(texts(R.string.ai_err_connect, GEMINI))
         }
 
         if (!reply.ok) {
             throw AiException(
-                if (reply.code in listOf(400, 401, 403)) "API key Gemini tidak valid." else "Gemini sedang bermasalah. Coba lagi nanti.",
+                texts(if (reply.code in listOf(400, 401, 403)) R.string.ai_err_key_invalid_short else R.string.ai_err_trouble_later, GEMINI),
             )
         }
 
@@ -137,7 +140,7 @@ class GeminiClient(
 
         val json = reply.json()
         if (json?.obj("promptFeedback")?.string("blockReason") != null) {
-            throw AiException("AI tidak bisa memproses gambar ini.")
+            throw AiException(texts(R.string.ai_err_blocked))
         }
 
         val text = json?.array("candidates")?.firstOrNull()?.let { it as? JsonObject }
@@ -146,7 +149,7 @@ class GeminiClient(
             .joinToString("")
 
         return runCatching { Json.parseToJsonElement(text) }.getOrNull() as? JsonObject
-            ?: throw AiException("Hasil AI tidak terbaca. Coba foto ulang dengan cahaya lebih terang.")
+            ?: throw AiException(texts(R.string.ai_err_unreadable))
     }
 
     /**
@@ -184,13 +187,13 @@ class GeminiClient(
 
     /** Why a model didn't answer, short enough for one line on the screen. */
     private fun missReason(outcome: Outcome): String = when (outcome) {
-        Outcome.Offline -> "tidak bisa dihubungi (cek koneksi)"
-        Outcome.TimedOut -> "tidak menjawab"
+        Outcome.Offline -> texts(R.string.ai_miss_offline)
+        Outcome.TimedOut -> texts(R.string.ai_miss_timeout)
         is Outcome.Reply -> when (outcome.code) {
-            429 -> "kuotanya habis"
-            500, 503 -> "sedang sibuk"
-            404 -> "tidak tersedia"
-            else -> "gagal (${outcome.code})"
+            429 -> texts(R.string.ai_miss_quota)
+            500, 503 -> texts(R.string.ai_miss_busy)
+            404 -> texts(R.string.ai_miss_unavailable)
+            else -> texts(R.string.ai_miss_failed, outcome.code)
         }
     }
 
@@ -233,18 +236,18 @@ class GeminiClient(
         val reason = last?.json()?.obj("error")?.array("details")?.firstOrNull()?.let { it as? JsonObject }?.string("reason")
 
         return when {
-            reason == "API_KEY_INVALID" || 403 in codes -> AiException("API key Gemini tidak valid. Cek Pengaturan AI.")
+            reason == "API_KEY_INVALID" || 403 in codes -> AiException(texts(R.string.ai_err_key_invalid, GEMINI))
             429 in codes -> AiRetryLaterException(
-                "Kuota gratis Gemini habis untuk saat ini. Tunggu sebentar (atau besok) lalu coba lagi.",
+                texts(R.string.ai_err_quota, GEMINI),
                 restUntil = quotaBack(outcomes.values.filterIsInstance<Outcome.Reply>().filter { it.code == 429 }),
             )
-            500 in codes || 503 in codes -> AiRetryLaterException("Server Gemini sedang sibuk (banyak pengguna). Coba lagi sebentar lagi.")
-            Outcome.Offline in outcomes.values -> AiOfflineException("Tidak bisa terhubung ke Gemini. Cek koneksi internet.")
+            500 in codes || 503 in codes -> AiRetryLaterException(texts(R.string.ai_err_gemini_busy))
+            Outcome.Offline in outcomes.values -> AiOfflineException(texts(R.string.ai_err_offline, GEMINI))
             Outcome.TimedOut in outcomes.values -> AiRetryLaterException(
-                "Gemini tidak merespons (server penuh atau koneksi lambat). Coba lagi sebentar lagi.",
+                texts(R.string.ai_err_timeout, GEMINI),
             )
-            (outcomes[model] as? Outcome.Reply)?.code == 404 -> AiException("Model Gemini \"$model\" tidak ditemukan. Pilih model lain di Pengaturan AI.")
-            else -> AiException("Gemini sedang bermasalah. Isi manual dulu atau coba lagi.")
+            (outcomes[model] as? Outcome.Reply)?.code == 404 -> AiException(texts(R.string.ai_err_gemini_model_missing, model))
+            else -> AiException(texts(R.string.ai_err_gemini_other))
         }
     }
 
@@ -279,6 +282,7 @@ class GeminiClient(
 
     private companion object {
         const val TAG = "GeminiClient"
+        const val GEMINI = "Gemini"
         const val MAX_FALLBACKS = 4
 
         // Seconds per call (an overloaded model sometimes hangs instead of answering 503), and the total.

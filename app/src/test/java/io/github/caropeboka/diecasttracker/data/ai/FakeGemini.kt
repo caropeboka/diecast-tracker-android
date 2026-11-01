@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.data.ai
 
+import io.github.caropeboka.diecasttracker.data.testTexts
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.json.Json
@@ -149,7 +150,8 @@ class MemoryRests : ProviderRests {
 /** The app's [AiVision] with [setup] (only Gemini by default), every request answered by this fake. */
 fun FakeGemini.vision(setup: Flow<AiSetup> = MutableStateFlow(AiSetup.gemini("test-key"))) = AiVision(
     setup,
-    GeminiClient(client, MemoryModelCache(), baseUrl = "https://gemini.test/v1beta"),
-    OpenAiClient(client),
+    GeminiClient(client, MemoryModelCache(), testTexts(), baseUrl = "https://gemini.test/v1beta"),
+    OpenAiClient(client, testTexts()),
     MemoryRests(),
+    testTexts(),
 )

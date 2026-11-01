@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/settings.json; edit all three languages together. -->
+<resources>
+    <string name="settings_title">Pengaturan</string>
+    <string name="settings_menu">Pengaturan</string>
+    <string name="settings_language">Bahasa</string>
+    <string name="settings_language_system_now">Bahasa HP (sekarang %1$s)</string>
+    <string name="settings_language_note">Kalau HP memakai bahasa lain, aplikasi tampil dalam bahasa Inggris.</string>
+    <string name="settings_currency">Mata uang</string>
+    <string name="settings_currency_idr">Rupiah (Rp)</string>
+    <string name="settings_currency_usd">Dolar AS ($)</string>
+    <string name="settings_currency_cny">Yuan Tiongkok (¥)</string>
+    <string name="settings_currency_note">Harga tetap disimpan dalam Rupiah. Mata uang lain diubah dengan kurs hari itu, dan harga yang kamu ketik diubah kembali ke Rupiah.</string>
+    <string name="settings_rates">1 USD = %1$s · 1 CNY = %2$s</string>
+    <string name="settings_rates_source">Kurs dari %1$s, %2$s</string>
+    <string name="settings_rates_none">Belum ada kurs: harga tampil dalam Rupiah sampai HP tersambung internet.</string>
+    <string name="settings_rates_refresh">Perbarui kurs</string>
+    <string name="settings_rates_updated">Kurs diperbarui.</string>
+    <string name="settings_rates_failed">Kurs tidak bisa diambil. Cek koneksi internet.</string>
+    <string name="settings_date_format">Format tanggal</string>
+    <string name="settings_date_language">Ikuti bahasa (%1$s)</string>
+    <string name="settings_more">Lainnya</string>
+    <string name="settings_ai">Pengaturan AI</string>
+    <string name="settings_ai_note">Key dan urutan penyedia AI</string>
+    <string name="settings_data">Data &amp; backup</string>
+    <string name="settings_data_note">Backup, pulihkan, export Excel</string>
+    <string name="settings_tour">Ulangi tur pengenalan</string>
+    <string name="settings_tour_note">Panduan singkat seperti saat pertama membuka aplikasi</string>
+    <string name="ai_key_needed">Isi API key dulu.</string>
+    <string name="ai_url_needed">Isi alamat server dulu, mis. https://…/v1.</string>
+    <string name="ai_settings_saved">Pengaturan AI disimpan.</string>
+    <string name="ai_key_removed">API key %1$s dihapus.</string>
+    <string name="ai_key_removed_off">API key %1$s dihapus. AI tidak aktif.</string>
+    <string name="ai_url_invalid">Alamat harus diawali https:// (atau http://), mis. https://integrate.api.nvidia.com/v1.</string>
+    <string name="ai_model_needed">Isi nama model.</string>
+    <string name="ai_model_gemini_chars">Nama model hanya boleh huruf kecil, angka, titik, dan tanda minus.</string>
+    <string name="ai_model_no_spaces">Nama model tidak boleh berisi spasi.</string>
+    <string name="ai_scan_off_text">Scan belum aktif. Isi API key salah satu AI dulu (Gemini paling mudah). Setelah itu, Scan dengan AI (tombol + di tengah bawah) membuka kamera: foto semua sisinya, lalu ketuk Pindai dengan AI.</string>
+    <string name="ai_settings_intro">AI membaca foto kartu atau mobilnya lalu mengisi form. Fotonya dikirim hanya saat kamu meminta AI membaca. AI dicoba dari atas ke bawah: kalau satu kuotanya habis, sibuk, atau terlalu lama, foto yang sama langsung dikirim ke berikutnya.</string>
+    <string name="ai_remove_key_title">Hapus API key %1$s?</string>
+    <string name="ai_remove_key_text">%1$s tidak dipakai sampai kamu mengisi key lagi.</string>
+    <string name="ai_status_unsaved">Key baru belum disimpan</string>
+    <string name="ai_status_not_set">Belum diatur</string>
+    <string name="ai_status_off">Dimatikan</string>
+    <string name="ai_status_resting">Kuota habis sampai %1$s</string>
+    <string name="ai_status_on">Aktif · %1$s</string>
+    <string name="ai_move_up">Naikkan %1$s</string>
+    <string name="ai_move_down">Turunkan %1$s</string>
+    <string name="ai_open">Buka</string>
+    <string name="ai_use">Pakai %1$s</string>
+    <string name="ai_custom_name">Nama (opsional)</string>
+    <string name="ai_custom_name_placeholder">mis. NVIDIA</string>
+    <string name="ai_server_address">Alamat server</string>
+    <string name="ai_saved_key">Key tersimpan: %1$s</string>
+    <string name="ai_remove_key">Hapus key</string>
+    <string name="ai_replace_key">Ganti API key</string>
+    <string name="ai_key_optional">API key (opsional)</string>
+    <string name="ai_key">API key</string>
+    <string name="ai_keep_key_hint">Kosongkan untuk tetap memakai key yang tersimpan.</string>
+    <string name="ai_hide_key">Sembunyikan key</string>
+    <string name="ai_show_key">Tampilkan key</string>
+    <string name="ai_test_server">Tes server</string>
+    <string name="ai_test_key">Tes key</string>
+    <string name="ai_make_key">Buat key di %1$s ↗</string>
+    <string name="ai_test_no_vision">Tersambung, tapi tidak ada model yang bisa membaca foto.</string>
+    <plurals name="ai_test_models_pick">
+        <item quantity="other">Tersambung. %d model — pilih yang bisa membaca foto (vision).</item>
+    </plurals>
+    <plurals name="ai_test_models_vision">
+        <item quantity="other">Key valid. %d model bisa membaca foto — pilih di bawah.</item>
+    </plurals>
+    <string name="ai_model">Model</string>
+    <string name="ai_model_placeholder">nama model</string>
+    <string name="ai_note_gemini">Kuota gratis harian dari Google. Kalau satu model sibuk atau kuotanya habis, model Gemini lain dicoba dulu sebelum pindah ke AI berikutnya.</string>
+    <string name="ai_note_groq">Gratis dan sangat cepat (sekitar 1.000 permintaan sehari). Sekali kirim paling banyak 3 foto; foto lainnya tidak ikut.</string>
+    <string name="ai_note_mistral">Gratis lewat paket Experiment (perlu verifikasi nomor HP). Di paket gratis, foto yang dikirim boleh dipakai Mistral untuk melatih modelnya.</string>
+    <string name="ai_note_openrouter">Model gratis: 50 permintaan sehari (1.000 sehari setelah sekali isi kredit $10). Model openrouter/free memilih sendiri model gratis yang bisa membaca foto.</string>
+    <string name="ai_note_custom">Layanan lain yang memakai format API OpenAI. Contoh alamat — NVIDIA NIM: https://integrate.api.nvidia.com/v1, Cloudflare Workers AI: https://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID>/ai/v1. Pilih model yang bisa membaca foto.</string>
+    <string name="ai_custom_key_placeholder">Kosongkan kalau servernya tanpa key</string>
+</resources>

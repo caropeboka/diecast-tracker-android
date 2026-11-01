@@ -23,7 +23,7 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class GarageGeometryTest {
     /** From [eye] through [point]. */

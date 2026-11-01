@@ -1,6 +1,7 @@
 package io.github.caropeboka.diecasttracker.ui.components
 
 import android.os.SystemClock
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,12 +23,15 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.ai.AiEvent
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
-import io.github.caropeboka.diecasttracker.util.INDONESIAN
+import io.github.caropeboka.diecasttracker.util.Formats
+import io.github.caropeboka.diecasttracker.util.formatBytes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,7 +55,7 @@ data class AiStep(
 }
 
 @Immutable
-data class AiProgress(val steps: List<AiStep>, val hint: String) {
+data class AiProgress(val steps: List<AiStep>, @StringRes val hint: Int) {
     val running: AiStep? get() = steps.lastOrNull()?.takeIf { it.state == AiStep.State.Running }
 }
 
@@ -60,7 +64,8 @@ data class AiProgress(val steps: List<AiStep>, val hint: String) {
  * answer doesn't look like a hang. Safe from any thread: the upload is reported from OkHttp's.
  */
 class AiProgressLog(
-    private val hint: String,
+    private val texts: Texts,
+    @StringRes private val hint: Int,
     private val clock: () -> Long = SystemClock::elapsedRealtime,
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) {
@@ -89,22 +94,22 @@ class AiProgressLog(
     fun onEvent(event: AiEvent) {
         when (event) {
             is AiEvent.Provider -> provider = event.name
-            is AiEvent.Resting -> note("${event.name} dilewati dulu: kuotanya habis sampai ${restEnd(event.until, zone)}")
-            is AiEvent.Switching -> step("Pindah ke ${event.name}")
-            is AiEvent.Trimmed -> note("$provider hanya menerima ${event.sent} dari ${event.total} foto")
-            AiEvent.ListingModels -> step("Memeriksa model $provider yang bisa dipakai")
+            is AiEvent.Resting -> note(texts(R.string.ai_resting, event.name, restEnd(texts, event.until, zone)))
+            is AiEvent.Switching -> step(texts(R.string.ai_switching, event.name))
+            is AiEvent.Trimmed -> note(texts(R.string.ai_trimmed, provider, event.sent, event.total))
+            AiEvent.ListingModels -> step(texts(R.string.ai_listing_models, provider))
             is AiEvent.Sending -> step(
-                "Mengirim ke $provider (${formatBytes(event.bytes)})",
-                if (event.fallback == 0) event.model else "${event.model} · model cadangan ${event.fallback}",
+                texts(R.string.ai_sending, provider, formatBytes(event.bytes)),
+                if (event.fallback == 0) event.model else texts(R.string.ai_fallback_model, event.model, event.fallback),
                 fraction = 0f,
             )
             is AiEvent.Uploading -> progress(event.sent.toFloat() / event.total)
-            is AiEvent.Waiting -> edit { steps -> steps.ended() + running("Menunggu jawaban", steps.lastOrNull()?.detail) }
+            is AiEvent.Waiting -> edit { steps -> steps.ended() + running(texts(R.string.ai_waiting), steps.lastOrNull()?.detail) }
             is AiEvent.Missed -> edit { steps ->
-                val text = "$provider ${event.reason}" + if (event.retrying) ", mencoba lagi" else ""
+                val text = texts(if (event.retrying) R.string.ai_missed_retrying else R.string.ai_missed, provider, event.reason)
                 steps.filterNot { it.state == AiStep.State.Running } + AiStep(text, steps.lastOrNull()?.detail, AiStep.State.Missed, clock())
             }
-            AiEvent.Answered -> step("Mengolah jawaban")
+            AiEvent.Answered -> step(texts(R.string.ai_answered))
         }
     }
 
@@ -127,18 +132,16 @@ class AiProgressLog(
 }
 
 private const val DEFAULT_PROVIDER = "Gemini"
-private val CLOCK = DateTimeFormatter.ofPattern("HH.mm")
+private val CLOCK = DateTimeFormatter.ofPattern("HH:mm")
+private val CLOCK_ID = DateTimeFormatter.ofPattern("HH.mm")
 
-/** When a provider's quota is back: "15.00", or "besok 15.00" when it isn't today. */
-internal fun restEnd(until: Long, zone: ZoneId = ZoneId.systemDefault(), now: Long = System.currentTimeMillis()): String {
+/** When a provider's quota is back: "15:00" ("15.00" in Indonesian), or "tomorrow 15:00" when it isn't today. */
+internal fun restEnd(texts: Texts, until: Long, zone: ZoneId = ZoneId.systemDefault(), now: Long = System.currentTimeMillis()): String {
     val time = Instant.ofEpochMilli(until).atZone(zone)
     val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-    return (if (time.toLocalDate().isAfter(today)) "besok " else "") + time.format(CLOCK)
+    val clock = time.format(if (Formats.language == "id") CLOCK_ID else CLOCK)
+    return if (time.toLocalDate().isAfter(today)) texts(R.string.ai_tomorrow_at, clock) else clock
 }
-
-/** "850 KB", "1,2 MB". */
-internal fun formatBytes(bytes: Long): String =
-    if (bytes < 1024 * 1024) "${(bytes + 1023) / 1024} KB" else String.format(INDONESIAN, "%.1f MB", bytes / (1024.0 * 1024.0))
 
 /** Steps shown at once; a run of fallbacks would push the list off a small card. */
 private const val VISIBLE_STEPS = 5
@@ -168,7 +171,7 @@ fun AiProgressView(progress: AiProgress, modifier: Modifier = Modifier, framed: 
         } else {
             LinearProgressIndicator(Modifier.fillMaxWidth(), color = Garage.MeterBar, trackColor = Garage.MeterTrack)
         }
-        Text(progress.hint, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+        Text(stringResource(progress.hint), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
     }
 }
 
@@ -179,15 +182,15 @@ private fun StepRow(step: AiStep, now: Long) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(Modifier.padding(top = 2.dp).size(16.dp), contentAlignment = Alignment.Center) {
             when (step.state) {
-                AiStep.State.Done -> Icon(painterResource(R.drawable.ic_check), contentDescription = "Selesai", tint = Garage.Gain, modifier = Modifier.size(16.dp))
-                AiStep.State.Missed -> Icon(painterResource(R.drawable.ic_warning), contentDescription = "Terkendala", tint = Garage.Brand2, modifier = Modifier.size(16.dp))
+                AiStep.State.Done -> Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.ai_step_done), tint = Garage.Gain, modifier = Modifier.size(16.dp))
+                AiStep.State.Missed -> Icon(painterResource(R.drawable.ic_warning), contentDescription = stringResource(R.string.ai_step_missed), tint = Garage.Brand2, modifier = Modifier.size(16.dp))
                 AiStep.State.Running -> CircularProgressIndicator(Modifier.size(14.dp), color = Garage.Brand, strokeWidth = 2.dp)
             }
         }
         Column(Modifier.weight(1f)) {
             val seconds = ((now - step.startedAt) / 1_000).coerceAtLeast(0)
             Text(
-                if (running && seconds > 0) "${step.text} · $seconds dtk" else step.text,
+                if (running && seconds > 0) stringResource(R.string.ai_step_seconds, step.text, seconds) else step.text,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (step.state == AiStep.State.Done) Garage.MutedForeground else Garage.Foreground,
             )

@@ -1,5 +1,7 @@
 package io.github.caropeboka.diecasttracker.data.ai
 
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -19,13 +21,14 @@ class AiVision(
     private val gemini: GeminiClient,
     private val openAi: OpenAiClient,
     private val rests: ProviderRests,
+    private val texts: Texts,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     val enabled: Flow<Boolean> = setup.map { it.isEnabled }.distinctUntilChanged()
 
     suspend fun isEnabled(): Boolean = setup.first().isEnabled
 
-    /** Asks about some JPEGs, as [GeminiClient.extract]; throws [NOT_SET] as an [AiException] when no provider is set up. */
+    /** Asks about some JPEGs, as [GeminiClient.extract]; throws an [AiException] when no provider is set up. */
     suspend fun extract(
         images: List<ByteArray>,
         system: String,
@@ -34,7 +37,7 @@ class AiVision(
         onEvent: (AiEvent) -> Unit = {},
     ): AiAnswer {
         val chain = setup.first().chain
-        if (chain.isEmpty()) throw AiException(NOT_SET)
+        if (chain.isEmpty()) throw AiException(texts(R.string.ai_err_not_set))
 
         // Resting ones go last rather than not at all: their quota may be back early, and with one provider
         // there is nothing else to try.
@@ -68,15 +71,11 @@ class AiVision(
      */
     private fun failure(misses: List<AiException>): AiException {
         misses.singleOrNull()?.let { return it }
-        val message = "Semua AI yang diatur gagal:\n" + misses.joinToString("\n") { "• ${it.message}" }
+        val message = texts(R.string.ai_err_all_failed) + "\n" + misses.joinToString("\n") { "• ${it.message}" }
         return when {
             misses.all { it is AiOfflineException } -> AiOfflineException(misses.first().message.orEmpty())
             misses.any { it is AiRetryLaterException || it is AiOfflineException } -> AiRetryLaterException(message)
             else -> AiException(message)
         }
-    }
-
-    companion object {
-        const val NOT_SET = "AI belum aktif. Isi API key di Pengaturan AI."
     }
 }

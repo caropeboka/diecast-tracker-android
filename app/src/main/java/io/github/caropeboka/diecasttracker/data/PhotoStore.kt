@@ -9,6 +9,8 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -25,6 +27,7 @@ class PhotoException(message: String) : Exception(message)
  * diecast is saved ([promote]); unsaved ones are pruned after a day. Files are referred to by name only.
  */
 class PhotoStore(private val context: Context, root: File = context.filesDir) {
+    private val texts = Texts(context)
     private val dir = File(root, "photos")
     private val tmpDir = File(root, "photos-tmp")
     private val cameraDir = File(context.cacheDir, "camera")
@@ -170,7 +173,7 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
                 }
             }
         } catch (_: IOException) {
-            throw PhotoException("Format foto tidak didukung. Gunakan JPG, PNG, atau WEBP.")
+            throw PhotoException(texts(R.string.photo_unsupported))
         }
 
         // JPEG has no transparency: put transparent PNGs on white instead of black.

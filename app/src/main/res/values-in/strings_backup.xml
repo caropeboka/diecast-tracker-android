@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/backup.json; edit all three languages together. -->
+<resources>
+    <string name="backup_not_a_backup">Ini bukan file backup Diecast Tracker.</string>
+    <string name="backup_item_invalid">Item %1$d (%2$s): %3$s</string>
+    <string name="valid_invalid">%1$s tidak valid.</string>
+    <string name="valid_required">%1$s wajib diisi.</string>
+    <string name="valid_max_chars">%1$s maksimal %2$d karakter.</string>
+    <string name="valid_integer">%1$s harus bilangan bulat.</string>
+    <string name="valid_between">%1$s harus antara %2$s dan %3$s.</string>
+    <string name="valid_number">%1$s harus berupa angka.</string>
+    <string name="valid_date">%1$s bukan tanggal yang valid.</string>
+    <string name="valid_not_future">%1$s tidak boleh setelah hari ini.</string>
+    <string name="valid_unknown">%1$s tidak dikenal: \"%2$s\".</string>
+    <string name="valid_boolean">%1$s harus true atau false.</string>
+    <string name="valid_incomplete">%1$s tidak lengkap.</string>
+    <string name="valid_out_of_range">%1$s di luar jangkauan.</string>
+    <string name="valid_tags_list">Tag harus berupa daftar.</string>
+    <string name="valid_tags_max">Tag maksimal %1$d.</string>
+    <string name="valid_tags_text">Tag harus berupa teks.</string>
+    <string name="valid_tag_length">Tag maksimal %1$d karakter.</string>
+    <string name="import_unreadable">File tidak bisa dibaca: %1$s</string>
+    <string name="import_failed">Impor gagal, koleksi tidak diubah. (%1$s)</string>
+    <string name="import_cant_open">File tidak bisa dibuka.</string>
+    <string name="import_zip_cant_open">File ZIP tidak bisa dibuka.</string>
+    <string name="import_nothing">Tidak ada diecast yang bisa dipulihkan dari backup ini. Koleksi tidak diubah.</string>
+    <string name="import_dex_broken">Data Dex di backup ini rusak, jadi Dex tidak ikut dipulihkan.</string>
+    <string name="import_decor_broken">Data hiasan garasi di backup ini rusak, jadi tidak ikut dipulihkan.</string>
+    <string name="export_target_cant_open">file tujuan tidak bisa dibuka</string>
+    <string name="export_cant_write">File tidak bisa ditulis: %1$s</string>
+    <string name="export_failed">Gagal membuat file. (%1$s)</string>
+</resources>

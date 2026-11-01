@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/data.json; edit all three languages together. -->
+<resources>
+    <string name="explore_diecasts">Diecasts</string>
+    <string name="data_counts">Your collection: %1$s, %2$s.</string>
+    <plurals name="data_diecasts">
+        <item quantity="one">%d diecast</item>
+        <item quantity="other">%d diecasts</item>
+    </plurals>
+    <plurals name="data_photos">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
+    <string name="data_backup">Backup</string>
+    <string name="data_backup_text">One .zip file with every diecast, photo, sighting and the Dex. Keep it off the phone (Google Drive, a laptop) so the collection is safe if the phone is lost or the app is removed. The web app can restore it too.</string>
+    <string name="data_last_backup">Last backup: %1$s.</string>
+    <string name="data_never_backed_up">Never backed up from this phone.</string>
+    <string name="data_export_excel">Export to Excel</string>
+    <string name="data_export_excel_text">The collection as one table (.xlsx), with the same columns as the web\'s export. Photos aren\'t included.</string>
+    <string name="data_restore">Restore from a backup</string>
+    <string name="data_restore_text">Pick a .zip backup from this phone, or from the web app (Settings → Backup &amp; Data → Download backup). The data and all its photos come along; a phone backup brings its Dex too.</string>
+    <string name="data_mode_merge">Add to the current collection</string>
+    <string name="data_mode_replace">Replace the whole current collection with the backup</string>
+    <plurals name="data_replace_confirm">
+        <item quantity="one">I understand the %d diecast here now (with its photos) will be deleted and replaced by the backup. A phone backup also replaces the own dexes.</item>
+        <item quantity="other">I understand the %d diecasts here now (with their photos) will be deleted and replaced by the backup. A phone backup also replaces the own dexes.</item>
+    </plurals>
+    <string name="data_pick_backup">Pick a backup file (.zip)</string>
+    <string name="data_share">Share</string>
+    <string name="data_keep_open">You can switch screens; don\'t close the app until it\'s done.</string>
+    <string name="data_making_excel">Making the Excel file…</string>
+    <string name="data_preparing_backup">Preparing the backup…</string>
+    <string name="data_copying_photos">Copying photo %1$d of %2$d…</string>
+    <plurals name="data_sighting_photos">
+        <item quantity="one">%d sighting photo</item>
+        <item quantity="other">%d sighting photos</item>
+    </plurals>
+    <plurals name="data_dex_lists">
+        <item quantity="one">%d Dex list</item>
+        <item quantity="other">%d Dex lists</item>
+    </plurals>
+    <string name="data_backup_ready">The backup is ready to share.</string>
+    <string name="data_backup_saved">The backup is saved.</string>
+    <string name="data_excel_ready">The Excel file is ready to share.</string>
+    <string name="data_excel_saved">The Excel file is saved.</string>
+    <string name="data_contents">It holds %1$s.</string>
+    <string name="data_reading_backup">Reading the backup file…</string>
+    <string name="data_restoring">Restoring diecast %1$d of %2$d…</string>
+    <plurals name="data_restored">
+        <item quantity="one">%d diecast restored</item>
+        <item quantity="other">%d diecasts restored</item>
+    </plurals>
+    <plurals name="data_added">
+        <item quantity="one">%d diecast added</item>
+        <item quantity="other">%d diecasts added</item>
+    </plurals>
+    <plurals name="data_skipped">
+        <item quantity="one">, %d skipped:</item>
+        <item quantity="other">, %d skipped:</item>
+    </plurals>
+    <string name="data_backup_made">Backup made on %1$s.</string>
+    <plurals name="data_dexes_restored">
+        <item quantity="one">Dex: %d list restored too.</item>
+        <item quantity="other">Dex: %d lists restored too.</item>
+    </plurals>
+</resources>

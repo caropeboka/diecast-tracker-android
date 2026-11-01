@@ -1,12 +1,21 @@
 package io.github.caropeboka.diecasttracker.data.price
 
+import android.app.Application
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.caropeboka.diecasttracker.data.testTexts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 
 /** Web: `tests/Unit/PriceAnalyzerTest.php`. */
+@RunWith(AndroidJUnit4::class)
+@Config(application = Application::class, qualifiers = "in")
 class PriceAnalyzerTest {
+    private fun analyze(listings: List<PriceListing>) = PriceAnalyzer.analyze(listings, testTexts())
+
     private var n = 0
 
     private fun listing(price: Long, match: ListingMatch = ListingMatch.Match, sold: Int? = null): PriceListing {
@@ -16,7 +25,7 @@ class PriceAnalyzerTest {
 
     @Test
     fun `median counts only matching listings`() {
-        val result = PriceAnalyzer.analyze(
+        val result = analyze(
             listOf(
                 listing(30_000),
                 listing(40_000),
@@ -38,7 +47,7 @@ class PriceAnalyzerTest {
 
     @Test
     fun `even count median and suggested rounding`() {
-        val stats = PriceAnalyzer.analyze(listOf(listing(35_000), listing(36_500), listing(38_000), listing(40_000))).stats!!
+        val stats = analyze(listOf(listing(35_000), listing(36_500), listing(38_000), listing(40_000))).stats!!
 
         assertEquals(37_250L, stats.median)
         assertEquals(37_500L, stats.suggested)
@@ -46,7 +55,7 @@ class PriceAnalyzerTest {
 
     @Test
     fun `extreme prices are marked as outliers`() {
-        val result = PriceAnalyzer.analyze(
+        val result = analyze(
             listOf(listing(40_000), listing(42_000), listing(45_000), listing(47_000), listing(50_000), listing(450_000)),
         )
 
@@ -61,7 +70,7 @@ class PriceAnalyzerTest {
     fun `duplicates from overlapping screenshots count once`() {
         val same = PriceListing(title = "Hot Wheels  Dodge Dart HW Flames", price = 40_000, shop = "Garasi Kecil", match = ListingMatch.Match)
 
-        val result = PriceAnalyzer.analyze(listOf(same, same.copy(title = "hot wheels dodge dart hw flames"), listing(45_000)))
+        val result = analyze(listOf(same, same.copy(title = "hot wheels dodge dart hw flames"), listing(45_000)))
 
         assertEquals(2, result.listings.size)
     }
@@ -70,12 +79,12 @@ class PriceAnalyzerTest {
     fun `many consistent sold listings give high accuracy`() {
         val listings = listOf(40_000L, 41_000L, 42_000L, 42_500L, 43_000L, 44_000L, 45_000L, 46_000L).map { listing(it, sold = 25) }
 
-        assertEquals(PriceAccuracy.High, PriceAnalyzer.analyze(listings).accuracy)
+        assertEquals(PriceAccuracy.High, analyze(listings).accuracy)
     }
 
     @Test
     fun `few scattered listings give low accuracy with tips`() {
-        val result = PriceAnalyzer.analyze(listOf(listing(20_000), listing(90_000)))
+        val result = analyze(listOf(listing(20_000), listing(90_000)))
 
         assertEquals(PriceAccuracy.Low, result.accuracy)
         assertTrue(result.tips.isNotEmpty())
@@ -84,9 +93,9 @@ class PriceAnalyzerTest {
 
     @Test
     fun `single or no match is insufficient`() {
-        assertEquals(PriceAccuracy.Insufficient, PriceAnalyzer.analyze(listOf(listing(40_000))).accuracy)
+        assertEquals(PriceAccuracy.Insufficient, analyze(listOf(listing(40_000))).accuracy)
 
-        val none = PriceAnalyzer.analyze(listOf(listing(40_000, ListingMatch.DifferentItem)))
+        val none = analyze(listOf(listing(40_000, ListingMatch.DifferentItem)))
         assertEquals(PriceAccuracy.Insufficient, none.accuracy)
         assertNull(none.stats)
         assertEquals(listOf("Tidak ada listing yang cocok dengan diecast ini."), none.reasons)

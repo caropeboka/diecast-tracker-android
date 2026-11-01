@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.MAX_MONEY
 import io.github.caropeboka.diecasttracker.data.PhotoException
@@ -22,6 +23,7 @@ import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.db.ScanItemEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.StoreCheck
@@ -96,6 +98,7 @@ class CheckViewModel(
     private val photos: PhotoStore,
     private val prefs: UserPrefs,
     private val messages: Messages,
+    private val texts: Texts,
     scanner: DiecastScanner,
 ) : ViewModel() {
     private val _results = MutableStateFlow(
@@ -124,7 +127,7 @@ class CheckViewModel(
     var checking by mutableStateOf(false)
         private set
 
-    private val log = AiProgressLog("Biasanya 10–30 detik.")
+    private val log = AiProgressLog(texts, R.string.ai_hint_quick)
 
     /** What the running check (or retry) is doing, step by step. */
     val progress: StateFlow<AiProgress?> = log.state
@@ -188,19 +191,19 @@ class CheckViewModel(
             return
         }
         checking = true
-        log.start("Menyiapkan foto")
+        log.start(texts(R.string.studio_preparing))
         viewModelScope.launch {
             try {
                 val photo = withContext(Dispatchers.IO) { photos.addFromCamera(file) }
                 val item = store.check(photo, log::onEvent)
-                log.step("Mencari di koleksimu")
+                log.step(texts(R.string.check_searching))
                 add(result(item))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: PhotoException) {
                 messages.show(e.message.orEmpty())
             } catch (e: Exception) {
-                messages.show("Foto gagal diproses (${e.message ?: e::class.simpleName}).")
+                messages.show(texts(R.string.edit_photo_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 checking = false
                 log.stop()
@@ -211,14 +214,14 @@ class CheckViewModel(
     fun cameraUnavailable() {
         saved.get<String>(CAMERA)?.let { File(it).delete() }
         saved[CAMERA] = null
-        messages.show("Tidak ada aplikasi kamera di perangkat ini.")
+        messages.show(texts(R.string.edit_no_camera))
     }
 
     /** Typed instead of photographed: no AI needed, works without a connection. */
     fun search() {
         val text = query.trim()
         if (text.length < 2) {
-            messages.show("Ketik minimal 2 huruf.")
+            messages.show(texts(R.string.check_type_more))
             return
         }
         viewModelScope.launch {
@@ -229,16 +232,16 @@ class CheckViewModel(
     }
 
     fun retry(result: CheckResult) = act(result.key) {
-        log.start("Menyiapkan foto")
+        log.start(texts(R.string.studio_preparing))
         try {
             val item = store.retry(result.checkId, log::onEvent)
             if (item == null) {
-                messages.show("Foto ini sudah tidak ada.")
+                messages.show(texts(R.string.check_photo_gone))
             } else {
-                log.step("Mencari di koleksimu")
+                log.step(texts(R.string.check_searching))
                 val read = result(item)
                 change(result.key) { it.copy(fields = read.fields, failed = read.failed, error = read.error, matchIds = read.matchIds) }
-                if (read.failed) messages.show(read.error ?: "Masih belum terbaca.")
+                if (read.failed) messages.show(read.error ?: texts(R.string.check_still_unread))
             }
         } finally {
             log.stop()
@@ -262,12 +265,12 @@ class CheckViewModel(
 
     /** Bought one more of the same. */
     fun addOne(result: CheckResult, match: DiecastListItem) = act(result.key) {
-        repository.addOne(match.id)?.let { messages.show("${it.name}: sekarang punya ${it.quantity}×") }
+        repository.addOne(match.id)?.let { messages.show(texts(R.string.check_now_own, it.name, it.quantity)) }
     }
 
     /** Got a wishlist or spotted one: in the garage from today, bought here. */
     fun acquire(result: CheckResult, diecastId: Long) = act(result.key) {
-        repository.acquire(diecastId, place, LocalDate.now())?.let { messages.show("${it.name} dipindah ke koleksi 🎉") }
+        repository.acquire(diecastId, place, LocalDate.now())?.let { messages.show(texts(R.string.check_moved_to_collection, it.name)) }
     }
 
     /** "Ditemui" here: on [match], or as a new "Ditemui" diecast. */
@@ -282,9 +285,9 @@ class CheckViewModel(
             } else {
                 store.spotNew(result.fields ?: ScanFields(name = result.query), result.photo != null, place, price, today, checkId, result.photo)
             }
-            val here = place.name.trim().ifEmpty { "tempat ini" }
+            val here = place.name.trim()
             change(result.key) { it.copy(loggedAt = here, createdId = createdId) }
-            messages.show("${match?.name ?: result.name} dicatat sebagai temuan.")
+            messages.show(texts(R.string.edit_saved_spotted, match?.name ?: result.name.orEmpty()))
         } catch (e: StoreCheckException) {
             messages.show(e.message.orEmpty())
         }
@@ -300,7 +303,7 @@ class CheckViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.show("Gagal (${e.message ?: e::class.simpleName}).")
+                messages.show(texts(R.string.failed_because, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 busy = busy - key
             }
@@ -335,7 +338,7 @@ class CheckViewModel(
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 with(app.container) {
-                    CheckViewModel(createSavedStateHandle(), storeCheck, repository, photos, prefs, messages, scanner)
+                    CheckViewModel(createSavedStateHandle(), storeCheck, repository, photos, prefs, messages, texts, scanner)
                 }
             }
         }

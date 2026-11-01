@@ -28,12 +28,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.dashboard.YearColumn
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
@@ -106,11 +109,12 @@ internal fun ColumnChart(columns: List<YearColumn>) {
         horizontalArrangement = Arrangement.spacedBy(if (columns.size > 16) 2.dp else 4.dp),
     ) {
         columns.forEachIndexed { i, column ->
+            val description = pluralStringResource(R.plurals.dashboard_year_column, column.total, column.longLabel, column.total)
             Column(
                 Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .semantics(mergeDescendants = true) { contentDescription = "${column.longLabel}: ${column.total} diecast" },
+                    .semantics(mergeDescendants = true) { contentDescription = description },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
@@ -132,7 +136,7 @@ internal fun ColumnChart(columns: List<YearColumn>) {
                     }
                 }
                 Text(
-                    if (i % labelEvery == 0) column.label else "",
+                    if (i % labelEvery == 0) column.label() else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = Garage.MutedForeground,
                     maxLines = 1,
@@ -223,12 +227,18 @@ internal fun MiniList(items: List<DiecastListItem>, place: String, opener: Opene
     }
 }
 
+/** "'24", or "1995+" for five years. */
+@Composable
+private fun YearColumn.label() = if (span == 1) "'${start.toString().takeLast(2)}" else stringResource(R.string.dashboard_years_from, start)
+
+private val YearColumn.longLabel get() = if (span == 1) start.toString() else "$start–${start + span - 1}"
+
 internal fun subtitle(item: DiecastListItem): String? = listOfNotNull(item.brand, item.series).joinToString(" · ").ifEmpty { null }
 
 /** "Semua →" at a panel's heading. */
 @Composable
 internal fun SeeAll(onClick: () -> Unit) {
     TextButton(onClick = onClick, contentPadding = PaddingValues(horizontal = 8.dp), modifier = Modifier.height(32.dp)) {
-        Text("Semua →", style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.see_all), style = MaterialTheme.typography.bodySmall)
     }
 }

@@ -15,6 +15,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.CollectionMatcher
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
@@ -24,6 +25,7 @@ import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.db.ScanItemEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
@@ -68,6 +70,7 @@ class BulkScanViewModel(
     private val matcher: CollectionMatcher,
     private val prefs: UserPrefs,
     private val messages: Messages,
+    private val texts: Texts,
     scanner: DiecastScanner,
 ) : ViewModel() {
     /** Null while loading. */
@@ -169,7 +172,7 @@ class BulkScanViewModel(
     fun cameraUnavailable() {
         saved.get<String>(CAMERA)?.let { File(it).delete() }
         saved[CAMERA] = null
-        messages.show("Tidak ada aplikasi kamera di perangkat ini.")
+        messages.show(texts(R.string.edit_no_camera))
     }
 
     private fun addPhotos(loads: List<() -> String>) {
@@ -184,7 +187,7 @@ class BulkScanViewModel(
                 } catch (e: PhotoException) {
                     messages.show(e.message.orEmpty())
                 } catch (e: Exception) {
-                    messages.show("Foto gagal diproses (${e.message ?: e::class.simpleName}).")
+                    messages.show(texts(R.string.edit_photo_failed, e.message ?: e::class.simpleName.orEmpty()))
                 } finally {
                     adding--
                 }
@@ -221,7 +224,7 @@ class BulkScanViewModel(
     fun save(row: QueueRow) {
         if (row.item.id in busy) return
         viewModelScope.launch {
-            if (saveOne(row)) messages.show("${nameOf(row)} disimpan.")
+            if (saveOne(row)) messages.show(texts(R.string.saved_named, nameOf(row)))
         }
     }
 
@@ -237,11 +240,11 @@ class BulkScanViewModel(
             } finally {
                 savingAll = false
             }
-            messages.show("$count diecast disimpan ke koleksi.")
+            messages.show(texts.plural(R.plurals.bulk_saved_many, count, count))
         }
     }
 
-    private fun nameOf(row: QueueRow) = edits[row.item.id]?.name ?: row.item.fields?.name ?: "Foto"
+    private fun nameOf(row: QueueRow) = edits[row.item.id]?.name ?: row.item.fields?.name ?: texts(R.string.photo)
 
     private suspend fun saveOne(row: QueueRow): Boolean {
         val id = row.item.id
@@ -249,9 +252,9 @@ class BulkScanViewModel(
         try {
             val today = LocalDate.now()
             val form = queuedForm(row.item, edits[id] ?: QuickEdits(), defaults, today)
-            val problem = form.validate(today).values.firstOrNull()
+            val problem = form.validate(today, texts).values.firstOrNull()
             if (problem != null) {
-                messages.show("${nameOf(row)}: $problem")
+                messages.show(texts(R.string.named_problem, nameOf(row), problem))
                 return false
             }
             val sighting = form.firstSighting(today).takeIf { form.status == DiecastStatus.Spotted }
@@ -262,7 +265,7 @@ class BulkScanViewModel(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            messages.show("${nameOf(row)}: gagal menyimpan (${e.message ?: e::class.simpleName}).")
+            messages.show(texts(R.string.bulk_save_failed, nameOf(row), e.message ?: e::class.simpleName.orEmpty()))
             return false
         } finally {
             busy = busy - id
@@ -278,7 +281,7 @@ class BulkScanViewModel(
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 with(app.container) {
-                    BulkScanViewModel(app, createSavedStateHandle(), scanQueue, repository, photos, matcher, prefs, messages, scanner)
+                    BulkScanViewModel(app, createSavedStateHandle(), scanQueue, repository, photos, matcher, prefs, messages, texts, scanner)
                 }
             }
         }

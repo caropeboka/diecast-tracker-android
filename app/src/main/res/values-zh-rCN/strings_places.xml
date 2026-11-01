@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/places.json; edit all three languages together. -->
+<resources>
+    <string name="place_permission_denied">位置权限被拒绝。请拖动地图或搜索地点。</string>
+    <string name="place_pick_title">选择位置</string>
+    <string name="place_pick_hint">拖动地图直到图钉对准地点，或搜索地点名称。</string>
+    <string name="place_name">地点名称</string>
+    <string name="place_name_placeholder">店铺 / 地点名称</string>
+    <string name="place_drag_to">拖动地图到该位置</string>
+    <string name="place_finding_name">正在查找地点名称…</string>
+    <string name="place_use_this">使用此位置</string>
+    <string name="place_search_placeholder">搜索地点，例如 Toys Kingdom GI</string>
+    <string name="place_search">搜索</string>
+    <string name="place_not_found">未找到。换个名称试试，或拖动地图到该位置。</string>
+    <string name="place_visited">你去过这里</string>
+    <string name="place_my_location">我的位置</string>
+    <string name="place_finding_name_here">正在查找此处的地点名称…</string>
+    <string name="place_no_name_here">此处未找到地点名称——请自行输入。</string>
+    <string name="place_at_this_spot">此处：</string>
+    <string name="place_use_name">使用此名称</string>
+    <string name="place_from_history">来自你的记录</string>
+    <string name="place_from_history_distance">来自你的记录（距图钉 %1$d 米）</string>
+    <string name="place_from_osm">名称来自 OpenStreetMap——不准确可修改</string>
+    <string name="place_pick_on_map">在地图上选点</string>
+    <string name="place_change_point">修改位置</string>
+    <string name="place_remove_point">删除位置</string>
+</resources>

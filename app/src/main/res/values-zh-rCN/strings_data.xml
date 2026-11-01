@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/data.json; edit all three languages together. -->
+<resources>
+    <string name="explore_diecasts">合金车</string>
+    <string name="data_counts">你的收藏：%1$s，%2$s。</string>
+    <plurals name="data_diecasts">
+        <item quantity="other">%d 辆合金车</item>
+    </plurals>
+    <plurals name="data_photos">
+        <item quantity="other">%d 张照片</item>
+    </plurals>
+    <string name="data_backup">备份</string>
+    <string name="data_backup_text">一个 .zip 文件，包含所有合金车、照片、发现记录和图鉴。请存放在手机以外（Google Drive、电脑），以防手机丢失或应用被删除时收藏丢失。网页版也可以恢复它。</string>
+    <string name="data_last_backup">上次备份：%1$s。</string>
+    <string name="data_never_backed_up">从未在这台手机上备份过。</string>
+    <string name="data_export_excel">导出 Excel</string>
+    <string name="data_export_excel_text">收藏清单为一张表格（.xlsx），列与网页版导出相同。不含照片。</string>
+    <string name="data_restore">从备份恢复</string>
+    <string name="data_restore_text">选择本手机或网页版的 .zip 备份（Settings → Backup &amp; Data → Download backup）。数据和所有照片都会恢复；手机备份还会带上图鉴。</string>
+    <string name="data_mode_merge">添加到当前收藏</string>
+    <string name="data_mode_replace">用备份替换当前全部收藏</string>
+    <plurals name="data_replace_confirm">
+        <item quantity="other">我了解当前的 %d 辆合金车（连同照片）将被删除并由备份替换。手机备份还会替换自建图鉴。</item>
+    </plurals>
+    <string name="data_pick_backup">选择备份文件（.zip）</string>
+    <string name="data_share">分享</string>
+    <string name="data_keep_open">可以切换页面；完成前请不要关闭应用。</string>
+    <string name="data_making_excel">正在生成 Excel 文件…</string>
+    <string name="data_preparing_backup">正在准备备份…</string>
+    <string name="data_copying_photos">正在复制第 %1$d/%2$d 张照片…</string>
+    <plurals name="data_sighting_photos">
+        <item quantity="other">%d 张发现照片</item>
+    </plurals>
+    <plurals name="data_dex_lists">
+        <item quantity="other">%d 个图鉴清单</item>
+    </plurals>
+    <string name="data_backup_ready">备份已可分享。</string>
+    <string name="data_backup_saved">备份已保存。</string>
+    <string name="data_excel_ready">Excel 文件已可分享。</string>
+    <string name="data_excel_saved">Excel 文件已保存。</string>
+    <string name="data_contents">包含 %1$s。</string>
+    <string name="data_reading_backup">正在读取备份文件…</string>
+    <string name="data_restoring">正在恢复第 %1$d/%2$d 辆合金车…</string>
+    <plurals name="data_restored">
+        <item quantity="other">已恢复 %d 辆合金车</item>
+    </plurals>
+    <plurals name="data_added">
+        <item quantity="other">已添加 %d 辆合金车</item>
+    </plurals>
+    <plurals name="data_skipped">
+        <item quantity="other">，跳过 %d 辆：</item>
+    </plurals>
+    <string name="data_backup_made">备份创建于 %1$s。</string>
+    <plurals name="data_dexes_restored">
+        <item quantity="other">图鉴：同时恢复了 %d 个清单。</item>
+    </plurals>
+</resources>

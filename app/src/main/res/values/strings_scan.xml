@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/scan.json; edit all three languages together. -->
+<resources>
+    <string name="confidence_low_short">Not sure</string>
+    <string name="bulk_needs_ai">The AI scan isn\'t on yet. Photos still join the queue and are read once an API key is added.</string>
+    <string name="bulk_intro">One photo = one diecast. Photograph the front of the card in bright light. The camera opens again after each photo until you press Back.</string>
+    <string name="camera">Camera</string>
+    <string name="bulk_pick_many">Pick many photos</string>
+    <plurals name="bulk_adding">
+        <item quantity="one">Preparing %d photo…</item>
+        <item quantity="other">Preparing %d photos…</item>
+    </plurals>
+    <string name="bulk_counts">%1$d waiting for the AI · %2$d ready to check · %3$d failed</string>
+    <string name="bulk_paused">Paused. The photos wait until you resume.</string>
+    <string name="bulk_reading">The AI is reading… (it keeps going when the app is closed)</string>
+    <string name="bulk_waiting">The AI is busy, out of quota, or there\'s no connection. %1$s</string>
+    <string name="bulk_queued">Waiting its turn… (needs an internet connection)</string>
+    <string name="resume">Resume</string>
+    <string name="pause">Pause</string>
+    <string name="bulk_save_safe">Save every confident one (%1$d)</string>
+    <string name="bulk_save_safe_hint">Ones the AI isn\'t sure about or that look like your collection are skipped — check them one by one.</string>
+    <plurals name="bulk_resume_in">
+        <item quantity="one">Resumes by itself in %d second.</item>
+        <item quantity="other">Resumes by itself in %d seconds.</item>
+    </plurals>
+    <string name="bulk_resume_soon">Resumes in a moment.</string>
+    <string name="bulk_shared">The same for all</string>
+    <string name="bulk_save_as">Save as</string>
+    <string name="bulk_date_spotted">Date spotted</string>
+    <string name="bulk_queue_photo">Queued photo</string>
+    <string name="bulk_item_reading">The AI is reading…</string>
+    <string name="bulk_item_waiting">Waiting its turn…</string>
+    <string name="bulk_unreadable">The AI couldn\'t read this photo.</string>
+    <string name="bulk_similar">Like your collection</string>
+    <string name="bulk_discard_photo">Discard this photo</string>
+    <string name="bulk_number">Coll. no.</string>
+    <string name="bulk_full">Full form</string>
+    <plurals name="bulk_banner">
+        <item quantity="one">%d photo in the bulk scan queue isn\'t saved yet.</item>
+        <item quantity="other">%d photos in the bulk scan queue aren\'t saved yet.</item>
+    </plurals>
+    <string name="continue_arrow">Continue →</string>
+    <string name="saved_named">%1$s saved.</string>
+    <plurals name="bulk_saved_many">
+        <item quantity="one">%d diecast saved to the collection.</item>
+        <item quantity="other">%d diecasts saved to the collection.</item>
+    </plurals>
+    <string name="named_problem">%1$s: %2$s</string>
+    <string name="bulk_save_failed">%1$s: couldn\'t save (%2$s).</string>
+</resources>

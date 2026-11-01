@@ -1,10 +1,13 @@
 package io.github.caropeboka.diecasttracker.data.ai
 
+import androidx.annotation.StringRes
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.MIN_YEAR
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.util.string
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -23,10 +26,11 @@ import java.time.LocalDate
 /** Photos sent per scan; front + back of the card + the loose car is plenty. */
 const val MAX_SCAN_PHOTOS = 4
 
-enum class Confidence(val key: String, val label: String) {
-    High("high", "Yakin"),
-    Medium("medium", "Cukup yakin"),
-    Low("low", "Kurang yakin — cek lagi"),
+/** [short]: for a pill, without the advice. */
+enum class Confidence(val key: String, @StringRes val label: Int, @StringRes val short: Int = label) {
+    High("high", R.string.confidence_high),
+    Medium("medium", R.string.confidence_medium),
+    Low("low", R.string.confidence_low, R.string.confidence_low_short),
 }
 
 /**
@@ -80,6 +84,7 @@ data class ScanFields(
 class DiecastScanner(
     private val vision: AiVision,
     private val photos: PhotoStore,
+    private val texts: Texts,
     private val currentYear: () -> Int = { LocalDate.now().year },
 ) {
     val enabled: Flow<Boolean> = vision.enabled
@@ -88,12 +93,13 @@ class DiecastScanner(
 
     /** Reads the first [MAX_SCAN_PHOTOS] photos (file names in the photo store) as one diecast. */
     suspend fun scan(photoNames: List<String>, onEvent: (AiEvent) -> Unit = {}): ScanFields {
-        if (!vision.isEnabled()) throw AiException("Scan AI belum aktif. Isi API key di Pengaturan AI.")
+        if (!vision.isEnabled()) throw AiException(texts(R.string.ai_err_scan_not_set))
 
         val images = withContext(Dispatchers.IO) {
             photoNames.take(MAX_SCAN_PHOTOS).map { photos.file(it).readBytes() }
         }
-        val answer = vision.extract(images, SYSTEM_PROMPT, instruction(images.size), SCHEMA, onEvent)
+        val system = SYSTEM_PROMPT.replace("{language}", texts(R.string.ai_answer_language))
+        val answer = vision.extract(images, system, instruction(images.size), SCHEMA, onEvent)
 
         return ScanFields.from(answer.data, currentYear()).copy(readBy = answer.by.takeIf { answer.provider != AiProvider.Gemini })
     }
@@ -134,7 +140,7 @@ class DiecastScanner(
             - packaging: "carded" (blister card), "boxed" (window box / box), or "loose".
             - condition: judge the packaging and car: "mint" (perfect), "near_mint" (tiny flaws), "good" (visible wear,
               soft corners, small blister dents), "fair" (creases, cracked blister), "damaged". null if you can't tell.
-            - notes: one or two short sentences in Indonesian about notable details (variations, tampo, wheel type, card
+            - notes: one or two short sentences in {language} about notable details (variations, tampo, wheel type, card
               damage). null if nothing notable.
             - confidence: your overall confidence in the identification.
         """.trimIndent()

@@ -26,7 +26,7 @@ sealed interface AiEvent {
     /** Everything is sent; [model] is reading. */
     data class Waiting(val model: String) : AiEvent
 
-    /** [model] didn't answer ([reason], in Indonesian); [retrying]: it gets one more go, otherwise the next model may. */
+    /** [model] didn't answer ([reason], in the app's language); [retrying]: it gets one more go, otherwise the next model may. */
     data class Missed(val model: String, val reason: String, val retrying: Boolean) : AiEvent
 
     /** The answer is in and being read. */

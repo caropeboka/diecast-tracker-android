@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.ui.edit
 
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DEFAULT_SCALE
@@ -15,6 +16,7 @@ import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexPrefill
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
@@ -126,16 +128,16 @@ data class DiecastForm(
         catalogItemId = itemId,
     )
 
-    fun validate(today: LocalDate): Map<Field, String> = buildMap {
+    fun validate(today: LocalDate, texts: Texts): Map<Field, String> = buildMap {
         fun length(field: Field, value: String, max: Int) {
-            if (value.trim().length > max) put(field, "Maksimal $max karakter.")
+            if (value.trim().length > max) put(field, texts(R.string.valid_max_length, max))
         }
 
         fun money(field: Field, value: String) {
-            if ((value.toLongOrNull() ?: 0) > MAX_MONEY) put(field, "Angkanya terlalu besar.")
+            if ((value.toLongOrNull() ?: 0) > MAX_MONEY) put(field, texts(R.string.number_too_big))
         }
 
-        if (name.isBlank()) put(Field.Name, "Nama model wajib diisi.")
+        if (name.isBlank()) put(Field.Name, texts(R.string.dex_model_name_required))
         length(Field.Name, name, 255)
         length(Field.Brand, brand, 100)
         length(Field.Make, make, 100)
@@ -151,13 +153,13 @@ data class DiecastForm(
         if (year.isNotBlank()) {
             val value = year.trim().toIntOrNull()
             if (value == null || value < MIN_YEAR || value > today.year + 1) {
-                put(Field.Year, "Tahun antara $MIN_YEAR dan ${today.year + 1}.")
+                put(Field.Year, texts(R.string.dex_year_between, MIN_YEAR, today.year + 1))
             }
         }
 
         val count = quantity.trim().toIntOrNull()
         if (status != DiecastStatus.Spotted && (count == null || count !in 1..9999)) {
-            put(Field.Quantity, "Jumlah 1 sampai 9999.")
+            put(Field.Quantity, texts(R.string.edit_quantity_range, 1, 9999))
         }
 
         money(Field.PurchasePrice, purchasePrice)
@@ -165,11 +167,11 @@ data class DiecastForm(
         money(Field.TargetPrice, targetPrice)
         money(Field.SightingPrice, sightingPrice)
 
-        if (tags.size > MAX_TAGS) put(Field.Tags, "Maksimal $MAX_TAGS tag.")
-        if (photos.size > MAX_PHOTOS) put(Field.Photos, "Maksimal $MAX_PHOTOS foto.")
+        if (tags.size > MAX_TAGS) put(Field.Tags, texts(R.string.valid_tags_max, MAX_TAGS))
+        if (photos.size > MAX_PHOTOS) put(Field.Photos, texts(R.string.edit_max_photos, MAX_PHOTOS))
 
         sightingDate.toLocalDateOrNull()?.let {
-            if (it > today) put(Field.SightingDate, "Tanggal tidak boleh setelah hari ini.")
+            if (it > today) put(Field.SightingDate, texts(R.string.date_not_future))
         }
     }
 

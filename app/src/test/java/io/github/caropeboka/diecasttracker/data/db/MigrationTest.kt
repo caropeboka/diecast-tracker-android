@@ -25,7 +25,7 @@ import java.io.File
 
 /** Every exported schema version must open, migrated, without losing the collection. */
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 class MigrationTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val name = "migration-test.db"

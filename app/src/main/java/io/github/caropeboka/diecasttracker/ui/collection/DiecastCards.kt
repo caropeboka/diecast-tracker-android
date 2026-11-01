@@ -24,10 +24,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
@@ -35,19 +37,21 @@ import io.github.caropeboka.diecasttracker.ui.components.QuantityBadge
 import io.github.caropeboka.diecasttracker.ui.components.RarityBadge
 import io.github.caropeboka.diecasttracker.ui.components.StatusBadge
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
-import io.github.caropeboka.diecasttracker.util.formatRupiahCompact
+import io.github.caropeboka.diecasttracker.util.formatMoneyCompact
 
 /** Price line of a card: lowest asking price when spotted, target when wished for, else market value. */
 private data class PriceLabel(val text: String, val emphasized: Boolean)
 
+@Composable
 private fun DiecastListItem.priceLabel(): PriceLabel? = when (status) {
-    DiecastStatus.Spotted -> sightingsMinPrice?.let { PriceLabel("mulai ${formatRupiahCompact(it)}", true) }
-    DiecastStatus.Wishlist -> targetPrice?.let { PriceLabel("≤ ${formatRupiahCompact(it)}", false) }
-    else -> marketValue?.let { PriceLabel(formatRupiahCompact(it), true) }
+    DiecastStatus.Spotted -> sightingsMinPrice?.let { PriceLabel(stringResource(R.string.card_price_from, formatMoneyCompact(it)), true) }
+    DiecastStatus.Wishlist -> targetPrice?.let { PriceLabel("≤ ${formatMoneyCompact(it)}", false) }
+    else -> marketValue?.let { PriceLabel(formatMoneyCompact(it), true) }
 }
 
+@Composable
 private fun DiecastListItem.detailLine(): String =
-    if (status == DiecastStatus.Spotted && sightingsCount > 0) "Ditemui $sightingsCount×" else series ?: color ?: "—"
+    if (status == DiecastStatus.Spotted && sightingsCount > 0) stringResource(R.string.card_spotted_times, sightingsCount) else series ?: color ?: "—"
 
 private val DiecastListItem.subtitle get() = listOfNotNull(brand, year?.toString()).joinToString(" · ")
 
@@ -172,7 +176,7 @@ fun DiecastRow(item: DiecastListItem, onClick: () -> Unit, modifier: Modifier = 
                     RarityBadge(item.rarity)
                     StatusBadge(item.status)
                     if (item.status == DiecastStatus.Spotted && item.sightingsCount > 0) {
-                        Text("Ditemui ${item.sightingsCount}×", style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground)
+                        Text(stringResource(R.string.card_spotted_times, item.sightingsCount), style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground)
                     }
                 }
             }

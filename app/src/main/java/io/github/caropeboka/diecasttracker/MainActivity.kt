@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -7,8 +8,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import io.github.caropeboka.diecasttracker.data.locale.AppLocales
 import io.github.caropeboka.diecasttracker.ui.DiecastTrackerRoot
 import io.github.caropeboka.diecasttracker.ui.theme.GarageTheme
+import io.github.caropeboka.diecasttracker.util.Formats
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 
@@ -17,6 +20,8 @@ class MainActivity : ComponentActivity() {
     private val checkRequests = Channel<Unit>(Channel.CONFLATED)
     private val openCheck = checkRequests.receiveAsFlow()
 
+    override fun attachBaseContext(newBase: Context) = super.attachBaseContext(AppLocales.wrap(newBase))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Dark only: light status and navigation bar icons on the Garage background.
         enableEdgeToEdge(
@@ -24,6 +29,8 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        // A new language recreates the activity, so this is where dates and numbers learn it.
+        Formats.locale = resources.configuration.locales[0]
 
         // Opened from the launcher while the app already runs in a task started another way (e.g. "Open" in the
         // package installer after sideloading): bring that task back instead of stacking a fresh copy on it.

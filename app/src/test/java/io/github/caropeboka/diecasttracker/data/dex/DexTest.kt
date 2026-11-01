@@ -27,14 +27,14 @@ import java.time.LocalDate
 
 /** Ports of the web app's `DexTest`, with its real-world wiki fixtures. */
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class DexTest {
     private val env = TestEnvironment()
     private val fake = FakeWiki()
-    private val wiki = WikiCatalog(fake.client, "Test/1.0", pauseMs = 0, retryPauseMs = 0)
+    private val wiki = WikiCatalog(fake.client, "Test/1.0", env.texts, pauseMs = 0, retryPauseMs = 0)
     private val matcher = DexMatcher(env.db.dex())
-    private val dexSync = DexSync(env.db, wiki, matcher, env.root)
+    private val dexSync = DexSync(env.db, wiki, matcher, env.texts, env.root)
     private val dex = DexRepository(env.db, matcher)
     private val dao = env.db.dex()
 

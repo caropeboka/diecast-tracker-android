@@ -31,7 +31,7 @@ import java.time.LocalDate
 
 /** Web: `tests/Feature/ScanQueueTest.php` (the bulk part). */
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ScanQueueTest {
     private val env = TestEnvironment(now = { 1_000L })
@@ -39,9 +39,10 @@ class ScanQueueTest {
     private val scanner = DiecastScanner(
         fake.vision(),
         env.photos,
+        env.texts,
         currentYear = { 2026 },
     )
-    private val queue = ScanQueue(env.db, env.photos, scanner, clock = { 2_000L })
+    private val queue = ScanQueue(env.db, env.photos, scanner, env.texts, clock = { 2_000L })
     private val today = LocalDate.of(2026, 10, 22)
 
     @After
@@ -74,7 +75,7 @@ class ScanQueueTest {
             QueueDefaults(storageLocation = "Box 1", tags = listOf("JDM"), date = "2026-10-20"),
             today,
         )
-        assertTrue(form.validate(today).isEmpty())
+        assertTrue(form.validate(today, env.texts).isEmpty())
         val diecastId = env.repository.save(form.toEntity(null), form.photos, form.tags)
         queue.saved(id)
 

@@ -2,6 +2,7 @@ package io.github.caropeboka.diecasttracker.data.ai
 
 import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.caropeboka.diecasttracker.data.testTexts
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -22,12 +23,12 @@ import java.net.UnknownHostException
 
 /** Ports of the web app's Gemini tests (`DiecastTest`, `AiSettingsTest`). */
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 class GeminiClientTest {
     private val fake = FakeGemini()
     private val cache = MemoryModelCache()
     private var now = 0L
-    private val client = GeminiClient(fake.client, cache, baseUrl = "https://gemini.test/v1beta", clock = { now })
+    private val client = GeminiClient(fake.client, cache, testTexts(), baseUrl = "https://gemini.test/v1beta", clock = { now })
 
     private val schema = buildJsonObject { put("type", "object") }
     private val busy = FakeGemini.Reply.Json(503, """{"error":{"code":503,"status":"UNAVAILABLE"}}""")

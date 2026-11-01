@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,6 +60,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -90,7 +92,7 @@ import io.github.caropeboka.diecasttracker.ui.components.fieldColors
 import io.github.caropeboka.diecasttracker.ui.components.icon
 import io.github.caropeboka.diecasttracker.ui.places.LocationField
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
-import io.github.caropeboka.diecasttracker.util.formatRupiah
+import io.github.caropeboka.diecasttracker.util.formatMoney
 
 /**
  * "Cek di toko" (web: `diecasts/check.tsx`): at the shelf, snap a diecast (or type its name) and see straight away
@@ -136,9 +138,9 @@ fun CheckScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Heading("Cek di toko") },
+                title = { Heading(stringResource(R.string.menu_store_check)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Kembali") }
+                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back)) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
@@ -173,7 +175,7 @@ fun CheckScreen(
             }
             itemsIndexed(results, key = { _, result -> result.key }) { index, result ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (index == 1) SubHeading("Cek sebelumnya", Modifier.padding(top = 8.dp))
+                    if (index == 1) SubHeading(stringResource(R.string.check_earlier), Modifier.padding(top = 8.dp))
                     if (index == 0 || result.key in unfolded) {
                         ResultCard(
                             result = result,
@@ -204,10 +206,10 @@ private fun AiOff(onAiSettings: () -> Unit) {
             .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
     ) {
         Text(
-            "Cek dengan foto butuh scan AI. Isi API key di Pengaturan AI — mencari dengan mengetik tetap bisa.",
+            stringResource(R.string.check_needs_ai),
             style = MaterialTheme.typography.bodyMedium,
         )
-        TextButton(onClick = onAiSettings, contentPadding = PaddingValues(0.dp)) { Text("Buka Pengaturan AI →") }
+        TextButton(onClick = onAiSettings, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.open_ai_settings)) }
     }
 }
 
@@ -233,9 +235,9 @@ private fun CameraHero(checking: Boolean, enabled: Boolean, onClick: () -> Unit)
                 Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, tint = Garage.OnBrand, modifier = Modifier.size(34.dp))
             }
         }
-        Text(if (checking) "Mengecek…" else "Foto diecast di rak", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(if (checking) R.string.checking else R.string.check_hero), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Text(
-            "Langsung ketahuan sudah punya, ada di wishlist, atau belum.",
+            stringResource(R.string.check_hero_text),
             style = MaterialTheme.typography.bodyMedium,
             color = Garage.MutedForeground,
             textAlign = TextAlign.Center,
@@ -264,7 +266,7 @@ private fun CameraBar(checking: Boolean, onClick: () -> Unit) {
                 Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, Modifier.size(24.dp))
             }
             Spacer(Modifier.size(12.dp))
-            Text(if (checking) "Mengecek…" else "Foto diecast lain", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(if (checking) R.string.checking else R.string.check_another), style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -285,17 +287,17 @@ private fun StoreBar(place: PlaceValue, onChange: (PlaceValue) -> Unit, places: 
         Row(
             Modifier
                 .fillMaxWidth()
-                .clickable(onClickLabel = if (editing) "Selesai" else "Ubah toko") { editing = !editing }
+                .clickable(onClickLabel = stringResource(if (editing) R.string.done else R.string.check_change_store)) { editing = !editing }
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(painterResource(R.drawable.ic_place), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(22.dp))
             Column(Modifier.weight(1f)) {
-                Text("Toko", style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
+                Text(stringResource(R.string.check_store), style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
                 val name = place.name.trim()
                 Text(
-                    name.ifEmpty { "Di toko mana? Ketuk untuk isi" },
+                    name.ifEmpty { stringResource(R.string.check_store_empty) },
                     style = MaterialTheme.typography.bodyLarge,
                     color = if (name.isEmpty()) Garage.MutedForeground else Garage.Foreground,
                     maxLines = 1,
@@ -303,7 +305,7 @@ private fun StoreBar(place: PlaceValue, onChange: (PlaceValue) -> Unit, places: 
                 )
             }
             if (editing) {
-                Text("Selesai", style = MaterialTheme.typography.labelLarge, color = Garage.Brand)
+                Text(stringResource(R.string.done), style = MaterialTheme.typography.labelLarge, color = Garage.Brand)
             } else {
                 Icon(painterResource(R.drawable.ic_edit), contentDescription = null, tint = Garage.MutedForeground, modifier = Modifier.size(20.dp))
             }
@@ -313,9 +315,9 @@ private fun StoreBar(place: PlaceValue, onChange: (PlaceValue) -> Unit, places: 
                 place,
                 onChange,
                 places,
-                "Toko / lokasi",
+                stringResource(R.string.check_store_place),
                 Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp),
-                placeholder = "Nama toko",
+                placeholder = stringResource(R.string.check_store_name),
             )
         }
     }
@@ -331,11 +333,11 @@ private fun SearchBox(value: String, onValueChange: (String) -> Unit, onSearch: 
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text("Atau ketik namanya (tanpa AI)") },
-        placeholder = { Text("mis. Nissan Skyline") },
+        label = { Text(stringResource(R.string.check_type_name)) },
+        placeholder = { Text(stringResource(R.string.check_type_hint)) },
         leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
         trailingIcon = if (value.isNotBlank()) {
-            { TextButton(onClick = search) { Text("Cari") } }
+            { TextButton(onClick = search) { Text(stringResource(R.string.search)) } }
         } else {
             null
         },
@@ -347,15 +349,15 @@ private fun SearchBox(value: String, onValueChange: (String) -> Unit, onSearch: 
     )
 }
 
-private data class VerdictStyle(val title: String, @param:DrawableRes val icon: Int, val color: Color)
+private data class VerdictStyle(@param:StringRes val title: Int, @param:DrawableRes val icon: Int, val color: Color)
 
 /** Status is never colour-only: each verdict has its icon and words. Colours from the theme's chart set. */
 private fun Verdict.style() = when (this) {
-    Verdict.Owned -> VerdictStyle("Sudah punya", R.drawable.ic_check_circle, Color(0xFF199E70))
-    Verdict.Wishlist -> VerdictStyle("Ada di wishlist kamu!", R.drawable.ic_favorite, Color(0xFFD55181))
-    Verdict.Spotted -> VerdictStyle("Pernah kamu temui", R.drawable.ic_visibility, Color(0xFF9085E9))
-    Verdict.New -> VerdictStyle("Belum punya", R.drawable.ic_add, Garage.Brand)
-    Verdict.Failed -> VerdictStyle("Tidak terbaca", R.drawable.ic_warning, Color(0xFFE66767))
+    Verdict.Owned -> VerdictStyle(R.string.verdict_owned, R.drawable.ic_check_circle, Color(0xFF199E70))
+    Verdict.Wishlist -> VerdictStyle(R.string.verdict_wishlist, R.drawable.ic_favorite, Color(0xFFD55181))
+    Verdict.Spotted -> VerdictStyle(R.string.verdict_spotted, R.drawable.ic_visibility, Color(0xFF9085E9))
+    Verdict.New -> VerdictStyle(R.string.verdict_new, R.drawable.ic_add, Garage.Brand)
+    Verdict.Failed -> VerdictStyle(R.string.verdict_failed, R.drawable.ic_warning, Color(0xFFE66767))
 }
 
 /** An older check, folded to a line: photo, verdict, name. Tap to open it again. */
@@ -369,7 +371,7 @@ private fun FoldedResult(result: CheckResult, diecasts: Map<Long, DiecastListIte
             .clip(shape)
             .background(Garage.Card)
             .border(1.dp, Garage.Border, shape)
-            .clickable(onClickLabel = "Buka cek ini", onClick = onUnfold)
+            .clickable(onClickLabel = stringResource(R.string.check_unfold), onClick = onUnfold)
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -377,7 +379,7 @@ private fun FoldedResult(result: CheckResult, diecasts: Map<Long, DiecastListIte
         CheckPhoto(result, Modifier.size(48.dp).clip(RoundedCornerShape(6.dp)), 22.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                result.name ?: "Tidak terbaca",
+                result.name ?: stringResource(R.string.verdict_failed),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -385,10 +387,10 @@ private fun FoldedResult(result: CheckResult, diecasts: Map<Long, DiecastListIte
             )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Icon(painterResource(style.icon), contentDescription = null, tint = style.color, modifier = Modifier.size(14.dp))
-                Text(style.title, style = MaterialTheme.typography.labelMedium, color = style.color, maxLines = 1)
+                Text(stringResource(style.title), style = MaterialTheme.typography.labelMedium, color = style.color, maxLines = 1)
                 when {
-                    result.loggedAt != null -> Text("· dicatat", style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
-                    result.saved -> Text("· disimpan", style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
+                    result.loggedAt != null -> Text(stringResource(R.string.check_logged_short), style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
+                    result.saved -> Text(stringResource(R.string.check_saved_short), style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
                 }
             }
         }
@@ -445,14 +447,14 @@ private fun ResultCard(
             Modifier
                 .fillMaxWidth()
                 .background(style.color.copy(alpha = 0.16f))
-                .then(if (onFold != null) Modifier.clickable(onClickLabel = "Lipat", onClick = onFold) else Modifier)
+                .then(if (onFold != null) Modifier.clickable(onClickLabel = stringResource(R.string.check_fold), onClick = onFold) else Modifier)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(painterResource(style.icon), contentDescription = null, tint = style.color, modifier = Modifier.size(22.dp))
             Text(
-                style.title,
+                stringResource(style.title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = style.color,
@@ -472,7 +474,7 @@ private fun ResultCard(
                         Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         details(result)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground) }
                     } else {
-                        Text(result.error ?: "AI tidak bisa mengenali diecast ini.", style = MaterialTheme.typography.bodyMedium)
+                        Text(result.error ?: stringResource(R.string.check_unrecognised), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -491,17 +493,17 @@ private fun ResultCard(
 
             when {
                 result.loggedAt != null -> {
-                    Note(R.drawable.ic_visibility, "Dicatat sebagai temuan di ${result.loggedAt}.")
+                    Note(R.drawable.ic_visibility, result.loggedAt.takeUnless { it.isNullOrBlank() }?.let { stringResource(R.string.check_logged_at, it) } ?: stringResource(R.string.check_logged_here))
                     // Logged as a new "Ditemui" one and then bought after all.
                     val created = result.createdId?.let(diecasts::get)
                     if (created?.status == DiecastStatus.Spotted) {
                         Button(onClick = { viewModel.acquire(result, created.id) }, enabled = !busy, shape = MaterialTheme.shapes.medium) {
-                            IconLabel(R.drawable.ic_check_circle, "Jadi beli — Dapat")
+                            IconLabel(R.drawable.ic_check_circle, stringResource(R.string.check_bought_after_all))
                         }
                     }
                 }
-                result.saved -> Note(R.drawable.ic_check_circle, "Sudah disimpan lewat form.")
-                canSpot && spottable -> MoneyInput(result.price, { viewModel.setPrice(result.key, it) }, "Harga di rak", placeholder = "Opsional")
+                result.saved -> Note(R.drawable.ic_check_circle, stringResource(R.string.check_saved_by_form))
+                canSpot && spottable -> MoneyInput(result.price, { viewModel.setPrice(result.key, it) }, stringResource(R.string.check_shelf_price), placeholder = stringResource(R.string.optional))
             }
 
             if (!result.done) {
@@ -516,23 +518,23 @@ private fun ResultCard(
                         if (busy) {
                             CircularProgressIndicator(Modifier.size(18.dp), color = LocalContentColor.current, strokeWidth = 2.dp)
                             Spacer(Modifier.size(8.dp))
-                            Text("Catat temuan di sini")
+                            Text(stringResource(R.string.check_log_here))
                         } else {
-                            IconLabel(R.drawable.ic_visibility, "Catat temuan di sini")
+                            IconLabel(R.drawable.ic_visibility, stringResource(R.string.check_log_here))
                         }
                     }
                     MainAction.Retry -> Button(onClick = { viewModel.retry(result) }, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = wide) {
-                        IconLabel(R.drawable.ic_sync, if (busy) "Mengecek…" else "Coba lagi")
+                        IconLabel(R.drawable.ic_sync, stringResource(if (busy) R.string.checking else R.string.retry))
                     }
                     null -> Unit
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { onAdd(null) }, shape = MaterialTheme.shapes.medium) {
-                        IconLabel(R.drawable.ic_add, if (verdict == Verdict.Owned) "Item terpisah" else "Tambah ke koleksi")
+                        IconLabel(R.drawable.ic_add, stringResource(if (verdict == Verdict.Owned) R.string.check_separate_item else R.string.add_to_collection))
                     }
                     if (verdict != Verdict.Wishlist) {
                         OutlinedButton(onClick = { onAdd(DiecastStatus.Wishlist) }, shape = MaterialTheme.shapes.medium) {
-                            IconLabel(R.drawable.ic_favorite, "Wishlist")
+                            IconLabel(R.drawable.ic_favorite, stringResource(R.string.status_wishlist))
                         }
                     }
                 }
@@ -541,14 +543,15 @@ private fun ResultCard(
     }
 }
 
-/** Brand · series · number · rarity, as read; "Dicari dengan mengetik" for a typed search. */
+/** Brand · series · number · rarity, as read; "Searched by typing" for a typed search. */
+@Composable
 private fun details(result: CheckResult): String? {
-    val fields = result.fields ?: return "Dicari dengan mengetik".takeIf { result.query != null }
+    val fields = result.fields ?: return stringResource(R.string.check_typed).takeIf { result.query != null }
     return listOfNotNull(
         fields.brand,
         fields.series,
         fields.collectionNumber,
-        fields.rarity?.takeIf { it != Rarity.Regular }?.label,
+        fields.rarity?.takeIf { it != Rarity.Regular }?.let { stringResource(it.label) },
     ).joinToString(" · ").ifEmpty { null }
 }
 
@@ -579,7 +582,7 @@ private fun MatchPanel(
             .padding(vertical = 4.dp),
     ) {
         Text(
-            "Di koleksimu",
+            stringResource(R.string.check_in_collection),
             style = MaterialTheme.typography.labelMedium,
             color = Garage.MutedForeground,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -588,7 +591,7 @@ private fun MatchPanel(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clickable(onClickLabel = "Buka ${match.name}") { onOpen(match.id) }
+                    .clickable(onClickLabel = stringResource(R.string.open_named, match.name)) { onOpen(match.id) }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -601,17 +604,17 @@ private fun MatchPanel(
                     }
                     // What the shelf price is up against.
                     if (match.status == DiecastStatus.Wishlist && match.targetPrice != null) {
-                        Text("Target maks ${formatRupiah(match.targetPrice)}", style = small, color = Garage.MutedForeground)
+                        Text(stringResource(R.string.scan_target_max, formatMoney(match.targetPrice)), style = small, color = Garage.MutedForeground)
                     }
                     if (match.sightingsCount > 0 && match.sightingsMinPrice != null) {
-                        Text("Pernah ditemui mulai ${formatRupiah(match.sightingsMinPrice)}", style = small, color = Garage.MutedForeground)
+                        Text(stringResource(R.string.scan_seen_from, formatMoney(match.sightingsMinPrice)), style = small, color = Garage.MutedForeground)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Badge(
                             text = when (match.status) {
-                                DiecastStatus.Owned -> "Punya ${match.quantity}×"
-                                DiecastStatus.Spotted -> "Ditemui ${match.sightingsCount}×"
-                                else -> match.status.label
+                                DiecastStatus.Owned -> stringResource(R.string.owned_times, match.quantity)
+                                DiecastStatus.Spotted -> stringResource(R.string.card_spotted_times, match.sightingsCount)
+                                else -> stringResource(match.status.label)
                             },
                             background = Garage.Accent,
                             content = Garage.Foreground,
@@ -636,22 +639,23 @@ private fun MatchActions(
     onSpot: (DiecastListItem) -> Unit,
 ) {
     val small = PaddingValues(horizontal = 12.dp)
+    val buyOneMore = stringResource(R.string.check_buy_one_more)
     when (match.status) {
         DiecastStatus.Owned -> OutlinedButton(
             onClick = { onAddOne(match) },
             enabled = !busy,
             shape = MaterialTheme.shapes.medium,
             contentPadding = small,
-            modifier = Modifier.height(36.dp).semantics { contentDescription = "Beli satu lagi (+1 jumlah)" },
+            modifier = Modifier.height(36.dp).semantics { contentDescription = buyOneMore },
         ) { Text("+1") }
         DiecastStatus.Wishlist, DiecastStatus.Spotted -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             if (canSpot) {
                 OutlinedIconButton(onClick = { onSpot(match) }, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = Modifier.size(36.dp)) {
-                    Icon(painterResource(R.drawable.ic_visibility), contentDescription = "Catat temuan di sini", Modifier.size(18.dp))
+                    Icon(painterResource(R.drawable.ic_visibility), contentDescription = stringResource(R.string.check_log_here), Modifier.size(18.dp))
                 }
             }
             Button(onClick = { onAcquire(match) }, enabled = !busy, shape = MaterialTheme.shapes.medium, contentPadding = small, modifier = Modifier.height(36.dp)) {
-                IconLabel(R.drawable.ic_check_circle, "Dapat")
+                IconLabel(R.drawable.ic_check_circle, stringResource(R.string.check_got_it))
             }
         }
         DiecastStatus.Sold -> Unit

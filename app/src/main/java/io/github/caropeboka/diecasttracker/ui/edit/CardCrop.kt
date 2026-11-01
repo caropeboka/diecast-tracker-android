@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -117,11 +118,11 @@ fun CardCropDialog(crop: CardCrop, viewModel: DiecastEditViewModel) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = viewModel::closeCardCrop) {
-                        Icon(painterResource(R.drawable.ic_close), contentDescription = "Batal")
+                        Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.cancel))
                     }
-                    Heading("Foto studio", Modifier.weight(1f))
+                    Heading(stringResource(R.string.studio_photo), Modifier.weight(1f))
                     Text(
-                        if (cutout == null) "Langkah 1/2" else "Langkah 2/2",
+                        stringResource(R.string.crop_step, if (cutout == null) 1 else 2, 2),
                         style = MaterialTheme.typography.labelMedium,
                         color = Garage.MutedForeground,
                         modifier = Modifier.padding(end = 16.dp),
@@ -139,19 +140,19 @@ fun CardCropDialog(crop: CardCrop, viewModel: DiecastEditViewModel) {
                     Text(
                         when {
                             cutout != null -> when (crop.lastTap) {
-                                CardCutout.Tap.Erased -> "Terhapus. Ketuk lagi bagian itu untuk mengembalikannya, atau Urungkan."
-                                CardCutout.Tap.Restored -> "Dikembalikan."
-                                CardCutout.Tap.TooBig -> "Bagian itu menyatu dengan gambar kartu, jadi tidak dihapus. Ketuk tepat di latarnya."
+                                CardCutout.Tap.Erased -> stringResource(R.string.crop_erased)
+                                CardCutout.Tap.Restored -> stringResource(R.string.crop_restored)
+                                CardCutout.Tap.TooBig -> stringResource(R.string.crop_too_big)
                                 null -> if (cutout.holeFound) {
-                                    "Lubang gantungan sudah dihapus otomatis. Ketuk latar yang masih terlihat untuk menghapusnya, atau bagian yang terhapus untuk mengembalikannya."
+                                    stringResource(R.string.crop_hole_removed)
                                 } else {
-                                    "Ketuk latar yang masih terlihat (mis. di lubang gantungan) untuk menghapusnya."
+                                    stringResource(R.string.crop_tap_background)
                                 }
                             }
-                            problem -> "Keempat titik harus membentuk segi empat."
-                            searching -> "Mencari sudut kartu… Sambil menunggu, titiknya boleh langsung digeser."
-                            crop.guessed && !crop.moved -> "Sudut kartu ditebak otomatis. Geser titik yang meleset ke sudutnya."
-                            else -> "Geser keempat titik ke sudut kartu atau box. Kartunya akan diluruskan jadi persegi panjang."
+                            problem -> stringResource(R.string.crop_problem)
+                            searching -> stringResource(R.string.crop_searching)
+                            crop.guessed && !crop.moved -> stringResource(R.string.crop_guessed)
+                            else -> stringResource(R.string.crop_drag)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (problem) Garage.Loss else Garage.MutedForeground,
@@ -176,21 +177,21 @@ fun CardCropDialog(crop: CardCrop, viewModel: DiecastEditViewModel) {
                 ) {
                     if (cutout == null) {
                         TextButton(onClick = viewModel::cutOutInstead, enabled = !crop.working, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                            Text("Mobil loose? Potong otomatis")
+                            Text(stringResource(R.string.crop_loose))
                         }
                         Button(onClick = viewModel::continueCardCrop, enabled = quad != null && !crop.working, shape = MaterialTheme.shapes.medium) {
-                            Text(if (crop.working) "Meluruskan…" else "Lanjut")
+                            Text(stringResource(if (crop.working) R.string.crop_straightening else R.string.next))
                         }
                     } else {
                         TextButton(onClick = viewModel::backToCorners, enabled = !crop.working, shape = MaterialTheme.shapes.medium) {
-                            Text("Sudut")
+                            Text(stringResource(R.string.crop_corners))
                         }
                         Spacer(Modifier.weight(1f))
                         OutlinedButton(onClick = viewModel::undoCard, enabled = cutout.canUndo && !crop.working, shape = MaterialTheme.shapes.medium) {
-                            Text("Urungkan")
+                            Text(stringResource(R.string.undo))
                         }
                         Button(onClick = viewModel::finishCardCrop, enabled = !crop.working, shape = MaterialTheme.shapes.medium) {
-                            Text("Simpan")
+                            Text(stringResource(R.string.save))
                         }
                     }
                 }

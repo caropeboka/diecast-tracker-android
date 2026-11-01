@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/check.json; edit all three languages together. -->
+<resources>
+    <string name="check_earlier">Cek sebelumnya</string>
+    <string name="check_needs_ai">Cek dengan foto butuh scan AI. Isi API key di Pengaturan AI — mencari dengan mengetik tetap bisa.</string>
+    <string name="open_ai_settings">Buka Pengaturan AI →</string>
+    <string name="checking">Mengecek…</string>
+    <string name="check_hero">Foto diecast di rak</string>
+    <string name="check_hero_text">Langsung ketahuan sudah punya, ada di wishlist, atau belum.</string>
+    <string name="check_another">Foto diecast lain</string>
+    <string name="check_change_store">Ubah toko</string>
+    <string name="check_store">Toko</string>
+    <string name="check_store_empty">Di toko mana? Ketuk untuk isi</string>
+    <string name="check_store_place">Toko / lokasi</string>
+    <string name="check_store_name">Nama toko</string>
+    <string name="check_type_name">Atau ketik namanya (tanpa AI)</string>
+    <string name="check_type_hint">mis. Nissan Skyline</string>
+    <string name="search">Cari</string>
+    <string name="verdict_owned">Sudah punya</string>
+    <string name="verdict_wishlist">Ada di wishlist kamu!</string>
+    <string name="verdict_spotted">Pernah kamu temui</string>
+    <string name="verdict_new">Belum punya</string>
+    <string name="verdict_failed">Tidak terbaca</string>
+    <string name="check_unfold">Buka cek ini</string>
+    <string name="check_logged_short">· dicatat</string>
+    <string name="check_saved_short">· disimpan</string>
+    <string name="check_fold">Lipat</string>
+    <string name="check_unrecognised">AI tidak bisa mengenali diecast ini.</string>
+    <string name="check_logged_at">Dicatat sebagai temuan di %1$s.</string>
+    <string name="check_logged_here">Dicatat sebagai temuan di tempat ini.</string>
+    <string name="check_bought_after_all">Jadi beli — Dapat</string>
+    <string name="check_saved_by_form">Sudah disimpan lewat form.</string>
+    <string name="check_shelf_price">Harga di rak</string>
+    <string name="check_log_here">Catat temuan di sini</string>
+    <string name="check_separate_item">Item terpisah</string>
+    <string name="add_to_collection">Tambah ke koleksi</string>
+    <string name="check_typed">Dicari dengan mengetik</string>
+    <string name="check_in_collection">Di koleksimu</string>
+    <string name="check_buy_one_more">Beli satu lagi (+1 jumlah)</string>
+    <string name="check_got_it">Dapat</string>
+    <string name="check_searching">Mencari di koleksimu</string>
+    <string name="check_type_more">Ketik minimal 2 huruf.</string>
+    <string name="check_photo_gone">Foto ini sudah tidak ada.</string>
+    <string name="check_still_unread">Masih belum terbaca.</string>
+    <string name="check_now_own">%1$s: sekarang punya %2$d×</string>
+    <string name="check_moved_to_collection">%1$s dipindah ke koleksi 🎉</string>
+    <string name="failed_because">Gagal (%1$s).</string>
+</resources>

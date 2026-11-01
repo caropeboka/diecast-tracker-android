@@ -1,7 +1,9 @@
 package io.github.caropeboka.diecasttracker.data.shelf
 
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 
 /** The furniture in the 3D garage a diecast can stand on, stored by [key]. */
 enum class Shelf(val key: String) {
@@ -31,7 +33,7 @@ object ShelfLayout {
     const val CASE_COLUMNS = 6
     const val CASE_ROWS = 10
 
-    private val TIER_NAMES = listOf("bawah", "tengah", "atas")
+    private val TIER_NAMES = listOf(R.string.shelf_tier_bottom, R.string.shelf_tier_middle, R.string.shelf_tier_top)
 
     /** Lanes, tiers (lowest first) or compartments (row by row from the top left). */
     fun spots(shelf: Shelf): Int = when (shelf) {
@@ -47,14 +49,14 @@ object ShelfLayout {
         Shelf.Corner -> packaging != Packaging.Carded
     }
 
-    /** Its "Lokasi simpan": "Papan 2 · jalur 1", "Laci hitam · susun tengah", "Rak putih · baris 3 kolom 2". */
-    fun label(shelf: Shelf, spot: Int): String = when (shelf) {
-        Shelf.Boards -> "Papan ${spot / LANES_PER_BOARD + 1} · jalur ${spot % LANES_PER_BOARD + 1}"
-        Shelf.Corner -> "Laci hitam · susun ${TIER_NAMES[spot]}"
-        Shelf.Case -> "Rak putih · baris ${spot / CASE_COLUMNS + 1} kolom ${spot % CASE_COLUMNS + 1}"
+    /** Its "Lokasi simpan": "Board 2 · lane 1", "Black shelf · middle tier", "White case · row 3 column 2". */
+    fun label(texts: Texts, shelf: Shelf, spot: Int): String = when (shelf) {
+        Shelf.Boards -> texts(R.string.shelf_label_board, spot / LANES_PER_BOARD + 1, spot % LANES_PER_BOARD + 1)
+        Shelf.Corner -> texts(R.string.shelf_label_corner, texts(TIER_NAMES[spot]))
+        Shelf.Case -> texts(R.string.shelf_label_case, spot / CASE_COLUMNS + 1, spot % CASE_COLUMNS + 1)
     }
 
-    fun label(slot: ShelfSlotEntity): String = label(slot.shelf, slot.spot)
+    fun label(texts: Texts, slot: ShelfSlotEntity): String = label(texts, slot.shelf, slot.spot)
 }
 
 /** The N of a "1:N" scale; 1:64 when there is none. */

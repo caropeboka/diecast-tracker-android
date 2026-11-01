@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/garage.json; edit all three languages together. -->
+<resources>
+    <string name="ai_hint_decor">Done on the phone; the photo isn\'t sent anywhere.</string>
+    <string name="decor_reading_photo">Reading the photo</string>
+    <string name="decor_separating">Separating the object from the background</string>
+    <string name="decor_downloading">Downloading the background remover (only once)</string>
+    <string name="decor_tidying">Tidying the edges, cleaning off dust</string>
+    <string name="decor_photo_failed">The photo couldn\'t be processed.</string>
+    <string name="decor_placed">%1$s put on %2$s.</string>
+    <string name="decor_corner_only">Decorations only go on the black shelf.</string>
+    <string name="garage_no_room">There\'s no room left there.</string>
+    <string name="decor_deleted">%1$s removed from the garage.</string>
+    <string name="garage_arrange_none">No empty place they fit in.</string>
+    <plurals name="garage_arranged">
+        <item quantity="one">%d diecast put on the shelves.</item>
+        <item quantity="other">%d diecasts put on the shelves.</item>
+    </plurals>
+    <plurals name="garage_arranged_some">
+        <item quantity="one">%d diecast put away;</item>
+        <item quantity="other">%d diecasts put away;</item>
+    </plurals>
+    <plurals name="garage_arranged_left">
+        <item quantity="one">%d doesn\'t fit and stays in the tray.</item>
+        <item quantity="other">%d don\'t fit and stay in the tray.</item>
+    </plurals>
+    <string name="garage_lane_full">That lane is full: %1$d cards.</string>
+    <string name="garage_to_tray_done">%1$s went into the tray.</string>
+    <string name="garage_cards_on_boards">Cards (blister) only go on the boards.</string>
+    <string name="garage_boards_cards_only">The boards are for cards (blister) only.</string>
+    <string name="garage_case_small_only">The white case only takes 1:64 or smaller.</string>
+    <string name="garage_does_not_fit">It doesn\'t fit there.</string>
+    <string name="garage_quality_normal">Normal</string>
+    <string name="garage_quality_plain">Plain</string>
+    <string name="garage_quality_light">Lite</string>
+    <string name="garage_focus_all">All</string>
+    <string name="garage_focus_shelf">Black shelf</string>
+    <string name="garage_focus_boards">Boards</string>
+    <string name="garage_focus_case">White case</string>
+    <string name="garage_title">3D garage</string>
+    <string name="garage_decor_there">There\'s a decoration there already.</string>
+    <string name="garage_tap_corner">Tap an empty spot on the black shelf.</string>
+    <string name="garage_tray_empty">The tray is empty: everything is on the shelves.</string>
+    <string name="garage_none_fits">Nothing in the tray fits here.</string>
+    <string name="garage_decor_at">Decoration · %1$s</string>
+    <string name="garage_move">Move</string>
+    <string name="garage_pick_shelf">Pick the shelf below, then tap the spot.</string>
+    <string name="garage_tap_spot">Tap an empty spot, or another diecast to swap places.</string>
+    <string name="garage_in_tray">In the tray</string>
+    <string name="garage_to_tray">To the tray</string>
+    <string name="garage_details">Details</string>
+    <string name="garage_unplaced">Not placed yet</string>
+    <string name="garage_unplaced_hint">Pick one, then tap its spot on the shelves. Its storage location is filled in too.</string>
+    <string name="garage_put_here">Put here</string>
+    <string name="garage_tray">Tray · %1$d</string>
+    <string name="garage_all_placed">Everything is on the shelves.</string>
+    <string name="garage_arrange_all">Place all automatically</string>
+    <plurals name="garage_without_photo">
+        <item quantity="one">%d diecast without a photo doesn\'t show in the garage.</item>
+        <item quantity="other">%d diecasts without a photo don\'t show in the garage.</item>
+    </plurals>
+    <string name="garage_no_longer_fits">No longer fits on %1$s</string>
+    <string name="decor_new_here">A new decoration here</string>
+    <string name="decor_new_text">A figure or ornament from a photo: the background is cut away and the dust cleaned off on the phone.</string>
+    <string name="decor_new">New decoration</string>
+    <string name="decor_as_shot">As photographed</string>
+    <string name="decor_cleaned">Cleaned</string>
+    <string name="decor_name_placeholder">e.g. Rabbit figure</string>
+    <string name="decor_default_name">Decoration</string>
+    <string name="decor_place">Put on the shelf</string>
+    <string name="decor_height">Real height (cm)</string>
+    <string name="decor_height_hint">So it\'s the right size next to the diecasts.</string>
+    <string name="decor_edit">Edit decoration</string>
+    <string name="decor_delete_text">The decoration leaves the garage. Your diecast collection doesn\'t change.</string>
+</resources>

@@ -21,6 +21,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.container
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 
 /** The app-wide snackbar host; every screen's Scaffold shows it. */
@@ -114,4 +116,11 @@ fun DiecastPhoto(
             )
         }
     }
+}
+
+/** [Texts] for strings needed outside composition: tap handlers, semantics, labels built by plain functions. */
+@Composable
+fun rememberTexts(): Texts {
+    val context = LocalContext.current
+    return remember(context) { Texts(context) }
 }

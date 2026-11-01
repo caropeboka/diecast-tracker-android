@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/scan.json; edit all three languages together. -->
+<resources>
+    <string name="confidence_low_short">不太确定</string>
+    <string name="bulk_needs_ai">AI 扫描尚未启用。照片仍会加入队列，填写 API 密钥后再读取。</string>
+    <string name="bulk_intro">一张照片 = 一辆合金车。在明亮光线下拍卡片正面。每拍一张相机会再次打开，直到你按返回。</string>
+    <string name="camera">相机</string>
+    <string name="bulk_pick_many">选择多张照片</string>
+    <plurals name="bulk_adding">
+        <item quantity="other">正在准备 %d 张照片…</item>
+    </plurals>
+    <string name="bulk_counts">%1$d 个等待 AI · %2$d 个待核对 · %3$d 个失败</string>
+    <string name="bulk_paused">已暂停。照片会等到继续后再处理。</string>
+    <string name="bulk_reading">AI 正在读取…（关闭应用后仍会继续）</string>
+    <string name="bulk_waiting">AI 繁忙、配额用完或没有网络。%1$s</string>
+    <string name="bulk_queued">排队中…（需要网络连接）</string>
+    <string name="resume">继续</string>
+    <string name="pause">暂停</string>
+    <string name="bulk_save_safe">保存所有有把握的（%1$d）</string>
+    <string name="bulk_save_safe_hint">AI 不确定或与收藏相似的会被跳过——请逐个核对。</string>
+    <plurals name="bulk_resume_in">
+        <item quantity="other">%d 秒后自动继续。</item>
+    </plurals>
+    <string name="bulk_resume_soon">马上继续。</string>
+    <string name="bulk_shared">全部通用的信息</string>
+    <string name="bulk_save_as">保存为</string>
+    <string name="bulk_date_spotted">发现日期</string>
+    <string name="bulk_queue_photo">队列照片</string>
+    <string name="bulk_item_reading">AI 正在读取…</string>
+    <string name="bulk_item_waiting">排队中…</string>
+    <string name="bulk_unreadable">AI 无法读取这张照片。</string>
+    <string name="bulk_similar">与收藏相似</string>
+    <string name="bulk_discard_photo">丢弃这张照片</string>
+    <string name="bulk_number">收藏编号</string>
+    <string name="bulk_full">完整</string>
+    <plurals name="bulk_banner">
+        <item quantity="other">批量扫描队列中有 %d 张照片尚未保存。</item>
+    </plurals>
+    <string name="continue_arrow">继续 →</string>
+    <string name="saved_named">%1$s 已保存。</string>
+    <plurals name="bulk_saved_many">
+        <item quantity="other">已将 %d 辆合金车存入收藏。</item>
+    </plurals>
+    <string name="named_problem">%1$s：%2$s</string>
+    <string name="bulk_save_failed">%1$s：保存失败（%2$s）。</string>
+</resources>

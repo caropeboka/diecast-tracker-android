@@ -49,6 +49,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -96,7 +98,7 @@ fun DexScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Heading("Dex") },
+                title = { Heading(stringResource(R.string.tab_dex)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -116,7 +118,7 @@ fun DexScreen(
         ) {
             item {
                 Text(
-                    "Seberapa banyak rilisan yang sudah kamu temui dan miliki, per tahun dan per seri.",
+                    stringResource(R.string.dex_intro),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Garage.MutedForeground,
                 )
@@ -168,15 +170,15 @@ fun DexScreen(
     deleting?.let { catalog ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("Hapus ${catalog.name}?") },
-            text = { Text("Daftarnya dan foto-fotonya dihapus dari HP. Diecast di koleksimu tetap ada, hanya tautannya ke Dex ini yang lepas.") },
+            title = { Text(stringResource(R.string.delete_named, catalog.name)) },
+            text = { Text(stringResource(R.string.dex_delete_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     deleting = null
                     viewModel.delete(catalog)
-                }) { Text("Hapus", color = Garage.Loss) }
+                }) { Text(stringResource(R.string.delete), color = Garage.Loss) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Batal") } },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -192,14 +194,14 @@ private fun ReviewBanner(count: Int, onMatches: () -> Unit) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(painterResource(R.drawable.ic_auto_fix_high), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(20.dp))
             Column(Modifier.weight(1f)) {
-                Text("$count diecast perlu dicek", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(pluralStringResource(R.plurals.dex_review_count, count, count), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Konfirmasi yang dicocokkan otomatis, pilih saran, dan perbaiki tahun yang keliru.",
+                    stringResource(R.string.dex_review_text),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                 )
             }
-            Text("Cocokkan", style = MaterialTheme.typography.labelLarge, color = Garage.Brand)
+            Text(stringResource(R.string.dex_review_open), style = MaterialTheme.typography.labelLarge, color = Garage.Brand)
         }
     }
 }
@@ -216,23 +218,23 @@ private fun ImagesBanner(missing: Int, work: ImageWork, cellular: Boolean, onCel
             }
             Text(
                 when {
-                    downloading -> "Mengunduh foto katalog… $missing lagi"
-                    work == ImageWork.Retrying -> "$missing foto katalog belum terunduh, dicoba lagi otomatis."
-                    cellular -> "$missing foto katalog menunggu koneksi."
-                    else -> "$missing foto katalog menunggu Wi-Fi."
+                    downloading -> pluralStringResource(R.plurals.dex_images_downloading, missing, missing)
+                    work == ImageWork.Retrying -> pluralStringResource(R.plurals.dex_images_retrying, missing, missing)
+                    cellular -> pluralStringResource(R.plurals.dex_images_wait_connection, missing, missing)
+                    else -> pluralStringResource(R.plurals.dex_images_wait_wifi, missing, missing)
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
             )
             if (!downloading) {
-                TextButton(onClick = onDownload, shape = MaterialTheme.shapes.medium) { Text("Coba lagi") }
+                TextButton(onClick = onDownload, shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.retry)) }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Pakai data seluler juga", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.dex_cellular), style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "Sekitar 5–8 MB per tahun. Mati: foto hanya diunduh lewat Wi-Fi.",
+                    stringResource(R.string.dex_cellular_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                 )
@@ -250,10 +252,9 @@ private fun EmptyDex() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(painterResource(R.drawable.ic_collections_bookmark), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(40.dp))
-        SubHeading("Dex masih kosong")
+        SubHeading(stringResource(R.string.dex_empty_title))
         Text(
-            "Sinkronkan daftar rilisan Hot Wheels atau Matchbox di bawah, atau buat dex sendiri untuk merek lain. Koleksimu " +
-                "langsung dicocokkan, dan kamu bisa melihat berapa yang sudah ditemui dan dimiliki.",
+            stringResource(R.string.dex_empty_text),
             style = MaterialTheme.typography.bodyMedium,
             color = Garage.MutedForeground,
             textAlign = TextAlign.Center,
@@ -271,19 +272,19 @@ private fun CatalogRow(summary: CatalogSummary, onOpen: () -> Unit, onResync: ()
             Text(summary.catalog.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             DexMeter(counts)
             Text(
-                "dimiliki ${counts.caught} · dilihat ${counts.seen} dari ${counts.total}" + if (counts.wanted > 0) " · ${counts.wanted} diincar" else "",
+                stringResource(R.string.dex_counts, counts.caught, counts.seen, counts.total) + if (counts.wanted > 0) " · " + stringResource(R.string.dex_counts_wanted, counts.wanted) else "",
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
         }
         Box {
             IconButton(onClick = { menu = true }) {
-                Icon(painterResource(R.drawable.ic_more_vert), contentDescription = "Menu ${summary.catalog.name}", tint = Garage.MutedForeground)
+                Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.dex_menu_for, summary.catalog.name), tint = Garage.MutedForeground)
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 if (WikiSource.fromKey(summary.catalog.source) != null) {
                     DropdownMenuItem(
-                        text = { Text("Sinkron ulang") },
+                        text = { Text(stringResource(R.string.dex_resync)) },
                         leadingIcon = { Icon(painterResource(R.drawable.ic_sync), contentDescription = null) },
                         onClick = {
                             menu = false
@@ -292,7 +293,7 @@ private fun CatalogRow(summary: CatalogSummary, onOpen: () -> Unit, onResync: ()
                     )
                 } else {
                     DropdownMenuItem(
-                        text = { Text("Ubah dex") },
+                        text = { Text(stringResource(R.string.dex_edit)) },
                         leadingIcon = { Icon(painterResource(R.drawable.ic_edit), contentDescription = null) },
                         onClick = {
                             menu = false
@@ -301,7 +302,7 @@ private fun CatalogRow(summary: CatalogSummary, onOpen: () -> Unit, onResync: ()
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Hapus dari Dex", color = Garage.Loss) },
+                    text = { Text(stringResource(R.string.dex_remove), color = Garage.Loss) },
                     leadingIcon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null, tint = Garage.Loss) },
                     onClick = {
                         menu = false
@@ -316,15 +317,14 @@ private fun CatalogRow(summary: CatalogSummary, onOpen: () -> Unit, onResync: ()
 /** "Dex sendiri" (web: `CreateDexPanel`). */
 @Composable
 private fun OwnDexCard(onCreate: () -> Unit) {
-    SectionCard("Dex sendiri") {
+    SectionCard(stringResource(R.string.dex_own)) {
         Text(
-            "Untuk merek yang tidak punya daftar di wiki (Mini GT, Tarmac, Inno64, Roll Speed…). Isi daftarnya manual, dari Excel, " +
-                "dari screenshot checklist (dibaca AI), atau dari koleksimu.",
+            stringResource(R.string.dex_own_text),
             style = MaterialTheme.typography.bodySmall,
             color = Garage.MutedForeground,
         )
         OutlinedButton(onClick = onCreate, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-            IconLabel(R.drawable.ic_add, "Buat dex sendiri")
+            IconLabel(R.drawable.ic_add, stringResource(R.string.dex_own_create))
         }
     }
 }
@@ -338,26 +338,25 @@ private fun SyncCard(viewModel: DexViewModel) {
     val running = sync is SyncProgress.Running
     val years = viewModel.years(source)
 
-    SectionCard("Sinkron katalog") {
+    SectionCard(stringResource(R.string.dex_sync_title)) {
         Text(
-            "Ambil daftar rilisan resmi per tahun dari Hot Wheels Wiki atau Matchbox Wiki (CC BY-SA). Sinkron ulang tahun yang " +
-                "sama memperbarui daftarnya tanpa melepas tautan koleksimu.",
+            stringResource(R.string.dex_sync_text),
             style = MaterialTheme.typography.bodySmall,
             color = Garage.MutedForeground,
         )
         SourceToggle(source, enabled = !running, onSelect = viewModel::setSource)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ChoiceInput(from, years, Int::toString, viewModel::setFrom, "Dari", Modifier.weight(1f))
-            ChoiceInput(to, years, Int::toString, viewModel::setTo, "Sampai", Modifier.weight(1f))
+            ChoiceInput(from, years, { it.toString() }, viewModel::setFrom, stringResource(R.string.dex_from), Modifier.weight(1f))
+            ChoiceInput(to, years, { it.toString() }, viewModel::setTo, stringResource(R.string.dex_to), Modifier.weight(1f))
         }
         Button(onClick = viewModel::startSync, enabled = !running, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-            IconLabel(R.drawable.ic_sync, if (from == to) "Sinkron $from" else "Sinkron $from–$to (${to - from + 1} tahun)")
+            IconLabel(R.drawable.ic_sync, if (from == to) stringResource(R.string.dex_sync_one, from) else pluralStringResource(R.plurals.dex_sync_range, to - from + 1, from, to, to - from + 1))
         }
 
         when (val state = sync) {
             is SyncProgress.Running -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    state.year?.let { "Menyinkron $it (${state.done + 1} dari ${state.total})…" } ?: "Menunggu koneksi internet…",
+                    state.year?.let { stringResource(R.string.dex_syncing, it, state.done + 1, state.total) } ?: stringResource(R.string.waiting_for_connection),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 // One year at a time: a range moves the bar, a single year just shows activity.
@@ -409,14 +408,14 @@ private fun YearLine(source: WikiSource?, result: YearResult) {
     val style = MaterialTheme.typography.bodySmall
     val label = "${source?.brand ?: ""} ${result.year}".trim()
     if (result.error != null) {
-        Text("$label: ${result.error}", style = style, color = Garage.Loss)
+        Text(stringResource(R.string.named_problem, label, result.error), style = style, color = Garage.Loss)
     } else {
         Text(
             // "New" only on a re-sync: on the first one everything is.
-            "$label: ${result.items} rilisan" +
-                (if (result.added in 1..<result.items) ", ${result.added} baru" else "") +
-                (if (result.removed > 0) ", ${result.removed} dihapus" else "") +
-                (if (result.linked > 0) " · ${result.linked} diecast tertaut" else ""),
+            pluralStringResource(R.plurals.dex_sync_releases, result.items, label, result.items) +
+                (if (result.added in 1..<result.items) stringResource(R.string.dex_sync_new, result.added) else "") +
+                (if (result.removed > 0) stringResource(R.string.dex_sync_removed, result.removed) else "") +
+                (if (result.linked > 0) " · " + pluralStringResource(R.plurals.dex_sync_linked, result.linked, result.linked) else ""),
             style = style,
             color = Color.Unspecified,
         )

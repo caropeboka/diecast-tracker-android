@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/backup.json; edit all three languages together. -->
+<resources>
+    <string name="backup_not_a_backup">这不是 Diecast Tracker 的备份文件。</string>
+    <string name="backup_item_invalid">第 %1$d 项（%2$s）：%3$s</string>
+    <string name="valid_invalid">%1$s无效。</string>
+    <string name="valid_required">%1$s为必填项。</string>
+    <string name="valid_max_chars">%1$s最多 %2$d 个字符。</string>
+    <string name="valid_integer">%1$s必须是整数。</string>
+    <string name="valid_between">%1$s必须介于 %2$s 和 %3$s 之间。</string>
+    <string name="valid_number">%1$s必须是数字。</string>
+    <string name="valid_date">%1$s不是有效日期。</string>
+    <string name="valid_not_future">%1$s不能晚于今天。</string>
+    <string name="valid_unknown">%1$s未知：“%2$s”。</string>
+    <string name="valid_boolean">%1$s必须是 true 或 false。</string>
+    <string name="valid_incomplete">%1$s不完整。</string>
+    <string name="valid_out_of_range">%1$s超出范围。</string>
+    <string name="valid_tags_list">标签必须是列表。</string>
+    <string name="valid_tags_max">标签最多 %1$d 个。</string>
+    <string name="valid_tags_text">标签必须是文本。</string>
+    <string name="valid_tag_length">标签最多 %1$d 个字符。</string>
+    <string name="import_unreadable">无法读取文件：%1$s</string>
+    <string name="import_failed">导入失败，收藏未更改。（%1$s）</string>
+    <string name="import_cant_open">无法打开文件。</string>
+    <string name="import_zip_cant_open">无法打开 ZIP 文件。</string>
+    <string name="import_nothing">此备份中没有可恢复的合金车。收藏未更改。</string>
+    <string name="import_dex_broken">此备份中的图鉴数据已损坏，因此未恢复图鉴。</string>
+    <string name="import_decor_broken">此备份中的车库装饰数据已损坏，因此未恢复。</string>
+    <string name="export_target_cant_open">无法打开目标文件</string>
+    <string name="export_cant_write">无法写入文件：%1$s</string>
+    <string name="export_failed">无法创建文件。（%1$s）</string>
+</resources>

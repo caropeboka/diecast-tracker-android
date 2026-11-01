@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/components.json; edit all three languages together. -->
+<resources>
+    <string name="field_clear">Clear %1$s</string>
+    <string name="choose">Choose</string>
+    <string name="tag_remove">Remove tag %1$s</string>
+    <string name="tag_placeholder">JDM, Favourite…</string>
+    <string name="tag_add">Add tag</string>
+    <string name="ai_step_done">Done</string>
+    <string name="ai_step_missed">Hit a snag</string>
+    <string name="ai_step_seconds">%1$s · %2$d s</string>
+    <string name="ai_resting">%1$s skipped for now: its quota is used up until %2$s</string>
+    <string name="ai_switching">Switching to %1$s</string>
+    <string name="ai_trimmed">%1$s only takes %2$d of the %3$d photos</string>
+    <string name="ai_listing_models">Checking which %1$s models can be used</string>
+    <string name="ai_sending">Sending to %1$s (%2$s)</string>
+    <string name="ai_fallback_model">%1$s · fallback model %2$d</string>
+    <string name="ai_waiting">Waiting for the answer</string>
+    <string name="ai_missed">%1$s %2$s</string>
+    <string name="ai_missed_retrying">%1$s %2$s, trying again</string>
+    <string name="ai_answered">Processing the answer</string>
+    <string name="ai_tomorrow_at">tomorrow %1$s</string>
+    <string name="tab_collection">Collection</string>
+    <string name="tab_garage">Garage</string>
+    <string name="tab_map">Map</string>
+    <string name="tab_dex">Dex</string>
+    <string name="create_menu_description">Add: scan, fill in by hand, or check in a store</string>
+    <string name="create_manual">Fill in by hand</string>
+    <string name="create_scan">Scan with AI</string>
+    <string name="create_scan_needs_key">Add an AI API key first</string>
+</resources>

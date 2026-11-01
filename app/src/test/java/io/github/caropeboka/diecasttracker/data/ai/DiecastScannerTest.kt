@@ -26,13 +26,13 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class DiecastScannerTest {
     private val env = TestEnvironment()
     private val fake = FakeGemini()
     private val setup = MutableStateFlow(AiSetup.gemini("test-key"))
-    private val scanner = DiecastScanner(fake.vision(setup), env.photos, currentYear = { 2026 })
+    private val scanner = DiecastScanner(fake.vision(setup), env.photos, env.texts, currentYear = { 2026 })
     private val matcher = CollectionMatcher(env.repository)
 
     @After

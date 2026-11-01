@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/dexdata.json; edit all three languages together. -->
+<resources>
+    <plurals name="dex_added">
+        <item quantity="other">%d entri ditambahkan</item>
+    </plurals>
+    <plurals name="dex_added_skipped">
+        <item quantity="other">, %d dilewati (sudah ada / kosong).</item>
+    </plurals>
+    <string name="dex_added_end">.</string>
+    <string name="valid_max_length">Maksimal %1$d karakter.</string>
+    <string name="dex_name_required">Nama dex wajib diisi.</string>
+    <string name="dex_name_taken">Kamu sudah punya dex dengan nama itu.</string>
+    <string name="dex_year_between">Tahun antara %1$d dan %2$d.</string>
+    <string name="dex_entry_missing">Entri tidak ditemukan.</string>
+    <string name="dex_model_name_required">Nama model wajib diisi.</string>
+    <string name="dex_entry_exists">Entri itu sudah ada di dex ini.</string>
+    <string name="dex_sheet_no_name">Kolom \"Nama\" tidak ditemukan di baris pertama.</string>
+    <string name="dex_missing">Dex tidak ditemukan.</string>
+    <string name="dex_wiki_read_only">Daftar dari wiki diubah lewat sinkron, bukan manual.</string>
+    <string name="sheet_empty">File Excel tidak berisi sheet.</string>
+    <string name="sheet_unreadable">File Excel tidak terbaca.</string>
+    <string name="wiki_year_empty">Daftar %1$d di wiki belum berisi data.</string>
+    <string name="wiki_year_missing">Daftar %1$d belum ada di wiki.</string>
+    <string name="wiki_refused">Wiki menolak permintaan: %1$s</string>
+    <string name="wiki_offline">Tidak bisa menghubungi wiki. Cek koneksi internet lalu coba lagi.</string>
+    <string name="wiki_trouble">Wiki sedang bermasalah (HTTP %1$d). Coba lagi nanti.</string>
+    <string name="wiki_sync_failed">Sinkron gagal (%1$s).</string>
+</resources>

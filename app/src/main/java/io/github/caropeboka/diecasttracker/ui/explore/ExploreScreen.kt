@@ -49,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -77,7 +79,7 @@ import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import io.github.caropeboka.diecasttracker.util.formatDate
 import io.github.caropeboka.diecasttracker.util.formatDayLong
 import io.github.caropeboka.diecasttracker.util.formatDayMonth
-import io.github.caropeboka.diecasttracker.util.formatRupiah
+import io.github.caropeboka.diecasttracker.util.formatMoney
 import kotlinx.coroutines.launch
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -96,10 +98,12 @@ import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
 import kotlin.math.sqrt
 
-/** "2 dibeli · 3 ditemui" */
-private fun describeCounts(sightings: Int, purchases: Int) =
-    listOfNotNull(purchases.takeIf { it > 0 }?.let { "$it dibeli" }, sightings.takeIf { it > 0 }?.let { "$it ditemui" })
-        .joinToString(" · ")
+/** "2 bought · 3 spotted" */
+@Composable
+private fun describeCounts(sightings: Int, purchases: Int) = listOfNotNull(
+    if (purchases > 0) stringResource(R.string.explore_bought_count, purchases) else null,
+    if (sightings > 0) stringResource(R.string.explore_spotted_count, sightings) else null,
+).joinToString(" · ")
 
 /** "Peta jelajah" (web: `explore/index.tsx`). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,7 +124,7 @@ fun ExploreScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Heading("Peta jelajah") },
+                title = { Heading(stringResource(R.string.explore_title)) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -149,7 +153,7 @@ fun ExploreScreen(
         ) {
             item {
                 Text(
-                    "Tempat-tempat kamu membeli dan menemukan diecast, kapan, dan apa saja yang ada di sana.",
+                    stringResource(R.string.explore_intro),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Garage.MutedForeground,
                 )
@@ -157,7 +161,7 @@ fun ExploreScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Segmented(
-                        ExploreType.entries, type, viewModel::setType, label = { it.label },
+                        ExploreType.entries, type, viewModel::setType, label = { stringResource(it.label) },
                         icon = {
                             when (it) {
                                 ExploreType.All -> R.drawable.ic_place
@@ -166,7 +170,7 @@ fun ExploreScreen(
                             }
                         },
                     )
-                    Segmented(ExploreRange.entries, range, viewModel::setRange, label = { it.label })
+                    Segmented(ExploreRange.entries, range, viewModel::setRange, label = { stringResource(it.label) })
                 }
             }
             item { StatTiles(data.stats) }
@@ -189,7 +193,7 @@ private fun <T> Segmented(
     options: List<T>,
     selected: T,
     onSelect: (T) -> Unit,
-    label: (T) -> String,
+    label: @Composable (T) -> String,
     icon: ((T) -> Int)? = null,
 ) {
     Row(
@@ -242,17 +246,17 @@ private fun <T> Segmented(
 private fun StatTiles(stats: ExploreStats) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
-            StatTile(R.drawable.ic_place, "Tempat dijelajahi", stats.places.toString(), "${stats.mapped} punya titik di peta", Modifier.weight(1f))
+            StatTile(R.drawable.ic_place, stringResource(R.string.explore_places_explored), stats.places.toString(), stringResource(R.string.explore_mapped, stats.mapped), Modifier.weight(1f))
             StatTile(
-                R.drawable.ic_car, "Diecast", stats.diecasts.toString(),
+                R.drawable.ic_car, stringResource(R.string.explore_diecasts), stats.diecasts.toString(),
                 describeCounts(stats.sightings, stats.purchases).ifEmpty { "—" }, Modifier.weight(1f),
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
-            StatTile(R.drawable.ic_calendar, "Hari berburu", stats.days.toString(), stats.top?.let { "Paling sering: $it" }, Modifier.weight(1f))
+            StatTile(R.drawable.ic_calendar, stringResource(R.string.explore_days), stats.days.toString(), stats.top?.let { stringResource(R.string.explore_most_often, it) }, Modifier.weight(1f))
             StatTile(
-                R.drawable.ic_route, "Berburu sejak", stats.first?.let(::formatDate) ?: "—",
-                stats.last?.let { "Terakhir ${formatDate(it)}" }, Modifier.weight(1f),
+                R.drawable.ic_route, stringResource(R.string.explore_since), stats.first?.let(::formatDate) ?: "—",
+                stats.last?.let { stringResource(R.string.explore_last, formatDate(it)) }, Modifier.weight(1f),
             )
         }
     }
@@ -304,9 +308,9 @@ private fun MapCard(map: ExploreMap, mapped: List<ExplorePlace>, selected: Strin
                 verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
             ) {
                 Icon(painterResource(R.drawable.ic_map), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(40.dp))
-                SubHeading("Belum ada titik di peta")
+                SubHeading(stringResource(R.string.explore_no_points))
                 Text(
-                    "Tekan tombol lokasi di Beli di atau Ditemui di saat menambah diecast atau mencatat temuan. Tempatnya akan muncul di sini.",
+                    stringResource(R.string.explore_no_points_text),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                     textAlign = TextAlign.Center,
@@ -331,13 +335,13 @@ private fun Legend(modifier: Modifier) {
         val small = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Box(Modifier.size(9.dp).background(Garage.Brand, CircleShape))
-            Text("Ada pembelian", style = small, color = Garage.MutedForeground)
+            Text(stringResource(R.string.explore_legend_bought), style = small, color = Garage.MutedForeground)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Box(Modifier.size(9.dp).border(2.dp, Garage.Brand, CircleShape))
-            Text("Hanya ditemui", style = small, color = Garage.MutedForeground)
+            Text(stringResource(R.string.explore_legend_spotted), style = small, color = Garage.MutedForeground)
         }
-        Text("Ukuran = jumlah", style = small, color = Garage.MutedForeground)
+        Text(stringResource(R.string.explore_legend_size), style = small, color = Garage.MutedForeground)
     }
 }
 
@@ -349,13 +353,13 @@ private fun PlaceDetails(place: ExplorePlace, onOpen: (Long) -> Unit, onClose: (
             Column(Modifier.weight(1f)) {
                 SubHeading(place.name, maxLines = 2)
                 Text(
-                    "${place.visits}× kunjungan · terakhir ${formatDate(place.last)} · ${describeCounts(place.sightings, place.purchases)}",
+                    pluralStringResource(R.plurals.explore_visits_last, place.visits, place.visits, formatDate(place.last), describeCounts(place.sightings, place.purchases)),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                 )
             }
             IconButton(onClick = onClose) {
-                Icon(painterResource(R.drawable.ic_close), contentDescription = "Tutup", tint = Garage.MutedForeground)
+                Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.close), tint = Garage.MutedForeground)
             }
         }
         place.items.forEach { item ->
@@ -363,7 +367,7 @@ private fun PlaceDetails(place: ExplorePlace, onOpen: (Long) -> Unit, onClose: (
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(6.dp))
-                    .clickable(onClickLabel = "Buka ${item.name}") { onOpen(item.diecastId) }
+                    .clickable(onClickLabel = stringResource(R.string.open_named, item.name)) { onOpen(item.diecastId) }
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -372,38 +376,38 @@ private fun PlaceDetails(place: ExplorePlace, onOpen: (Long) -> Unit, onClose: (
                 Column(Modifier.weight(1f)) {
                     Text(item.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        (if (item.kind == EventKind.Purchase) "Dibeli " else "Ditemui ") + formatDayMonth(item.date) +
-                            (item.price?.let { " · ${formatRupiah(it)}" } ?: ""),
+                        stringResource(if (item.kind == EventKind.Purchase) R.string.explore_bought_on else R.string.explore_spotted_on, formatDayMonth(item.date)) +
+                            (item.price?.let { " · ${formatMoney(it)}" } ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                     )
                 }
                 Icon(
                     painterResource(if (item.kind == EventKind.Purchase) R.drawable.ic_shopping_bag else R.drawable.ic_visibility),
-                    contentDescription = if (item.kind == EventKind.Purchase) "Dibeli" else "Ditemui",
+                    contentDescription = stringResource(if (item.kind == EventKind.Purchase) R.string.explore_bought else R.string.status_spotted),
                     tint = if (item.kind == EventKind.Purchase) Garage.Brand else Garage.MutedForeground,
                     modifier = Modifier.size(16.dp),
                 )
             }
         }
         if (place.count > place.items.size) {
-            Text("+${place.count - place.items.size} lainnya", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+            Text(stringResource(R.string.explore_more, place.count - place.items.size), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
         }
     }
 }
 
 @Composable
 private fun PlacesPanel(places: List<ExplorePlace>, onFocus: (ExplorePlace) -> Unit) {
-    SectionCard("Tempat") {
+    SectionCard(stringResource(R.string.explore_places)) {
         if (places.isEmpty()) {
-            Text("Belum ada data di rentang waktu ini.", style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
+            Text(stringResource(R.string.explore_no_data), style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
         }
         places.forEachIndexed { index, place ->
             if (index > 0) HorizontalDivider(color = Garage.Border)
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = place.hasPoint, onClickLabel = "Lihat di peta") { onFocus(place) }
+                    .clickable(enabled = place.hasPoint, onClickLabel = stringResource(R.string.explore_show_on_map)) { onFocus(place) }
                     .padding(vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -424,9 +428,9 @@ private fun PlacesPanel(places: List<ExplorePlace>, onFocus: (ExplorePlace) -> U
                 Column(Modifier.weight(1f)) {
                     Text(place.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        "${place.visits}× kunjungan · " +
+                        pluralStringResource(R.plurals.explore_visits, place.visits, place.visits) + " · " +
                             (if (place.first == place.last) formatDate(place.last) else "${formatDayMonth(place.first)} – ${formatDate(place.last)}") +
-                            (if (!place.hasPoint) " · belum ada titik" else ""),
+                            (if (!place.hasPoint) " · " + stringResource(R.string.explore_no_point) else ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                         maxLines = 1,
@@ -446,9 +450,9 @@ private fun PlacesPanel(places: List<ExplorePlace>, onFocus: (ExplorePlace) -> U
 
 @Composable
 private fun TimelinePanel(timeline: List<TimelineDay>) {
-    SectionCard("Riwayat jelajah") {
+    SectionCard(stringResource(R.string.explore_timeline)) {
         if (timeline.isEmpty()) {
-            Text("Belum ada riwayat.", style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
+            Text(stringResource(R.string.explore_no_history), style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
         }
         Column {
             timeline.forEachIndexed { index, day ->
@@ -463,7 +467,7 @@ private fun TimelinePanel(timeline: List<TimelineDay>) {
                     Column(Modifier.weight(1f).padding(start = 8.dp, bottom = 14.dp)) {
                         Text(formatDayLong(day.date), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                         Text(
-                            day.places.joinToString(" · ") { "${it.name} (${describeCounts(it.sightings, it.purchases)})" },
+                            day.places.map { "${it.name} (${describeCounts(it.sightings, it.purchases)})" }.joinToString(" · "),
                             style = MaterialTheme.typography.bodySmall,
                             color = Garage.MutedForeground,
                         )

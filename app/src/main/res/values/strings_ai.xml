@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/ai.json; edit all three languages together. -->
+<resources>
+    <string name="ai_err_connect">Can\'t reach %1$s. Check the internet connection.</string>
+    <string name="ai_err_key_invalid_short">The %1$s API key isn\'t valid.</string>
+    <string name="ai_err_trouble_later">%1$s is having trouble. Try again later.</string>
+    <string name="ai_err_blocked">The AI can\'t process this image.</string>
+    <string name="ai_err_unreadable">The AI\'s answer couldn\'t be read. Try a new photo in brighter light.</string>
+    <string name="ai_miss_offline">can\'t be reached (check the connection)</string>
+    <string name="ai_miss_timeout">didn\'t answer</string>
+    <string name="ai_miss_quota">is out of quota</string>
+    <string name="ai_miss_busy">is busy</string>
+    <string name="ai_miss_unavailable">isn\'t available</string>
+    <string name="ai_miss_failed">failed (%1$d)</string>
+    <string name="ai_err_key_invalid">The %1$s API key isn\'t valid. Check the AI settings.</string>
+    <string name="ai_err_quota">%1$s\'s free quota is used up for now. Wait a while (or until tomorrow) and try again.</string>
+    <string name="ai_err_gemini_busy">Gemini\'s servers are busy (many users). Try again in a moment.</string>
+    <string name="ai_err_offline">Can\'t connect to %1$s. Check the internet connection.</string>
+    <string name="ai_err_timeout">%1$s isn\'t responding (servers full or a slow connection). Try again in a moment.</string>
+    <string name="ai_err_gemini_model_missing">Gemini model \"%1$s\" wasn\'t found. Pick another model in the AI settings.</string>
+    <string name="ai_err_gemini_other">Gemini is having trouble. Fill it in by hand or try again.</string>
+    <string name="ai_err_connect_address">Can\'t reach %1$s. Check the internet connection and the address.</string>
+    <string name="ai_err_answered_code">%1$s answered %2$d. Check the address and the key.</string>
+    <string name="ai_miss_no_json">doesn\'t support JSON mode</string>
+    <string name="ai_err_unreadable_named">%1$s\'s answer couldn\'t be read. Try again or take a new photo in brighter light.</string>
+    <string name="ai_miss_key">didn\'t accept the key</string>
+    <string name="ai_miss_no_model">doesn\'t have the model</string>
+    <string name="ai_err_credit">%1$s wants credit for the model \"%2$s\". Pick a free model in the AI settings.</string>
+    <string name="ai_err_model_missing">The model \"%2$s\" isn\'t on %1$s. Pick another model in the AI settings.</string>
+    <string name="ai_err_too_big">The photos are too big for %1$s.</string>
+    <string name="ai_err_busy">%1$s\'s server is busy. Try again in a moment.</string>
+    <string name="ai_err_refused_said">%1$s refused this request: %2$s</string>
+    <string name="ai_err_refused_code">%1$s refused this request (%2$d).</string>
+    <string name="ai_err_bad_address">The %1$s server address isn\'t valid. Check the AI settings.</string>
+    <string name="ai_err_not_set">The AI isn\'t on yet. Add an API key in the AI settings.</string>
+    <string name="ai_err_all_failed">Every AI that\'s set up failed:</string>
+    <string name="confidence_high">Confident</string>
+    <string name="confidence_medium">Fairly confident</string>
+    <string name="confidence_low">Not sure — check it</string>
+    <string name="ai_err_scan_not_set">The AI scan isn\'t on yet. Add an API key in the AI settings.</string>
+    <string name="ai_answer_language">English</string>
+</resources>

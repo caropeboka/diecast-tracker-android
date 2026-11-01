@@ -1,12 +1,11 @@
 package io.github.caropeboka.diecasttracker.data.backup
 
-import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import java.io.OutputStream
 
 /**
  * The collection as one Excel table. Columns and labels follow the web's export (`CollectionSpreadsheet.php`), so its
- * "Import Excel" reads this file too.
+ * "Import Excel" reads this file too: they stay the web's Indonesian whatever language the app is in.
  */
 object CollectionSheet {
     const val MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -17,13 +16,10 @@ object CollectionSheet {
         "Lokasi Simpan", "Tag", "Catatan",
     )
 
-    /** The web's sheet says "Carded" where the form says "Carded (blister)". */
-    private fun Packaging.sheetLabel() = if (this == Packaging.Carded) "Carded" else label
-
     fun row(details: DiecastWithDetails): List<Any?> = with(details.diecast) {
         listOf(
-            name, brand, make, series, collectionNumber, year, scale, color, rarity.label, packaging.sheetLabel(),
-            condition?.label, status.label, quantity, purchasePrice, marketValue, targetPrice, purchaseDate?.toString(),
+            name, brand, make, series, collectionNumber, year, scale, color, rarity.sheetLabel, packaging.sheetLabel,
+            condition?.sheetLabel, status.sheetLabel, quantity, purchasePrice, marketValue, targetPrice, purchaseDate?.toString(),
             purchasePlace, storageLocation, details.orderedTags.joinToString(", ") { it.name }.ifEmpty { null }, notes,
         )
     }

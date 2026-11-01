@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/dexdata.json; edit all three languages together. -->
+<resources>
+    <plurals name="dex_added">
+        <item quantity="other">已添加 %d 个条目</item>
+    </plurals>
+    <plurals name="dex_added_skipped">
+        <item quantity="other">，跳过 %d 个（已存在/为空）。</item>
+    </plurals>
+    <string name="dex_added_end">。</string>
+    <string name="valid_max_length">最多 %1$d 个字符。</string>
+    <string name="dex_name_required">图鉴名称为必填项。</string>
+    <string name="dex_name_taken">你已经有同名的图鉴了。</string>
+    <string name="dex_year_between">年份须在 %1$d 到 %2$d 之间。</string>
+    <string name="dex_entry_missing">找不到该条目。</string>
+    <string name="dex_model_name_required">型号名称为必填项。</string>
+    <string name="dex_entry_exists">该条目已在此图鉴中。</string>
+    <string name="dex_sheet_no_name">第一行中没有“名称”列。</string>
+    <string name="dex_missing">找不到该图鉴。</string>
+    <string name="dex_wiki_read_only">来自维基的清单只能通过同步更新，不能手动修改。</string>
+    <string name="sheet_empty">Excel 文件中没有工作表。</string>
+    <string name="sheet_unreadable">无法读取 Excel 文件。</string>
+    <string name="wiki_year_empty">维基上的 %1$d 年清单还没有数据。</string>
+    <string name="wiki_year_missing">维基上还没有 %1$d 年的清单。</string>
+    <string name="wiki_refused">维基拒绝了请求：%1$s</string>
+    <string name="wiki_offline">无法连接维基。请检查网络连接后重试。</string>
+    <string name="wiki_trouble">维基出现问题（HTTP %1$d），请稍后再试。</string>
+    <string name="wiki_sync_failed">同步失败（%1$s）。</string>
+</resources>

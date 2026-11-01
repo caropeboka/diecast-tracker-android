@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/dashboard.json; edit all three languages together. -->
+<resources>
+    <plurals name="dashboard_year_column">
+        <item quantity="other">%1$s：%2$d 辆</item>
+    </plurals>
+    <string name="dashboard_years_from">%1$d+</string>
+    <string name="see_all">全部 →</string>
+    <string name="dashboard_title">你的车库</string>
+    <string name="dashboard_recent">最近添加</string>
+    <string name="dashboard_shelves_3d">3D 展架</string>
+    <string name="greeting_morning">早上好</string>
+    <string name="greeting_noon">中午好</string>
+    <string name="greeting_afternoon">下午好</string>
+    <string name="greeting_evening">晚上好</string>
+    <string name="dashboard_empty_title">你的车库还是空的</string>
+    <string name="dashboard_empty_text">拥有合金车后，你的收藏数据和图表会显示在这里。</string>
+    <string name="dashboard_value">收藏价值</string>
+    <string name="dashboard_average">平均 / 辆</string>
+    <string name="dashboard_dearest">最贵</string>
+    <string name="dashboard_brands">品牌</string>
+    <string name="dashboard_value_basis">根据 %2$d 辆中已有市场价的 %1$d 辆计算。</string>
+    <string name="dashboard_fill_prices_text">填写购入价即可查看收藏的盈亏。</string>
+    <string name="dashboard_fill_prices">补全购入价 →</string>
+    <string name="dashboard_up">上涨</string>
+    <string name="dashboard_down">下跌</string>
+    <string name="dashboard_vs_purchase">相比购入价</string>
+    <string name="dashboard_total">合金车总数</string>
+    <string name="dashboard_pcs">%1$d 件</string>
+    <plurals name="dashboard_models">
+        <item quantity="other">%d 个不同型号</item>
+    </plurals>
+    <string name="dashboard_spent">总花费</string>
+    <string name="dashboard_priced">%2$d 辆中 %1$d 辆有购入价</string>
+    <string name="dashboard_rare">稀有</string>
+    <plurals name="dashboard_sth_count">
+        <item quantity="other">%d 辆超级寻宝</item>
+    </plurals>
+    <string name="dashboard_no_rare">还没有 TH / STH / Chase</string>
+    <string name="dashboard_hunted_spotted">寻找中 · 曾见过 %1$d 辆</string>
+    <string name="dashboard_hunted">辆正在寻找</string>
+    <string name="dashboard_add_hunt">添加你正在寻找的合金车</string>
+    <string name="dashboard_most_valuable">最有价值</string>
+    <string name="dashboard_no_market_values">还没有市场价。打开一辆合金车 → 查询市场价，即可根据 Tokopedia/Shopee 截图计算。</string>
+    <string name="dashboard_completeness">数据完整度</string>
+    <string name="dashboard_complete">已完整</string>
+    <string name="dashboard_complete_it">去补全 →</string>
+    <string name="dashboard_per_brand">按品牌</string>
+    <string name="dashboard_brand_share">占收藏 %1$d%% · 价值 %2$s</string>
+    <string name="dashboard_by_count">数量</string>
+    <string name="dashboard_by_value">价值</string>
+    <string name="dashboard_all_regular">目前都是普通款</string>
+    <string name="dashboard_all_regular_text">还没有寻宝、超级寻宝或 Chase。祝你淘车愉快！🔥</string>
+    <string name="dashboard_makes">汽车品牌</string>
+    <string name="dashboard_release_years">发行年份</string>
+    <plurals name="dashboard_unknown_years">
+        <item quantity="other">%d 辆合金车还没有发行年份。</item>
+    </plurals>
+    <string name="dashboard_gainers">涨幅最大</string>
+    <string name="dashboard_gain">上涨 %1$s</string>
+    <string name="dashboard_wishlist">心愿单（%1$d）</string>
+</resources>

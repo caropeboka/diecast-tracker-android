@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/app.json; edit all three languages together. -->
+<resources>
+    <string name="shortcut_check_short">Store check</string>
+    <string name="shortcut_check_long">Store check: do I have it?</string>
+</resources>

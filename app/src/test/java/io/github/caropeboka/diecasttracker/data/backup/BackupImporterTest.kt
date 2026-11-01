@@ -26,7 +26,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BackupImporterTest {
     private val env = TestEnvironment()

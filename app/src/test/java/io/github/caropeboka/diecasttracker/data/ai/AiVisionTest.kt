@@ -2,6 +2,8 @@ package io.github.caropeboka.diecasttracker.data.ai
 
 import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.testTexts
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -27,7 +29,7 @@ import java.time.Instant
 import java.util.Collections
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 class AiVisionTest {
     private var now = Instant.parse("2026-10-20T10:00:00Z").toEpochMilli()
     private val fake = FakeGemini().on("models", 200, FakeGemini.models())
@@ -40,9 +42,10 @@ class AiVisionTest {
 
     private fun vision(vararg providers: ProviderSettings) = AiVision(
         MutableStateFlow(AiSetup(providers.toList())),
-        GeminiClient(fake.client, MemoryModelCache(), baseUrl = "https://gemini.test/v1beta", clock = { now }),
-        OpenAiClient(fake.client, clock = { now }),
+        GeminiClient(fake.client, MemoryModelCache(), testTexts(), baseUrl = "https://gemini.test/v1beta", clock = { now }),
+        OpenAiClient(fake.client, testTexts(), clock = { now }),
         rests,
+        testTexts(),
         clock = { now },
     )
 
@@ -162,7 +165,7 @@ class AiVisionTest {
             vision.read()
             fail("Expected an AiException")
         } catch (e: AiException) {
-            assertEquals(AiVision.NOT_SET, e.message)
+            assertEquals(testTexts()(R.string.ai_err_not_set), e.message)
         }
     }
 
@@ -206,7 +209,7 @@ class AiVisionTest {
             "api.mistral.ai/v1/models", 200,
             """{"data":[{"id":"mistral-small-latest","capabilities":{"vision":true}},{"id":"codestral-latest","capabilities":{"vision":false}}]}""",
         ).on("api.groq.com/openai/v1/models", 200, """{"data":[{"id":"qwen/qwen3.8-27b"},{"id":"whisper-large-v3"}]}""")
-        val client = OpenAiClient(fake.client)
+        val client = OpenAiClient(fake.client, testTexts())
 
         assertEquals(listOf("openrouter/free", "google/gemma-4-31b-it:free"), client.availableModels(ProviderSettings(AiProvider.OpenRouter, "sk-or-test")))
         assertEquals(listOf("mistral-small-latest"), client.availableModels(mistral))

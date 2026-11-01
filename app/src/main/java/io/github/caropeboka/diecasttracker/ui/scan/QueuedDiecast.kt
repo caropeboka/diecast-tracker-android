@@ -1,5 +1,7 @@
 package io.github.caropeboka.diecasttracker.ui.scan
 
+import androidx.annotation.StringRes
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.db.ScanItemEntity
@@ -32,10 +34,11 @@ data class QueueDefaults(
 )
 
 /** The quick price field's label for [status]. */
-fun priceLabel(status: DiecastStatus) = when (status) {
-    DiecastStatus.Wishlist -> "Target harga"
-    DiecastStatus.Spotted -> "Harga di sana"
-    else -> "Harga beli"
+@StringRes
+fun priceLabel(status: DiecastStatus): Int = when (status) {
+    DiecastStatus.Wishlist -> R.string.field_target_price
+    DiecastStatus.Spotted -> R.string.edit_price_there
+    else -> R.string.field_purchase_price
 }
 
 /**

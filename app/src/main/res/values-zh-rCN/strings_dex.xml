@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/dex.json; edit all three languages together. -->
+<resources>
+    <string name="dex_intro">按年份和系列查看你见过和拥有了多少款。</string>
+    <string name="dex_delete_text">清单及其照片会从手机中删除。收藏中的合金车仍保留，只是解除与此图鉴的关联。</string>
+    <plurals name="dex_review_count">
+        <item quantity="other">%d 辆合金车需要核对</item>
+    </plurals>
+    <string name="dex_review_text">确认自动匹配、选择建议，并修正错误的年份。</string>
+    <string name="dex_review_open">匹配</string>
+    <plurals name="dex_images_downloading">
+        <item quantity="other">正在下载图鉴照片…还剩 %d 张</item>
+    </plurals>
+    <plurals name="dex_images_retrying">
+        <item quantity="other">还有 %d 张图鉴照片未下载，将自动重试。</item>
+    </plurals>
+    <plurals name="dex_images_wait_connection">
+        <item quantity="other">%d 张图鉴照片正在等待网络连接。</item>
+    </plurals>
+    <plurals name="dex_images_wait_wifi">
+        <item quantity="other">%d 张图鉴照片正在等待 Wi-Fi。</item>
+    </plurals>
+    <string name="dex_cellular">也使用移动数据</string>
+    <string name="dex_cellular_hint">每年约 5–8 MB。关闭时：仅通过 Wi-Fi 下载照片。</string>
+    <string name="dex_empty_title">图鉴还是空的</string>
+    <string name="dex_empty_text">在下方同步 Hot Wheels 或 Matchbox 的发行清单，或为其他品牌创建自己的图鉴。你的收藏会立即匹配，并能看到见过和拥有了多少。</string>
+    <string name="dex_counts">拥有 %1$d · 见过 %2$d / 共 %3$d</string>
+    <string name="dex_counts_wanted">想要 %1$d</string>
+    <string name="dex_menu_for">%1$s 的菜单</string>
+    <string name="dex_resync">重新同步</string>
+    <string name="dex_edit">编辑图鉴</string>
+    <string name="dex_remove">从图鉴中删除</string>
+    <string name="dex_own">自建图鉴</string>
+    <string name="dex_own_text">适用于维基上没有清单的品牌（Mini GT、Tarmac、Inno64、Roll Speed…）。可手动填写，或从 Excel、清单截图（由 AI 读取）或你的收藏导入。</string>
+    <string name="dex_own_create">创建自己的图鉴</string>
+    <string name="dex_sync_title">同步图鉴</string>
+    <string name="dex_sync_text">从 Hot Wheels Wiki 或 Matchbox Wiki（CC BY-SA）按年份获取官方发行清单。重新同步同一年份会更新清单，不会解除你收藏的关联。</string>
+    <string name="dex_from">从</string>
+    <string name="dex_to">到</string>
+    <string name="dex_sync_one">同步 %1$d</string>
+    <plurals name="dex_sync_range">
+        <item quantity="other">同步 %1$d–%2$d（%3$d 年）</item>
+    </plurals>
+    <string name="dex_syncing">正在同步 %1$d（第 %2$d/%3$d 个）…</string>
+    <string name="waiting_for_connection">正在等待网络连接…</string>
+    <plurals name="dex_sync_releases">
+        <item quantity="other">%1$s：%2$d 款</item>
+    </plurals>
+    <string name="dex_sync_new">，新增 %1$d</string>
+    <string name="dex_sync_removed">，删除 %1$d</string>
+    <plurals name="dex_sync_linked">
+        <item quantity="other">已关联 %d 辆合金车</item>
+    </plurals>
+    <string name="dex_removed">已从图鉴中删除 %1$s。</string>
+    <string name="dex_created">图鉴 %1$s 已创建，现在来填写清单吧。</string>
+    <string name="dex_saved">图鉴已保存。</string>
+    <string name="dex_meter_description">见过 %1$d，拥有 %2$d，共 %3$d</string>
+    <string name="dex_legend_owned">拥有 %1$d（%2$d%%）</string>
+    <string name="dex_legend_seen">见过 %1$d（%2$d%%）</string>
+    <string name="dex_legend_of">共 %1$d</string>
+    <string name="dex_state_owned">已拥有</string>
+    <string name="dex_state_seen">见过</string>
+    <string name="dex_state_wanted">想要</string>
+    <string name="dex_state_none">尚未追踪</string>
+    <string name="dex_matches_title">匹配图鉴</string>
+    <string name="dex_matches_intro">核对每辆合金车的图鉴条目。自动匹配的只需确认；错误的年份可以直接修正。</string>
+    <string name="dex_matches_done">全部核对完毕</string>
+    <plurals name="dex_matches_more">
+        <item quantity="other">核对完上面的之后，还会显示 %d 辆合金车。</item>
+    </plurals>
+    <string name="dex_no_number">无编号</string>
+    <string name="dex_msg_year_fixed">正确，年份已改为 %1$d。</string>
+    <string name="dex_correct_fix_year">正确并将年份改为 %1$d</string>
+    <string name="dex_msg_confirmed">已确认。</string>
+    <string name="dex_correct_keep_year">正确，保留年份</string>
+    <string name="dex_msg_unlinked">已解除与图鉴的关联。</string>
+    <string name="dex_not_this">不是这个</string>
+    <string name="dex_year_mismatch">收藏中记录的是 %1$s，但这一版发行于 %2$d 年。卡片上的年份通常是模型的版权年份，而不是发行年份。</string>
+    <string name="dex_no_year">无年份</string>
+    <string name="dex_msg_linked_year">已关联，年份已改为 %1$d。</string>
+    <string name="dex_msg_linked">已关联。</string>
+    <string name="dex_this_is_it_year">就是它（%1$d 年）</string>
+    <string name="dex_this_is_it">就是它</string>
+    <string name="dex_not_here">不在这里</string>
+    <string name="dex_not_found_synced">在已同步的图鉴中找不到。</string>
+    <string name="dex_filter_all">全部</string>
+    <string name="dex_filter_missing">未见</string>
+    <plurals name="dex_numbers">
+        <item quantity="other">%d 个编号</item>
+    </plurals>
+    <string name="dex_open_wiki">在维基中打开</string>
+    <string name="dex_menu">图鉴菜单</string>
+    <string name="dex_delete">删除图鉴</string>
+    <string name="dex_wanted_wishlist">想要 %1$d（心愿单）</string>
+    <string name="dex_search">搜索名称、编号、系列…</string>
+    <string name="dex_group_series">按系列分组</string>
+    <string name="dex_custom_empty">还没有条目。可以逐个添加，或从 Excel/CSV、清单截图或你的收藏批量导入。</string>
+    <string name="dex_catalog_empty">这个图鉴还是空的。</string>
+    <string name="dex_no_match">没有匹配的条目。</string>
+    <string name="dex_other_series">其他</string>
+    <string name="dex_owned_of">已拥有 %1$d/%2$d</string>
+    <string name="dex_new_model">新模型</string>
+    <string name="dex_exclusive">%1$s 限定</string>
+    <string name="dex_variants">版本（%1$d）</string>
+    <string name="dex_main_colour">主色</string>
+    <string name="dex_log">记录</string>
+    <string name="dex_log_variant">记录（%1$s）</string>
+    <string name="dex_add_variant">添加版本</string>
+    <string name="dex_matched_auto_lower">自动匹配</string>
+    <plurals name="dex_entry_delete_linked">
+        <item quantity="other">你的收藏中有 %d 辆合金车关联到此条目；关联会解除，合金车仍保留。</item>
+    </plurals>
+    <string name="dex_entry_delete">此条目将从图鉴中删除。</string>
+    <string name="ai_hint_checklist">可能需要一分钟左右，取决于清单的长度。</string>
+    <string name="dex_entry_added">已添加 %1$s。</string>
+    <string name="dex_checklist_max">每次最多读取 %1$d 张截图；只读取前 %1$d 张。</string>
+    <string name="dex_preparing_images">正在准备图片</string>
+    <string name="dex_checklist_none">AI 未在图片中找到任何发行款。</string>
+    <string name="dex_checking_known">正在检查清单中已有的条目</string>
+    <string name="dex_checklist_failed">无法读取清单（%1$s）。</string>
+    <string name="dex_add_failed">添加失败：%1$s</string>
+    <string name="dex_file_too_big">文件最大 5 MB。</string>
+    <string name="dex_import_failed">导入失败（%1$s）。</string>
+    <string name="dex_collection_none">你的收藏中还没有可加入的 %1$s 合金车。</string>
+    <string name="dex_collection_failed">从收藏导入失败：%1$s</string>
+    <string name="dex_add_entry">添加条目</string>
+    <string name="dex_fill_many">批量添加</string>
+    <string name="dex_create_own_hint">适用于维基上没有清单的品牌（Mini GT、Tarmac、Inno64、Roll Speed…）。</string>
+    <string name="dex_name_label">图鉴名称 *</string>
+    <string name="dex_name_placeholder">Mini GT 2026、Roll Speed 警车…</string>
+    <string name="dex_year_optional">年份（可选）</string>
+    <string name="dex_create">创建图鉴</string>
+    <string name="dex_edit_entry">编辑条目</string>
+    <string name="dex_add_entry_hint">一个发行款。相同编号但版本不同的会成为该条目的一个版本。</string>
+    <string name="dex_added_next">%1$s 继续添加下一个条目，或点“完成”。</string>
+    <string name="dex_number_code">编号 / 代码</string>
+    <string name="dex_number_placeholder">MGT00512（留空 = 自动顺序编号）</string>
+    <string name="dex_series_number">系列编号</string>
+    <string name="dex_series_number_placeholder">例如 3/5</string>
+    <string name="dex_variant_colour">版本 / 颜色</string>
+    <string name="dex_variant_placeholder">Bayside Blue、左舵…</string>
+    <string name="dex_entry_photo">条目照片</string>
+    <string name="dex_photo_optional">照片（可选）</string>
+    <string name="dex_fill_many_title">批量添加</string>
+    <string name="dex_fill_many_hint">已有的条目不会重复添加。</string>
+    <string name="dex_from_checklist">从清单截图导入（AI）</string>
+    <string name="dex_from_checklist_text">发行清单的截图（清单帖子、目录、店铺预售），最多 %1$d 张，或纸质清单的照片。AI 会录入清单，添加前由你检查。</string>
+    <string name="dex_pick_screenshots">选择截图</string>
+    <string name="dex_open_ai_settings">打开 AI 设置</string>
+    <string name="dex_from_sheet">从 Excel / CSV 导入</string>
+    <string name="dex_from_sheet_text">第一行为列标题：Number、Name、Series、Series number、Variant（英文或印尼文）。至少需要 Name 列。只读取第一个工作表。</string>
+    <string name="dex_from_collection">从我的收藏导入</string>
+    <string name="dex_from_collection_text">你收藏中所有 %1$s 合金车都会成为条目，并立即关联（附带照片）。</string>
+    <string name="dex_review_title">检查 AI 识别结果</string>
+    <string name="dex_already_there">图鉴中已有</string>
+    <plurals name="dex_add_count">
+        <item quantity="other">添加 %d 个条目</item>
+    </plurals>
+    <plurals name="dex_checklist_review">
+        <item quantity="other">AI 读取了 %d 个发行款。取消勾选读错的；小错误可在添加后修改。</item>
+    </plurals>
+</resources>

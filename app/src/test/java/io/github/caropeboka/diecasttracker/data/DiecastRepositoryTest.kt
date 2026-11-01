@@ -18,7 +18,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.time.LocalDate
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class DiecastRepositoryTest {
     private var clock = 1_000L

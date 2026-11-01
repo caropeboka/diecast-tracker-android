@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/data.json; edit all three languages together. -->
+<resources>
+    <string name="explore_diecasts">Diecast</string>
+    <string name="data_counts">Koleksimu: %1$s, %2$s.</string>
+    <plurals name="data_diecasts">
+        <item quantity="other">%d diecast</item>
+    </plurals>
+    <plurals name="data_photos">
+        <item quantity="other">%d foto</item>
+    </plurals>
+    <string name="data_backup">Backup</string>
+    <string name="data_backup_text">Satu file .zip berisi semua diecast, foto, catatan temuan, dan Dex. Simpan di luar HP (Google Drive, laptop) supaya koleksi aman kalau HP hilang atau aplikasinya terhapus. File ini juga bisa dipulihkan di web app.</string>
+    <string name="data_last_backup">Backup terakhir: %1$s.</string>
+    <string name="data_never_backed_up">Belum pernah backup dari HP ini.</string>
+    <string name="data_export_excel">Export Excel</string>
+    <string name="data_export_excel_text">Daftar koleksi dalam satu tabel (.xlsx), kolomnya sama dengan export di web. Foto tidak ikut.</string>
+    <string name="data_restore">Pulihkan dari backup</string>
+    <string name="data_restore_text">Pilih file backup .zip dari HP ini, atau dari web app (Settings → Backup &amp; Data → Download backup). Data dan semua fotonya ikut; backup dari HP juga membawa Dex-nya.</string>
+    <string name="data_mode_merge">Tambahkan ke koleksi sekarang</string>
+    <string name="data_mode_replace">Ganti seluruh koleksi sekarang dengan isi backup</string>
+    <plurals name="data_replace_confirm">
+        <item quantity="other">Saya mengerti %d diecast yang ada sekarang (beserta fotonya) akan dihapus dan diganti isi backup. Backup dari HP juga mengganti Dex sendiri.</item>
+    </plurals>
+    <string name="data_pick_backup">Pilih file backup (.zip)</string>
+    <string name="data_share">Bagikan</string>
+    <string name="data_keep_open">Boleh pindah layar; jangan tutup aplikasinya sampai selesai.</string>
+    <string name="data_making_excel">Membuat file Excel…</string>
+    <string name="data_preparing_backup">Menyiapkan backup…</string>
+    <string name="data_copying_photos">Menyalin foto %1$d dari %2$d…</string>
+    <plurals name="data_sighting_photos">
+        <item quantity="other">%d foto temuan</item>
+    </plurals>
+    <plurals name="data_dex_lists">
+        <item quantity="other">%d daftar Dex</item>
+    </plurals>
+    <string name="data_backup_ready">Backup siap dibagikan.</string>
+    <string name="data_backup_saved">Backup tersimpan.</string>
+    <string name="data_excel_ready">File Excel siap dibagikan.</string>
+    <string name="data_excel_saved">File Excel tersimpan.</string>
+    <string name="data_contents">Isinya %1$s.</string>
+    <string name="data_reading_backup">Membaca file backup…</string>
+    <string name="data_restoring">Memulihkan %1$d dari %2$d diecast…</string>
+    <plurals name="data_restored">
+        <item quantity="other">%d diecast berhasil dipulihkan</item>
+    </plurals>
+    <plurals name="data_added">
+        <item quantity="other">%d diecast berhasil ditambahkan</item>
+    </plurals>
+    <plurals name="data_skipped">
+        <item quantity="other">, %d dilewati:</item>
+    </plurals>
+    <string name="data_backup_made">Backup dibuat %1$s.</string>
+    <plurals name="data_dexes_restored">
+        <item quantity="other">Dex: %d daftar ikut dipulihkan.</item>
+    </plurals>
+</resources>

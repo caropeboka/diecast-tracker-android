@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/dexdata.json; edit all three languages together. -->
+<resources>
+    <plurals name="dex_added">
+        <item quantity="one">%d entry added</item>
+        <item quantity="other">%d entries added</item>
+    </plurals>
+    <plurals name="dex_added_skipped">
+        <item quantity="one">, %d skipped (already there / empty).</item>
+        <item quantity="other">, %d skipped (already there / empty).</item>
+    </plurals>
+    <string name="dex_added_end">.</string>
+    <string name="valid_max_length">At most %1$d characters.</string>
+    <string name="dex_name_required">The dex needs a name.</string>
+    <string name="dex_name_taken">You already have a dex with that name.</string>
+    <string name="dex_year_between">A year between %1$d and %2$d.</string>
+    <string name="dex_entry_missing">Entry not found.</string>
+    <string name="dex_model_name_required">The model needs a name.</string>
+    <string name="dex_entry_exists">That entry is already in this dex.</string>
+    <string name="dex_sheet_no_name">No \"Name\" column in the first row.</string>
+    <string name="dex_missing">Dex not found.</string>
+    <string name="dex_wiki_read_only">Lists from the wiki change through a sync, not by hand.</string>
+    <string name="sheet_empty">The Excel file has no sheet.</string>
+    <string name="sheet_unreadable">The Excel file can\'t be read.</string>
+    <string name="wiki_year_empty">The wiki\'s %1$d list has no data yet.</string>
+    <string name="wiki_year_missing">The wiki has no %1$d list yet.</string>
+    <string name="wiki_refused">The wiki refused the request: %1$s</string>
+    <string name="wiki_offline">Can\'t reach the wiki. Check the internet connection and try again.</string>
+    <string name="wiki_trouble">The wiki is having trouble (HTTP %1$d). Try again later.</string>
+    <string name="wiki_sync_failed">The sync failed (%1$s).</string>
+</resources>

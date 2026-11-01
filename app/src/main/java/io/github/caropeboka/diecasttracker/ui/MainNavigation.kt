@@ -2,6 +2,7 @@ package io.github.caropeboka.diecasttracker.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.Transition
@@ -59,6 +60,7 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
@@ -70,11 +72,11 @@ import kotlin.math.asin
 import kotlin.math.roundToInt
 
 /** The main screens, one tap apart; the app opens on the collection. */
-enum class MainTab(val label: String, @DrawableRes val icon: Int) {
-    Collection("Koleksi", R.drawable.ic_car),
-    Garage("Garasi", R.drawable.ic_dashboard),
-    Explore("Peta", R.drawable.ic_map),
-    Dex("Dex", R.drawable.ic_collections_bookmark),
+enum class MainTab(@StringRes val label: Int, @DrawableRes val icon: Int) {
+    Collection(R.string.tab_collection, R.drawable.ic_car),
+    Garage(R.string.tab_garage, R.drawable.ic_dashboard),
+    Explore(R.string.tab_map, R.drawable.ic_map),
+    Dex(R.string.tab_dex, R.drawable.ic_collections_bookmark),
 }
 
 /** What the bar's centre button offers; provided once by the root, so every tab has it. */
@@ -151,10 +153,17 @@ fun MainNavigationBar(current: MainTab, onSelect: (MainTab) -> Unit) {
 @Composable
 private fun RowScope.TabItem(tab: MainTab, current: MainTab, onSelect: (MainTab) -> Unit) {
     val selected = tab == current
+    val target = when (tab) {
+        MainTab.Collection -> TourTarget.Collection
+        MainTab.Garage -> TourTarget.Garage
+        MainTab.Explore -> TourTarget.Map
+        MainTab.Dex -> TourTarget.Dex
+    }
     Column(
         Modifier
             .weight(1f)
             .fillMaxHeight()
+            .tourTarget(LocalTour.current, target)
             .selectable(
                 selected = selected,
                 interactionSource = null,
@@ -171,7 +180,7 @@ private fun RowScope.TabItem(tab: MainTab, current: MainTab, onSelect: (MainTab)
             tint = if (selected) Garage.Brand else Garage.MutedForeground,
             modifier = Modifier.size(24.dp),
         )
-        BarLabel(tab.label, if (selected) Garage.Foreground else Garage.MutedForeground, if (selected) FontWeight.SemiBold else FontWeight.Normal)
+        BarLabel(stringResource(tab.label), if (selected) Garage.Foreground else Garage.MutedForeground, if (selected) FontWeight.SemiBold else FontWeight.Normal)
     }
 }
 
@@ -189,7 +198,7 @@ private fun RowScope.CreateLabel(onClick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {
         Spacer(Modifier.size(24.dp))
-        BarLabel("Tambah", Garage.Foreground, FontWeight.Normal)
+        BarLabel(stringResource(R.string.add), Garage.Foreground, FontWeight.Normal)
     }
 }
 
@@ -205,6 +214,7 @@ private fun CreateButton(modifier: Modifier, onPlaced: (Offset) -> Unit, onClick
         modifier
             .size(BUMP)
             .onGloballyPositioned { onPlaced(it.boundsInRoot().center) }
+            .tourTarget(LocalTour.current, TourTarget.Create)
             .drawBehind {
                 drawCircle(Garage.Card)
                 // The bar's top border, carried over the part above the bar.
@@ -229,7 +239,7 @@ private fun CreateButton(modifier: Modifier, onPlaced: (Offset) -> Unit, onClick
     ) {
         Icon(
             painterResource(R.drawable.ic_add),
-            contentDescription = "Tambah: scan, isi manual, atau cek di toko",
+            contentDescription = stringResource(R.string.create_menu_description),
             tint = Garage.OnBrand,
             modifier = Modifier.size(30.dp),
         )
@@ -281,15 +291,15 @@ fun CreateMenuOverlay(actions: CreateActions) {
             Modifier.at(above = CIRCLE / 2 + 16.dp).width(IntrinsicSize.Max),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            MenuOption(transition, 2, R.drawable.ic_add, "Isi manual", button) { choose(actions.onAdd) }
-            MenuOption(transition, 1, R.drawable.ic_search, "Cek di toko", button) { choose(actions.onCheck) }
+            MenuOption(transition, 2, R.drawable.ic_add, stringResource(R.string.create_manual), button) { choose(actions.onAdd) }
+            MenuOption(transition, 1, R.drawable.ic_search, stringResource(R.string.menu_store_check), button) { choose(actions.onCheck) }
             MenuOption(
                 transition,
                 0,
                 R.drawable.ic_photo_camera,
-                "Scan dengan AI",
+                stringResource(R.string.create_scan),
                 button,
-                note = if (actions.scanEnabled) null else "Isi API key AI dulu",
+                note = if (actions.scanEnabled) null else stringResource(R.string.create_scan_needs_key),
                 primary = true,
             ) { choose(actions.onScan) }
         }
@@ -304,7 +314,7 @@ fun CreateMenuOverlay(actions: CreateActions) {
         ) {
             Icon(
                 painterResource(R.drawable.ic_add),
-                contentDescription = "Tutup",
+                contentDescription = stringResource(R.string.close),
                 tint = Garage.OnBrand,
                 modifier = Modifier.size(30.dp).graphicsLayer { rotationZ = 45f * shown },
             )

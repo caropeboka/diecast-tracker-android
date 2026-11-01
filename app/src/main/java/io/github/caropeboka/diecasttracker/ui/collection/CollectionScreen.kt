@@ -50,6 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,8 +63,10 @@ import io.github.caropeboka.diecasttracker.data.CollectionSort
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MissingField
 import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.ui.LocalTour
 import io.github.caropeboka.diecasttracker.ui.MainNavigationBar
 import io.github.caropeboka.diecasttracker.ui.MainTab
+import io.github.caropeboka.diecasttracker.ui.TourTarget
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
@@ -71,6 +75,7 @@ import io.github.caropeboka.diecasttracker.ui.scan.QueueBanner
 import io.github.caropeboka.diecasttracker.ui.revealSource
 import io.github.caropeboka.diecasttracker.ui.sharedDiecastCard
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
+import io.github.caropeboka.diecasttracker.ui.tourTarget
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +87,7 @@ fun CollectionScreen(
     onBulkScan: () -> Unit,
     onCheck: () -> Unit,
     onAiSettings: () -> Unit,
+    onSettings: () -> Unit,
     viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -95,10 +101,10 @@ fun CollectionScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Heading("Koleksi")
+                        Heading(stringResource(R.string.collection_title))
                         state.items?.let {
                             Text(
-                                "${it.size} item tercatat",
+                                pluralStringResource(R.plurals.collection_count, it.size, it.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Garage.MutedForeground,
                             )
@@ -108,19 +114,19 @@ fun CollectionScreen(
                 actions = {
                     IconButton(onClick = viewModel::toggleLayout) {
                         if (state.layout == CollectionLayout.Grid) {
-                            Icon(painterResource(R.drawable.ic_view_list), contentDescription = "Tampilkan sebagai daftar")
+                            Icon(painterResource(R.drawable.ic_view_list), contentDescription = stringResource(R.string.collection_show_list))
                         } else {
-                            Icon(painterResource(R.drawable.ic_grid_view), contentDescription = "Tampilkan sebagai grid")
+                            Icon(painterResource(R.drawable.ic_grid_view), contentDescription = stringResource(R.string.collection_show_grid))
                         }
                     }
                     Box {
                         // What the menu opens grows out of this button.
-                        IconButton(onClick = { menuOpen = true }, modifier = revealSource()) {
-                            Icon(painterResource(R.drawable.ic_more_vert), contentDescription = "Menu lain")
+                        IconButton(onClick = { menuOpen = true }, modifier = revealSource().tourTarget(LocalTour.current, TourTarget.Menu)) {
+                            Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.collection_more_menu))
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
-                                text = { Text("Cek di toko") },
+                                text = { Text(stringResource(R.string.menu_store_check)) },
                                 leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
                                 onClick = {
                                     menuOpen = false
@@ -128,7 +134,7 @@ fun CollectionScreen(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Scan massal") },
+                                text = { Text(stringResource(R.string.menu_bulk_scan)) },
                                 leadingIcon = { Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null) },
                                 onClick = {
                                     menuOpen = false
@@ -136,7 +142,7 @@ fun CollectionScreen(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Pengaturan AI") },
+                                text = { Text(stringResource(R.string.settings_ai)) },
                                 leadingIcon = { Icon(painterResource(R.drawable.ic_sparkles), contentDescription = null) },
                                 onClick = {
                                     menuOpen = false
@@ -144,11 +150,19 @@ fun CollectionScreen(
                                 },
                             )
                             DropdownMenuItem(
-                                text = { Text("Data & backup") },
+                                text = { Text(stringResource(R.string.settings_data)) },
                                 leadingIcon = { Icon(painterResource(R.drawable.ic_folder_zip), contentDescription = null) },
                                 onClick = {
                                     menuOpen = false
                                     onData()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.settings_menu)) },
+                                leadingIcon = { Icon(painterResource(R.drawable.ic_settings), contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    onSettings()
                                 },
                             )
                         }
@@ -205,12 +219,12 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = { Text("Cari nama, seri, warna, lokasi…") },
+        placeholder = { Text(stringResource(R.string.collection_search)) },
         leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
         trailingIcon = if (value.isNotEmpty()) {
             {
                 IconButton(onClick = { onValueChange("") }) {
-                    Icon(painterResource(R.drawable.ic_close), contentDescription = "Hapus pencarian")
+                    Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.collection_clear_search))
                 }
             }
         } else {
@@ -229,10 +243,10 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
     val filter = state.filter
     val missingChip = @Composable {
         MenuChip(
-            label = filter.missing?.let { "Belum ada ${it.label.lowercase()}" } ?: "Semua kelengkapan",
+            label = filter.missing?.let { stringResource(it.missing) } ?: stringResource(R.string.collection_all_completeness),
             active = filter.missing != null,
             options = listOf<MissingField?>(null) + MissingField.entries,
-            optionLabel = { it?.let { field -> "Belum ada ${field.label.lowercase()}" } ?: "Semua kelengkapan" },
+            optionLabel = { it?.let { field -> stringResource(field.missing) } ?: stringResource(R.string.collection_all_completeness) },
             current = filter.missing,
             onSelect = viewModel::setMissing,
         )
@@ -246,10 +260,10 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         MenuChip(
-            label = filter.status?.label ?: "Semua kecuali ditemui",
+            label = filter.status?.let { stringResource(it.label) } ?: stringResource(R.string.collection_all_but_spotted),
             active = filter.status != null,
             options = listOf<DiecastStatus?>(null) + DiecastStatus.entries,
-            optionLabel = { it?.label ?: "Semua kecuali ditemui" },
+            optionLabel = { it?.let { status -> stringResource(status.label) } ?: stringResource(R.string.collection_all_but_spotted) },
             current = filter.status,
             onSelect = viewModel::setStatus,
         )
@@ -257,39 +271,39 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
         if (filter.missing != null) missingChip()
         if (state.brands.isNotEmpty()) {
             MenuChip(
-                label = filter.brand ?: "Semua merek",
+                label = filter.brand ?: stringResource(R.string.collection_all_brands),
                 active = filter.brand != null,
                 options = listOf<String?>(null) + state.brands,
-                optionLabel = { it ?: "Semua merek" },
+                optionLabel = { it ?: stringResource(R.string.collection_all_brands) },
                 current = filter.brand,
                 onSelect = viewModel::setBrand,
             )
         }
         MenuChip(
-            label = filter.rarity?.label ?: "Semua kelangkaan",
+            label = filter.rarity?.let { stringResource(it.label) } ?: stringResource(R.string.collection_all_rarities),
             active = filter.rarity != null,
             options = listOf<Rarity?>(null) + Rarity.entries,
-            optionLabel = { it?.label ?: "Semua kelangkaan" },
+            optionLabel = { it?.let { rarity -> stringResource(rarity.label) } ?: stringResource(R.string.collection_all_rarities) },
             current = filter.rarity,
             onSelect = viewModel::setRarity,
         )
         if (state.tags.isNotEmpty()) {
             MenuChip(
-                label = filter.tag?.let { "Tag: $it" } ?: "Semua tag",
+                label = filter.tag?.let { stringResource(R.string.collection_tag, it) } ?: stringResource(R.string.collection_all_tags),
                 active = filter.tag != null,
                 options = listOf<String?>(null) + state.tags,
-                optionLabel = { it ?: "Semua tag" },
+                optionLabel = { it ?: stringResource(R.string.collection_all_tags) },
                 current = filter.tag,
                 onSelect = viewModel::setTag,
             )
         }
         if (filter.missing == null) missingChip()
         MenuChip(
-            label = filter.sort.label,
+            label = stringResource(filter.sort.label),
             active = false,
             icon = R.drawable.ic_sort,
             options = CollectionSort.entries,
-            optionLabel = { it.label },
+            optionLabel = { stringResource(it.label) },
             current = filter.sort,
             onSelect = viewModel::setSort,
         )
@@ -302,7 +316,7 @@ private fun <T> MenuChip(
     label: String,
     active: Boolean,
     options: List<T>,
-    optionLabel: (T) -> String,
+    optionLabel: @Composable (T) -> String,
     current: T,
     onSelect: (T) -> Unit,
     @DrawableRes icon: Int? = null,
@@ -337,7 +351,7 @@ private fun <T> MenuChip(
                         open = false
                     },
                     trailingIcon = if (option == current) {
-                        { Icon(painterResource(R.drawable.ic_check), contentDescription = "Dipilih", Modifier.size(18.dp)) }
+                        { Icon(painterResource(R.drawable.ic_check), contentDescription = stringResource(R.string.collection_selected), Modifier.size(18.dp)) }
                     } else {
                         null
                     },
@@ -366,19 +380,19 @@ private fun BackupReminderCard(due: BackupDue, onBackup: () -> Unit, onLater: ()
                 )
                 Column(Modifier.weight(1f).padding(start = 8.dp, end = 8.dp)) {
                     Text(
-                        due.daysSinceLast?.let { "Backup terakhir $it hari lalu" } ?: "Koleksimu belum pernah di-backup dari HP ini",
+                        due.daysSinceLast?.let { pluralStringResource(R.plurals.backup_reminder_days, it.toInt(), it) } ?: stringResource(R.string.backup_reminder_never),
                         style = MaterialTheme.typography.titleSmall,
                     )
                     Text(
-                        "Simpan backup ke Google Drive atau laptop supaya aman kalau HP hilang atau aplikasinya terhapus.",
+                        stringResource(R.string.backup_reminder_text),
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                     )
                 }
             }
             Row(Modifier.align(Alignment.End)) {
-                TextButton(onClick = onLater) { Text("Nanti") }
-                TextButton(onClick = onBackup) { Text("Backup sekarang") }
+                TextButton(onClick = onLater) { Text(stringResource(R.string.later)) }
+                TextButton(onClick = onBackup) { Text(stringResource(R.string.backup_reminder_now)) }
             }
         }
     }
@@ -388,22 +402,22 @@ private fun BackupReminderCard(due: BackupDue, onBackup: () -> Unit, onLater: ()
 private fun EmptyCollection(onAdd: () -> Unit, onData: () -> Unit) {
     EmptyState(
         icon = R.drawable.ic_photo_camera,
-        title = "Koleksimu masih kosong",
-        text = "Tambah diecast pertamamu, atau pulihkan koleksi dari file backup.",
+        title = stringResource(R.string.collection_empty_title),
+        text = stringResource(R.string.collection_empty_text),
     ) {
         Button(onClick = onAdd, shape = MaterialTheme.shapes.medium) {
-            IconLabel(R.drawable.ic_photo_camera, "Tambah diecast pertama")
+            IconLabel(R.drawable.ic_photo_camera, stringResource(R.string.collection_add_first))
         }
         OutlinedButton(onClick = onData, shape = MaterialTheme.shapes.medium) {
-            IconLabel(R.drawable.ic_folder_zip, "Pulihkan dari backup")
+            IconLabel(R.drawable.ic_folder_zip, stringResource(R.string.restore_from_backup))
         }
     }
 }
 
 @Composable
 private fun NoMatches(onReset: () -> Unit) {
-    EmptyState(icon = R.drawable.ic_search, title = "Tidak ada yang cocok", text = null) {
-        TextButton(onClick = onReset) { Text("Reset filter") }
+    EmptyState(icon = R.drawable.ic_search, title = stringResource(R.string.collection_no_matches), text = null) {
+        TextButton(onClick = onReset) { Text(stringResource(R.string.collection_reset_filter)) }
     }
 }
 

@@ -1,38 +1,42 @@
 package io.github.caropeboka.diecasttracker.data
 
+import androidx.annotation.StringRes
+import io.github.caropeboka.diecasttracker.R
+
 /**
  * Value lists of the web app (`app/Models/Diecast.php`). [key] is what the web stores and what its
- * backups contain; [label] is what the UI shows.
+ * backups contain; [label] is what the UI shows, [sheetLabel] what the web's Excel files say.
  */
-enum class Rarity(val key: String, val label: String) {
-    Regular("regular", "Regular"),
-    TreasureHunt("treasure_hunt", "Treasure Hunt"),
-    SuperTreasureHunt("super_treasure_hunt", "Super Treasure Hunt"),
-    Chase("chase", "Chase"),
-    Limited("limited", "Limited"),
-    Exclusive("exclusive", "Exclusive");
+enum class Rarity(val key: String, @StringRes val label: Int, val sheetLabel: String) {
+    Regular("regular", R.string.rarity_regular, "Regular"),
+    TreasureHunt("treasure_hunt", R.string.rarity_treasure_hunt, "Treasure Hunt"),
+    SuperTreasureHunt("super_treasure_hunt", R.string.rarity_super_treasure_hunt, "Super Treasure Hunt"),
+    Chase("chase", R.string.rarity_chase, "Chase"),
+    Limited("limited", R.string.rarity_limited, "Limited"),
+    Exclusive("exclusive", R.string.rarity_exclusive, "Exclusive");
 
     companion object {
         fun fromKey(key: String?): Rarity? = entries.find { it.key == key }
     }
 }
 
-enum class Packaging(val key: String, val label: String) {
-    Carded("carded", "Carded (blister)"),
-    Boxed("boxed", "Box"),
-    Loose("loose", "Loose");
+/** The web's sheet says "Carded" where its form says "Carded (blister)". */
+enum class Packaging(val key: String, @StringRes val label: Int, val sheetLabel: String) {
+    Carded("carded", R.string.packaging_carded, "Carded"),
+    Boxed("boxed", R.string.packaging_boxed, "Box"),
+    Loose("loose", R.string.packaging_loose, "Loose");
 
     companion object {
         fun fromKey(key: String?): Packaging? = entries.find { it.key == key }
     }
 }
 
-enum class Condition(val key: String, val label: String) {
-    Mint("mint", "Mint"),
-    NearMint("near_mint", "Near mint"),
-    Good("good", "Good"),
-    Fair("fair", "Fair"),
-    Damaged("damaged", "Rusak");
+enum class Condition(val key: String, @StringRes val label: Int, val sheetLabel: String) {
+    Mint("mint", R.string.condition_mint, "Mint"),
+    NearMint("near_mint", R.string.condition_near_mint, "Near mint"),
+    Good("good", R.string.condition_good, "Good"),
+    Fair("fair", R.string.condition_fair, "Fair"),
+    Damaged("damaged", R.string.condition_damaged, "Rusak");
 
     companion object {
         fun fromKey(key: String?): Condition? = entries.find { it.key == key }
@@ -40,11 +44,11 @@ enum class Condition(val key: String, val label: String) {
 }
 
 /** [Spotted] = "Ditemui": seen somewhere (store, friend, event) but not owned. */
-enum class DiecastStatus(val key: String, val label: String) {
-    Owned("owned", "Dimiliki"),
-    Wishlist("wishlist", "Wishlist"),
-    Spotted("spotted", "Ditemui"),
-    Sold("sold", "Terjual");
+enum class DiecastStatus(val key: String, @StringRes val label: Int, val sheetLabel: String) {
+    Owned("owned", R.string.status_owned, "Dimiliki"),
+    Wishlist("wishlist", R.string.status_wishlist, "Wishlist"),
+    Spotted("spotted", R.string.status_spotted, "Ditemui"),
+    Sold("sold", R.string.status_sold, "Terjual");
 
     /** Not in the garage: no purchase or storage details to keep. */
     val isOwnedOrSold get() = this == Owned || this == Sold

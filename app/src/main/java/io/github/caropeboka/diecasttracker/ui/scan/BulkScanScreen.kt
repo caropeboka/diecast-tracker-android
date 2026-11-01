@@ -49,6 +49,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -123,9 +125,9 @@ fun BulkScanScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Heading("Scan massal") },
+                title = { Heading(stringResource(R.string.menu_bulk_scan)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Kembali") }
+                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back)) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
@@ -146,8 +148,8 @@ fun BulkScanScreen(
             if (!enabled) {
                 item(key = "ai") {
                     Notice(Garage.Brand2) {
-                        Text("Scan AI belum aktif. Foto tetap masuk antrean dan dibaca begitu API key diisi.", style = MaterialTheme.typography.bodyMedium)
-                        TextButton(onClick = onAiSettings, contentPadding = PaddingValues(0.dp)) { Text("Buka Pengaturan AI →") }
+                        Text(stringResource(R.string.bulk_needs_ai), style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = onAiSettings, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.open_ai_settings)) }
                     }
                 }
             }
@@ -211,21 +213,20 @@ private fun Notice(color: Color, content: @Composable () -> Unit) {
 private fun AddPhotos(adding: Int, onCamera: () -> Unit, onGallery: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            "Satu foto = satu diecast. Foto depan kartunya dengan cahaya terang. Kamera terbuka lagi setelah tiap foto " +
-                "sampai kamu menekan Kembali.",
+            stringResource(R.string.bulk_intro),
             style = MaterialTheme.typography.bodyMedium,
             color = Garage.MutedForeground,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onCamera, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                IconLabel(R.drawable.ic_photo_camera, "Kamera")
+                IconLabel(R.drawable.ic_photo_camera, stringResource(R.string.camera))
             }
             OutlinedButton(onClick = onGallery, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                IconLabel(R.drawable.ic_photo_library, "Pilih banyak foto")
+                IconLabel(R.drawable.ic_photo_library, stringResource(R.string.bulk_pick_many))
             }
         }
         if (adding > 0) {
-            Text("Menyiapkan $adding foto…", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+            Text(pluralStringResource(R.plurals.bulk_adding, adding, adding), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
             LinearProgressIndicator(Modifier.fillMaxWidth())
         }
     }
@@ -247,14 +248,14 @@ private fun Progress(
     val safe = rows.count { it.isSafe }
 
     SectionCard(null) {
-        Text("$pending menunggu AI · $done siap dicek · $failed gagal", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        Text(stringResource(R.string.bulk_counts, pending, done, failed), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
         if (pending > 0 && enabled) {
             Text(
                 when {
-                    paused -> "Dijeda. Foto menunggu sampai dilanjutkan."
-                    work is ScanWorkState.Reading -> "AI sedang membaca… (tetap jalan walau aplikasi ditutup)"
-                    work is ScanWorkState.Waiting -> "AI sibuk, kuota habis, atau tidak ada koneksi. ${countdown(work.at)}"
-                    else -> "Menunggu giliran… (butuh koneksi internet)"
+                    paused -> stringResource(R.string.bulk_paused)
+                    work is ScanWorkState.Reading -> stringResource(R.string.bulk_reading)
+                    work is ScanWorkState.Waiting -> stringResource(R.string.bulk_waiting, countdown(work.at))
+                    else -> stringResource(R.string.bulk_queued)
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = if (work is ScanWorkState.Waiting && !paused) Garage.Brand2 else Garage.MutedForeground,
@@ -263,19 +264,19 @@ private fun Progress(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (pending > 0 && enabled) {
                 OutlinedButton(onClick = { onPause(!paused) }, shape = MaterialTheme.shapes.medium) {
-                    Text(if (paused) "Lanjutkan" else "Jeda")
+                    Text(stringResource(if (paused) R.string.resume else R.string.pause))
                 }
             }
             Button(onClick = onSaveAll, enabled = safe > 0 && !savingAll, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
                 if (savingAll) {
                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                 } else {
-                    IconLabel(R.drawable.ic_check_circle, "Simpan semua yang yakin ($safe)")
+                    IconLabel(R.drawable.ic_check_circle, stringResource(R.string.bulk_save_safe, safe))
                 }
             }
         }
         Text(
-            "Yang AI kurang yakin atau mirip dengan koleksimu dilewati — cek satu per satu.",
+            stringResource(R.string.bulk_save_safe_hint),
             style = MaterialTheme.typography.bodySmall,
             color = Garage.MutedForeground,
         )
@@ -293,7 +294,7 @@ private fun countdown(at: Long): String {
         }
     }
     val seconds = ((at - now) / 1_000).coerceAtLeast(0)
-    return if (seconds > 0) "Lanjut otomatis dalam $seconds detik." else "Lanjut sebentar lagi."
+    return if (seconds > 0) pluralStringResource(R.plurals.bulk_resume_in, seconds.toInt(), seconds) else stringResource(R.string.bulk_resume_soon)
 }
 
 @Composable
@@ -301,8 +302,8 @@ private fun DefaultsCard(viewModel: BulkScanViewModel, suggestions: Suggestions)
     val defaults = viewModel.defaults
     val spotted = defaults.status == DiecastStatus.Spotted
 
-    SectionCard("Isian yang sama untuk semua") {
-        Text("Simpan sebagai", style = MaterialTheme.typography.labelLarge, color = Garage.MutedForeground)
+    SectionCard(stringResource(R.string.bulk_shared)) {
+        Text(stringResource(R.string.bulk_save_as), style = MaterialTheme.typography.labelLarge, color = Garage.MutedForeground)
         Row(
             Modifier
                 .fillMaxWidth()
@@ -314,7 +315,7 @@ private fun DefaultsCard(viewModel: BulkScanViewModel, suggestions: Suggestions)
             SAVE_AS.forEach { status ->
                 val active = status == defaults.status
                 Text(
-                    status.label,
+                    stringResource(status.label),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                     color = if (active) Garage.Foreground else Garage.MutedForeground,
@@ -333,7 +334,7 @@ private fun DefaultsCard(viewModel: BulkScanViewModel, suggestions: Suggestions)
             DateInput(
                 defaults.date.toLocalDateOrNull(),
                 { date -> viewModel.updateDefaults(defaults.copy(date = (date ?: LocalDate.now()).toString())) },
-                if (spotted) "Tanggal ditemui" else "Tanggal beli",
+                stringResource(if (spotted) R.string.bulk_date_spotted else R.string.field_purchase_date),
                 clearable = false,
                 latest = LocalDate.now(),
             )
@@ -341,8 +342,8 @@ private fun DefaultsCard(viewModel: BulkScanViewModel, suggestions: Suggestions)
                 defaults.place,
                 viewModel::setPlace,
                 suggestions.places,
-                if (spotted) "Ditemui di" else "Beli di",
-                placeholder = "Toko / marketplace / teman",
+                stringResource(if (spotted) R.string.edit_spotted_at else R.string.edit_bought_at),
+                placeholder = stringResource(R.string.edit_bought_at_hint),
             )
         }
         if (defaults.status == DiecastStatus.Owned) {
@@ -350,8 +351,8 @@ private fun DefaultsCard(viewModel: BulkScanViewModel, suggestions: Suggestions)
                 defaults.storageLocation,
                 { viewModel.updateDefaults(defaults.copy(storageLocation = it)) },
                 suggestions.storageLocations,
-                "Lokasi simpan",
-                placeholder = "Rak A / Box 3",
+                stringResource(R.string.field_storage_location),
+                placeholder = stringResource(R.string.edit_storage_hint),
             )
         }
         TagInput(defaults.tags, { viewModel.updateDefaults(defaults.copy(tags = it)) }, suggestions.tags)
@@ -403,66 +404,66 @@ private fun QueueCard(
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DiecastPhoto(item.photoFile, "Foto antrean", Modifier.size(width = 88.dp, height = 110.dp).clip(RoundedCornerShape(6.dp)), placeholderSize = 28.dp)
+                DiecastPhoto(item.photoFile, stringResource(R.string.bulk_queue_photo), Modifier.size(width = 88.dp, height = 110.dp).clip(RoundedCornerShape(6.dp)), placeholderSize = 28.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     when (item.status) {
                         ScanItemStatus.Pending -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (reading) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                             Text(
-                                if (reading) "AI sedang membaca…" else "Menunggu giliran…",
+                                stringResource(if (reading) R.string.bulk_item_reading else R.string.bulk_item_waiting),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Garage.MutedForeground,
                             )
                         }
                         ScanItemStatus.Failed ->
-                            Text(item.error ?: "AI tidak bisa membaca foto ini.", style = MaterialTheme.typography.bodySmall, color = Garage.Loss)
+                            Text(item.error ?: stringResource(R.string.bulk_unreadable), style = MaterialTheme.typography.bodySmall, color = Garage.Loss)
                         ScanItemStatus.Done -> {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                fields?.let { Pill(it.confidence.label.substringBefore(" —"), it.confidence.color()) }
-                                if (row.matches.isNotEmpty()) Pill("Mirip koleksimu", Garage.MutedForeground)
+                                fields?.let { Pill(stringResource(it.confidence.short), it.confidence.color()) }
+                                if (row.matches.isNotEmpty()) Pill(stringResource(R.string.bulk_similar), Garage.MutedForeground)
                                 fields?.readBy?.let { Pill(it, Garage.MutedForeground) }
                             }
-                            TextInput(edits.name ?: fields?.name.orEmpty(), { v -> onEdit { it.copy(name = v) } }, "Nama model")
+                            TextInput(edits.name ?: fields?.name.orEmpty(), { v -> onEdit { it.copy(name = v) } }, stringResource(R.string.edit_model_name))
                         }
                     }
                 }
                 IconButton(onClick = onDiscard, enabled = !busy && !reading) {
-                    Icon(painterResource(R.drawable.ic_delete), contentDescription = "Buang foto ini", tint = Garage.MutedForeground)
+                    Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.bulk_discard_photo), tint = Garage.MutedForeground)
                 }
             }
 
             if (item.status == ScanItemStatus.Failed) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onRetry, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                        IconLabel(R.drawable.ic_sync, "Coba lagi")
+                        IconLabel(R.drawable.ic_sync, stringResource(R.string.retry))
                     }
                     OutlinedButton(onClick = onComplete, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                        IconLabel(R.drawable.ic_edit, "Isi manual")
+                        IconLabel(R.drawable.ic_edit, stringResource(R.string.create_manual))
                     }
                 }
             }
 
             if (item.status == ScanItemStatus.Done) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SuggestInput(edits.brand ?: fields?.brand.orEmpty(), { v -> onEdit { it.copy(brand = v) } }, emptyList(), "Merek", modifier = Modifier.weight(1f))
+                    SuggestInput(edits.brand ?: fields?.brand.orEmpty(), { v -> onEdit { it.copy(brand = v) } }, emptyList(), stringResource(R.string.field_brand), modifier = Modifier.weight(1f))
                     TextInput(
                         edits.collectionNumber ?: fields?.collectionNumber.orEmpty(),
                         { v -> onEdit { it.copy(collectionNumber = v) } },
-                        "No. koleksi",
+                        stringResource(R.string.bulk_number),
                         modifier = Modifier.weight(1f),
                     )
                 }
-                TextInput(edits.series ?: fields?.series.orEmpty(), { v -> onEdit { it.copy(series = v) } }, "Seri")
+                TextInput(edits.series ?: fields?.series.orEmpty(), { v -> onEdit { it.copy(series = v) } }, stringResource(R.string.field_series))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChoiceInput(
                         edits.rarity ?: fields?.rarity ?: Rarity.Regular,
                         Rarity.entries,
-                        Rarity::label,
+                        { stringResource(it.label) },
                         { v -> onEdit { it.copy(rarity = v) } },
-                        "Kelangkaan",
+                        stringResource(R.string.field_rarity),
                         modifier = Modifier.weight(1f),
                     )
-                    MoneyInput(edits.price.orEmpty(), { v -> onEdit { it.copy(price = v) } }, priceLabel(status), modifier = Modifier.weight(1f))
+                    MoneyInput(edits.price.orEmpty(), { v -> onEdit { it.copy(price = v) } }, stringResource(priceLabel(status)), modifier = Modifier.weight(1f))
                 }
                 if (row.matches.isNotEmpty()) Matches(row.matches, onOpen)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -471,9 +472,9 @@ private fun QueueCard(
                         enabled = !busy && (edits.name ?: fields?.name).orEmpty().isNotBlank(),
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.weight(1f),
-                    ) { IconLabel(R.drawable.ic_check, "Simpan") }
+                    ) { IconLabel(R.drawable.ic_check, stringResource(R.string.save)) }
                     OutlinedButton(onClick = onComplete, enabled = !busy, shape = MaterialTheme.shapes.medium) {
-                        IconLabel(R.drawable.ic_edit, "Lengkap")
+                        IconLabel(R.drawable.ic_edit, stringResource(R.string.bulk_full))
                     }
                 }
             }
@@ -494,11 +495,11 @@ fun QueueBanner(count: Int, onOpen: () -> Unit, modifier: Modifier = Modifier) {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(18.dp))
             Text(
-                "$count foto di antrean scan massal belum disimpan.",
+                pluralStringResource(R.plurals.bulk_banner, count, count),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
             )
-            Text("Lanjutkan →", style = MaterialTheme.typography.bodyMedium, color = Garage.Brand, fontWeight = FontWeight.Medium)
+            Text(stringResource(R.string.continue_arrow), style = MaterialTheme.typography.bodyMedium, color = Garage.Brand, fontWeight = FontWeight.Medium)
         }
     }
 }

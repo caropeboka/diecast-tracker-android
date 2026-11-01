@@ -6,6 +6,7 @@ import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
 import androidx.room.withTransaction
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
 import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
@@ -17,6 +18,7 @@ import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
 import io.github.caropeboka.diecasttracker.data.decor.DecorStore
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +89,7 @@ class BackupExporter(
     /** A backup was written: the reminder starts over. */
     private val onBackup: suspend (at: Long) -> Unit = {},
 ) {
+    private val texts = Texts(context)
     private val _state = MutableStateFlow<ExportState>(ExportState.Idle)
 
     /** Lives outside any screen, so a backup keeps going when the user navigates away. */
@@ -100,7 +103,7 @@ class BackupExporter(
     fun save(kind: ExportKind, uri: Uri) = run(kind) {
         val resolver = context.contentResolver
         try {
-            val out = Counting(resolver.openOutputStream(uri, "w") ?: throw IOException("file tujuan tidak bisa dibuka"))
+            val out = Counting(resolver.openOutputStream(uri, "w") ?: throw IOException(texts(R.string.export_target_cant_open)))
             val summary = out.use { write(kind, it) }
             ExportState.Finished(kind, displayName(uri) ?: fileName(kind), out.count, summary)
         } catch (e: Exception) {
@@ -144,9 +147,9 @@ class BackupExporter(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: IOException) {
-                ExportState.Failed(kind, "File tidak bisa ditulis: ${e.message ?: e::class.simpleName}")
+                ExportState.Failed(kind, texts(R.string.export_cant_write, e.message ?: e::class.simpleName.orEmpty()))
             } catch (e: Exception) {
-                ExportState.Failed(kind, "Gagal membuat file. (${e.message ?: e::class.simpleName})")
+                ExportState.Failed(kind, texts(R.string.export_failed, e.message ?: e::class.simpleName.orEmpty()))
             }
         }
     }

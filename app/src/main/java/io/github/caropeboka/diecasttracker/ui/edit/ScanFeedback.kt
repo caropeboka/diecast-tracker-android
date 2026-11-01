@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,7 +32,7 @@ import io.github.caropeboka.diecasttracker.ui.components.Badge
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.components.icon
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
-import io.github.caropeboka.diecasttracker.util.formatRupiah
+import io.github.caropeboka.diecasttracker.util.formatMoney
 
 /** What the last scan did: why it failed, or the ✦ note with the AI's confidence and look-alikes in the collection. */
 @Composable
@@ -42,9 +43,9 @@ fun ScanFeedback(scan: ScanState, onOpen: (Long) -> Unit) {
         }
         is ScanState.Done -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Notice(R.drawable.ic_sparkles, Garage.Brand) {
-                Text("Field bertanda ✦ diisi oleh ${scan.by ?: "AI"}.", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.scan_filled_by, scan.by ?: "AI"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Keyakinan: ${scan.confidence.label}. Periksa dulu sebelum menyimpan.",
+                    stringResource(R.string.scan_confidence, stringResource(scan.confidence.label)),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                 )
@@ -83,7 +84,7 @@ internal fun Matches(matches: List<DiecastListItem>, onOpen: (Long) -> Unit) {
             .padding(vertical = 6.dp),
     ) {
         Text(
-            "Mirip dengan yang sudah ada di koleksimu:",
+            stringResource(R.string.scan_similar),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -99,7 +100,7 @@ private fun MatchRow(match: DiecastListItem, onOpen: (Long) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(onClickLabel = "Buka ${match.name}") { onOpen(match.id) }
+            .clickable(onClickLabel = stringResource(R.string.open_named, match.name)) { onOpen(match.id) }
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -111,17 +112,17 @@ private fun MatchRow(match: DiecastListItem, onOpen: (Long) -> Unit) {
                 Text(it, style = small, color = Garage.MutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (match.status == DiecastStatus.Wishlist && match.targetPrice != null) {
-                Text("Target maks ${formatRupiah(match.targetPrice)}", style = small, color = Garage.MutedForeground)
+                Text(stringResource(R.string.scan_target_max, formatMoney(match.targetPrice)), style = small, color = Garage.MutedForeground)
             }
             if (match.sightingsCount > 0 && match.sightingsMinPrice != null) {
-                Text("Pernah ditemui mulai ${formatRupiah(match.sightingsMinPrice)}", style = small, color = Garage.MutedForeground)
+                Text(stringResource(R.string.scan_seen_from, formatMoney(match.sightingsMinPrice)), style = small, color = Garage.MutedForeground)
             }
         }
         Badge(
             text = when (match.status) {
-                DiecastStatus.Owned -> "Punya ${match.quantity}×"
-                DiecastStatus.Spotted -> "Ditemui ${match.sightingsCount}×"
-                else -> match.status.label
+                DiecastStatus.Owned -> stringResource(R.string.owned_times, match.quantity)
+                DiecastStatus.Spotted -> stringResource(R.string.card_spotted_times, match.sightingsCount)
+                else -> stringResource(match.status.label)
             },
             background = Garage.Accent,
             content = Garage.Foreground,

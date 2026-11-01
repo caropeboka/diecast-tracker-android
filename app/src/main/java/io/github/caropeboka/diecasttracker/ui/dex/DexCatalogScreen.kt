@@ -60,6 +60,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -116,29 +118,29 @@ fun DexCatalogScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Heading(catalog?.name ?: "Dex")
-                        entries?.let { Text("${it.size} nomor", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground) }
+                        Heading(catalog?.name ?: stringResource(R.string.tab_dex))
+                        entries?.let { Text(pluralStringResource(R.plurals.dex_numbers, it.size, it.size), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground) }
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Kembali") }
+                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back)) }
                 },
                 actions = {
                     val wiki = catalog?.let { WikiSource.fromKey(it.source) }
                     val page = catalog?.sourcePage
                     if (wiki != null && page != null) {
                         IconButton(onClick = { uriHandler.openUri(wiki.wikiUrl(page)) }) {
-                            Icon(painterResource(R.drawable.ic_open_in_new), contentDescription = "Buka di wiki")
+                            Icon(painterResource(R.drawable.ic_open_in_new), contentDescription = stringResource(R.string.dex_open_wiki))
                         }
                     }
                     if (isCustom) {
                         Box {
                             IconButton(onClick = { menu = true }) {
-                                Icon(painterResource(R.drawable.ic_more_vert), contentDescription = "Menu dex")
+                                Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.dex_menu))
                             }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Ubah dex") },
+                                    text = { Text(stringResource(R.string.dex_edit)) },
                                     leadingIcon = { Icon(painterResource(R.drawable.ic_edit), contentDescription = null) },
                                     onClick = {
                                         menu = false
@@ -146,7 +148,7 @@ fun DexCatalogScreen(
                                     },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Hapus dex", color = Garage.Loss) },
+                                    text = { Text(stringResource(R.string.dex_delete), color = Garage.Loss) },
                                     leadingIcon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null, tint = Garage.Loss) },
                                     onClick = {
                                         menu = false
@@ -182,7 +184,7 @@ fun DexCatalogScreen(
                     DexMeter(counts)
                     DexLegend(counts)
                     if (counts.wanted > 0) {
-                        Text("${counts.wanted} diincar (wishlist)", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                        Text(stringResource(R.string.dex_wanted_wishlist, counts.wanted), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                     }
                 }
             }
@@ -194,7 +196,7 @@ fun DexCatalogScreen(
                         FilterChip(
                             selected = option == filter,
                             onClick = { viewModel.setFilter(option) },
-                            label = { Text("${option.label} · ${option.count(counts)}") },
+                            label = { Text("${stringResource(option.label)} · ${option.count(counts)}") },
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Garage.Brand.copy(alpha = 0.18f)),
                         )
                     }
@@ -205,7 +207,7 @@ fun DexCatalogScreen(
                     OutlinedTextField(
                         value = query,
                         onValueChange = viewModel::setQuery,
-                        placeholder = { Text("Cari nama, nomor, seri…") },
+                        placeholder = { Text(stringResource(R.string.dex_search)) },
                         leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null, Modifier.size(20.dp)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -215,7 +217,7 @@ fun DexCatalogScreen(
                     IconButton(onClick = { viewModel.setBySeries(!bySeries) }) {
                         Icon(
                             painterResource(if (bySeries) R.drawable.ic_grid_view else R.drawable.ic_view_list),
-                            contentDescription = if (bySeries) "Tampilkan sebagai grid" else "Kelompokkan per seri",
+                            contentDescription = stringResource(if (bySeries) R.string.collection_show_grid else R.string.dex_group_series),
                         )
                     }
                 }
@@ -223,16 +225,16 @@ fun DexCatalogScreen(
 
             when {
                 all.isEmpty() && isCustom -> full {
-                    EmptyNote("Belum ada entri. Tambah satu per satu, atau isi banyak sekaligus dari Excel/CSV, screenshot checklist, atau koleksimu.")
+                    EmptyNote(stringResource(R.string.dex_custom_empty))
                 }
-                all.isEmpty() -> full { EmptyNote("Dex ini masih kosong.") }
-                visible.isEmpty() -> full { EmptyNote("Tidak ada entri yang cocok.") }
-                bySeries -> visible.groupBy { it.series ?: "Lainnya" }.forEach { (series, group) ->
+                all.isEmpty() -> full { EmptyNote(stringResource(R.string.dex_catalog_empty)) }
+                visible.isEmpty() -> full { EmptyNote(stringResource(R.string.dex_no_match)) }
+                bySeries -> visible.groupBy { it.series }.forEach { (series, group) ->
                     val progress = DexProgress.series(all).find { it.series == series }
                     full {
                         Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            SubHeading(series, Modifier.weight(1f))
-                            progress?.let { Text("${it.caught}/${it.total} dimiliki", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground) }
+                            SubHeading(series ?: stringResource(R.string.dex_other_series), Modifier.weight(1f))
+                            progress?.let { Text(stringResource(R.string.dex_owned_of, it.caught, it.total), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground) }
                         }
                     }
                     items(group, key = { "s-$series-${it.number}" }) { EntryTile(it) { viewModel.open(it.number) } }
@@ -282,15 +284,15 @@ fun DexCatalogScreen(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Hapus ${catalog?.name}?") },
-            text = { Text("Daftarnya dan foto-fotonya dihapus dari HP. Diecast di koleksimu tetap ada, hanya tautannya ke dex ini yang lepas.") },
+            title = { Text(stringResource(R.string.delete_named, catalog?.name.orEmpty())) },
+            text = { Text(stringResource(R.string.dex_delete_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     custom.deleteCatalog()
-                }) { Text("Hapus", color = Garage.Loss) }
+                }) { Text(stringResource(R.string.delete), color = Garage.Loss) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Batal") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -317,7 +319,7 @@ private fun EntryTile(entry: DexEntry, onClick: () -> Unit) {
             .clip(shape)
             .background(Garage.Card)
             .border(1.dp, Garage.Border, shape)
-            .clickable(onClickLabel = "Buka #${entry.number}", onClick = onClick),
+            .clickable(onClickLabel = stringResource(R.string.open_named, "#${entry.number}"), onClick = onClick),
     ) {
         Box(Modifier.fillMaxWidth().aspectRatio(4f / 3f)) {
             DexImage(entry.imagePath, Modifier.fillMaxSize(), dim = !entry.state.seen)
@@ -384,15 +386,15 @@ private fun EntrySheet(
 
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Badge(stateLabel(entry.state), Garage.Muted, Garage.Foreground)
-                if (item.isNew) Badge("Model baru", Garage.Muted, Garage.Foreground)
-                if (item.isTh) Badge("Treasure Hunt", Garage.rarityColor(Rarity.TreasureHunt)!!, Garage.OnBrand)
-                if (item.isSth) Badge("Super Treasure Hunt", Garage.rarityColor(Rarity.SuperTreasureHunt)!!, Garage.OnBrand)
-                item.exclusive?.let { Badge("Eksklusif $it", Garage.Muted, Garage.Foreground) }
+                if (item.isNew) Badge(stringResource(R.string.dex_new_model), Garage.Muted, Garage.Foreground)
+                if (item.isTh) Badge(stringResource(R.string.rarity_treasure_hunt), Garage.rarityColor(Rarity.TreasureHunt)!!, Garage.OnBrand)
+                if (item.isSth) Badge(stringResource(R.string.rarity_super_treasure_hunt), Garage.rarityColor(Rarity.SuperTreasureHunt)!!, Garage.OnBrand)
+                item.exclusive?.let { Badge(stringResource(R.string.dex_exclusive, it), Garage.Muted, Garage.Foreground) }
                 item.toyCode?.let { Badge(it, Garage.Muted, Garage.MutedForeground) }
             }
 
             if (entry.variants.size > 1) {
-                Text("Varian (${entry.variants.size})", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.dex_variants, entry.variants.size), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     entry.variants.forEach { v ->
                         val selected = v.item.id == item.id
@@ -409,7 +411,7 @@ private fun EntrySheet(
                                 StateBadge(v.state, Modifier.align(Alignment.TopEnd).padding(2.dp))
                             }
                             Text(
-                                v.item.variantLabel ?: "Warna utama",
+                                v.item.variantLabel ?: stringResource(R.string.dex_main_colour),
                                 style = MaterialTheme.typography.labelSmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -421,36 +423,36 @@ private fun EntrySheet(
             }
 
             Text(
-                "Catat" + if (entry.variants.size > 1) " (${item.variantLabel ?: "warna utama"})" else "",
+                if (entry.variants.size > 1) stringResource(R.string.dex_log_variant, item.variantLabel ?: stringResource(R.string.dex_main_colour)) else stringResource(R.string.dex_log),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
             )
             Button(onClick = { onAdd(item.id, DiecastStatus.Owned) }, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-                IconLabel(R.drawable.ic_add, "Tambah ke koleksi")
+                IconLabel(R.drawable.ic_add, stringResource(R.string.add_to_collection))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { onAdd(item.id, DiecastStatus.Spotted) }, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                    IconLabel(R.drawable.ic_visibility, "Ditemui")
+                    IconLabel(R.drawable.ic_visibility, stringResource(R.string.status_spotted))
                 }
                 OutlinedButton(onClick = { onAdd(item.id, DiecastStatus.Wishlist) }, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                    IconLabel(R.drawable.ic_favorite, "Wishlist")
+                    IconLabel(R.drawable.ic_favorite, stringResource(R.string.status_wishlist))
                 }
             }
 
             if (tools != null) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = { tools.onEdit(item) }, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_edit, "Ubah") }
-                    TextButton(onClick = tools.onAddVariant, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_add, "Tambah varian") }
+                    TextButton(onClick = { tools.onEdit(item) }, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_edit, stringResource(R.string.edit)) }
+                    TextButton(onClick = tools.onAddVariant, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_add, stringResource(R.string.dex_add_variant)) }
                     TextButton(
                         onClick = { confirmDelete = true },
                         shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.textButtonColors(contentColor = Garage.Loss),
-                    ) { IconLabel(R.drawable.ic_delete, "Hapus") }
+                    ) { IconLabel(R.drawable.ic_delete, stringResource(R.string.delete)) }
                 }
             }
 
             if (entry.diecasts.isNotEmpty()) {
-                Text("Di koleksimu", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.check_in_collection), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 entry.diecasts.forEach { diecast ->
                     Row(
                         Modifier
@@ -465,7 +467,7 @@ private fun EntrySheet(
                         Column(Modifier.weight(1f)) {
                             Text(diecast.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
-                                diecast.status.label + if (diecast.catalogMatch == CatalogMatch.Auto) " · dicocokkan otomatis" else "",
+                                stringResource(diecast.status.label) + if (diecast.catalogMatch == CatalogMatch.Auto) " · " + stringResource(R.string.dex_matched_auto_lower) else "",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Garage.MutedForeground,
                             )
@@ -480,10 +482,10 @@ private fun EntrySheet(
         val linked = entry.diecasts.count { it.catalogItemId == item.id }
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Hapus #${item.number} ${item.name}" + (item.variantLabel?.let { " ($it)" } ?: "") + "?") },
+            title = { Text(stringResource(R.string.delete_named, "#${item.number} ${item.name}" + (item.variantLabel?.let { " ($it)" } ?: ""))) },
             text = {
                 Text(
-                    if (linked > 0) "$linked diecast di koleksimu tertaut ke entri ini; tautannya lepas, diecastnya tetap ada." else "Entri ini dihapus dari dex.",
+                    if (linked > 0) pluralStringResource(R.plurals.dex_entry_delete_linked, linked, linked) else stringResource(R.string.dex_entry_delete),
                 )
             },
             confirmButton = {
@@ -491,9 +493,9 @@ private fun EntrySheet(
                     confirmDelete = false
                     if (entry.variants.size == 1) onDismiss()
                     tools.onDelete(item)
-                }) { Text("Hapus", color = Garage.Loss) }
+                }) { Text(stringResource(R.string.delete), color = Garage.Loss) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Batal") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }

@@ -13,6 +13,8 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.subject.Subject
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -27,6 +29,7 @@ import kotlin.math.min
  * fetched once, on first use (or ahead of it, through the manifest's `com.google.mlkit.vision.DEPENDENCIES`).
  */
 class MlKitCutter(context: Context) : SubjectCutter {
+    private val texts = Texts(context)
     private val modules = ModuleInstall.getClient(context)
     private val segmenter by lazy {
         SubjectSegmentation.getClient(
@@ -75,7 +78,7 @@ class MlKitCutter(context: Context) : SubjectCutter {
         } finally {
             modules.unregisterListener(listener)
         }
-        if (!installed) throw StudioException(DOWNLOAD_FAILED)
+        if (!installed) throw StudioException(texts(R.string.studio_model_missing))
     }
 
     /** The biggest subject, with whatever lies within it (the car inside a blister may come as a subject of its own). */
@@ -106,7 +109,5 @@ class MlKitCutter(context: Context) : SubjectCutter {
     companion object {
         /** Offline, Google Play services holds the download back; stop waiting after a while (it goes on by itself). */
         private const val DOWNLOAD_TIMEOUT_MS = 3 * 60_000L
-        private const val DOWNLOAD_FAILED =
-            "Pemisah latar belum terunduh. Sambungkan ke internet (cukup sekali ini), lalu coba lagi."
     }
 }

@@ -29,13 +29,14 @@ import org.robolectric.annotation.Config
 
 /** Web: `tests/Feature/PriceCheckTest.php` (screenshots are not kept here, so those checks have no counterpart). */
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 class PriceCheckTest {
     private val env = TestEnvironment(now = { 1_000L })
     private val fake = FakeGemini().on("models", 200, FakeGemini.models())
     private val checker = PriceChecker(
         fake.vision(),
         env.db,
+        env.texts,
         clock = { 5_000L },
     )
 

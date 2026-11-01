@@ -1,6 +1,7 @@
 package io.github.caropeboka.diecasttracker.ui.dashboard
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,6 +51,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -81,6 +84,7 @@ import io.github.caropeboka.diecasttracker.data.dashboard.YearColumn
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.dex.CatalogSummary
 import io.github.caropeboka.diecasttracker.data.dex.DexRepository
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.ui.MainNavigationBar
 import io.github.caropeboka.diecasttracker.ui.MainTab
@@ -97,8 +101,8 @@ import io.github.caropeboka.diecasttracker.ui.dex.DexMeter
 import io.github.caropeboka.diecasttracker.ui.scan.QueueBanner
 import io.github.caropeboka.diecasttracker.ui.sharedGarage
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
-import io.github.caropeboka.diecasttracker.util.formatRupiah
-import io.github.caropeboka.diecasttracker.util.formatRupiahCompact
+import io.github.caropeboka.diecasttracker.util.formatMoney
+import io.github.caropeboka.diecasttracker.util.formatMoneyCompact
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -109,9 +113,11 @@ import java.time.LocalTime
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-class DashboardViewModel(repository: DiecastRepository, dex: DexRepository, queue: ScanQueue) : ViewModel() {
+class DashboardViewModel(repository: DiecastRepository, dex: DexRepository, queue: ScanQueue, texts: Texts) : ViewModel() {
     /** Null while loading; follows every change to the collection and the Dex. */
-    val dashboard: StateFlow<Dashboard?> = combine(repository.observeDashboard(), dex.observeCatalogs(), Dashboard::build)
+    val dashboard: StateFlow<Dashboard?> = combine(repository.observeDashboard(), dex.observeCatalogs()) { rows, catalogs ->
+        Dashboard.build(rows, catalogs, texts(R.string.dashboard_no_brand))
+    }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -122,7 +128,7 @@ class DashboardViewModel(repository: DiecastRepository, dex: DexRepository, queu
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                with(app.container) { DashboardViewModel(repository, dex, scanQueue) }
+                with(app.container) { DashboardViewModel(repository, dex, scanQueue, texts) }
             }
         }
     }
@@ -153,8 +159,8 @@ fun DashboardScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(greeting(), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
-                        Heading("Garasi kamu")
+                        Text(stringResource(greeting()), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                        Heading(stringResource(R.string.dashboard_title))
                     }
                 },
                 actions = { ShelvesButton(onShelves) },
@@ -212,7 +218,7 @@ fun DashboardScreen(
                 }
                 item(key = "recent-heading") {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        SubHeading("Baru ditambahkan", Modifier.weight(1f))
+                        SubHeading(stringResource(R.string.dashboard_recent), Modifier.weight(1f))
                         SeeAll { onCollection(CollectionLink()) }
                     }
                 }
@@ -243,17 +249,18 @@ private fun ShelvesButton(onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Icon(painterResource(R.drawable.ic_grid_view), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(18.dp))
-        Text("Rak 3D", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.dashboard_shelves_3d), style = MaterialTheme.typography.labelLarge)
     }
 }
 
-private fun greeting(): String {
+@StringRes
+private fun greeting(): Int {
     val hour = LocalTime.now().hour
     return when {
-        hour < 11 -> "Selamat pagi"
-        hour < 15 -> "Selamat siang"
-        hour < 19 -> "Selamat sore"
-        else -> "Selamat malam"
+        hour < 11 -> R.string.greeting_morning
+        hour < 15 -> R.string.greeting_noon
+        hour < 19 -> R.string.greeting_afternoon
+        else -> R.string.greeting_evening
     }
 }
 
@@ -265,16 +272,16 @@ private fun EmptyGarage(onAdd: () -> Unit, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(painterResource(R.drawable.ic_car), contentDescription = null, tint = Garage.MutedForeground.copy(alpha = 0.6f), modifier = Modifier.size(48.dp))
-        Text("Garasimu masih kosong", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+        Text(stringResource(R.string.dashboard_empty_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
         Text(
-            "Angka dan grafik koleksimu muncul di sini begitu ada diecast yang dimiliki.",
+            stringResource(R.string.dashboard_empty_text),
             style = MaterialTheme.typography.bodyMedium,
             color = Garage.MutedForeground,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
         )
         Button(onClick = onAdd, shape = MaterialTheme.shapes.medium) {
-            IconLabel(R.drawable.ic_add, "Tambah diecast")
+            IconLabel(R.drawable.ic_add, stringResource(R.string.edit_title_new))
         }
     }
 }
@@ -293,10 +300,10 @@ private fun ValueHero(data: Dashboard, opener: Opener, onCollection: (Collection
                             .size(width = 4.dp, height = 16.dp)
                             .background(Brush.verticalGradient(listOf(Garage.Brand, Garage.Brand2)), RoundedCornerShape(2.dp)),
                     )
-                    Text("Nilai koleksi", style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.dashboard_value), style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground, fontWeight = FontWeight.Medium)
                 }
                 Text(
-                    if (stats.valuedItems > 0) formatRupiah(stats.totalValue) else "—",
+                    if (stats.valuedItems > 0) formatMoney(stats.totalValue) else "—",
                     style = MaterialTheme.typography.displaySmall,
                     maxLines = 1,
                 )
@@ -304,18 +311,18 @@ private fun ValueHero(data: Dashboard, opener: Opener, onCollection: (Collection
 
                 HorizontalDivider(color = Garage.Border, modifier = Modifier.padding(top = 4.dp))
                 Row(Modifier.height(IntrinsicSize.Min).padding(vertical = 4.dp)) {
-                    MiniStat("Rata-rata / diecast", stats.averageValue?.let(::formatRupiahCompact) ?: "—", Modifier.weight(1f))
+                    MiniStat(stringResource(R.string.dashboard_average), stats.averageValue?.let(::formatMoneyCompact) ?: "—", Modifier.weight(1f))
                     VerticalDivider(color = Garage.Border)
                     MiniStat(
-                        "Termahal",
-                        data.mostValuable.firstOrNull()?.marketValue?.let(::formatRupiahCompact) ?: "—",
+                        stringResource(R.string.dashboard_dearest),
+                        data.mostValuable.firstOrNull()?.marketValue?.let(::formatMoneyCompact) ?: "—",
                         Modifier.weight(1f).padding(start = 12.dp),
                     )
                     VerticalDivider(color = Garage.Border)
-                    MiniStat("Merek", stats.brands.toString(), Modifier.weight(1f).padding(start = 12.dp))
+                    MiniStat(stringResource(R.string.dashboard_brands), stats.brands.toString(), Modifier.weight(1f).padding(start = 12.dp))
                 }
                 Text(
-                    "Dihitung dari ${stats.valuedItems} dari ${stats.uniqueItems} diecast yang sudah punya harga pasaran.",
+                    stringResource(R.string.dashboard_value_basis, stats.valuedItems, stats.uniqueItems),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                 )
@@ -330,30 +337,30 @@ private fun GainLine(stats: DashboardStats, onFillPrices: () -> Unit) {
     if (stats.gainItems == 0) {
         Column {
             Text(
-                "Isi harga beli untuk melihat untung / rugi koleksimu.",
+                stringResource(R.string.dashboard_fill_prices_text),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Garage.MutedForeground,
             )
-            TextButton(onClick = onFillPrices, contentPadding = PaddingValues(0.dp)) { Text("Lengkapi harga beli →") }
+            TextButton(onClick = onFillPrices, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.dashboard_fill_prices)) }
         }
         return
     }
 
     val up = stats.valueGain >= 0
     val color = if (up) Garage.Gain else Garage.Loss
-    val amount = (if (up) "+" else "−") + formatRupiah(abs(stats.valueGain)) +
+    val amount = (if (up) "+" else "−") + formatMoney(abs(stats.valueGain)) +
         stats.gainPercent?.let { " (${if (it >= 0) "+" else ""}$it%)" }.orEmpty()
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(
             painterResource(R.drawable.ic_trending_up),
-            contentDescription = if (up) "Naik" else "Turun",
+            contentDescription = stringResource(if (up) R.string.dashboard_up else R.string.dashboard_down),
             tint = color,
             modifier = Modifier.size(18.dp).scale(scaleX = 1f, scaleY = if (up) 1f else -1f),
         )
         Text(amount, style = MaterialTheme.typography.bodyMedium, color = color, fontWeight = FontWeight.Medium)
     }
-    Text("dibanding harga beli", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+    Text(stringResource(R.string.dashboard_vs_purchase), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
 }
 
 @Composable
@@ -412,35 +419,35 @@ private fun StatTiles(stats: DashboardStats, onCollection: (CollectionLink) -> U
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatTile(
                 R.drawable.ic_car,
-                "Total diecast",
-                "${stats.totalItems} pcs",
-                "${stats.uniqueItems} model berbeda",
+                stringResource(R.string.dashboard_total),
+                stringResource(R.string.dashboard_pcs, stats.totalItems),
+                pluralStringResource(R.plurals.dashboard_models, stats.uniqueItems, stats.uniqueItems),
                 Modifier.weight(1f).fillMaxHeight(),
             ) { onCollection(OWNED) }
             StatTile(
                 R.drawable.ic_shopping_bag,
-                "Total modal",
-                if (stats.pricedItems > 0) formatRupiah(stats.totalSpent) else "—",
-                "${stats.pricedItems} dari ${stats.uniqueItems} ada harga beli",
+                stringResource(R.string.dashboard_spent),
+                if (stats.pricedItems > 0) formatMoney(stats.totalSpent) else "—",
+                stringResource(R.string.dashboard_priced, stats.pricedItems, stats.uniqueItems),
                 Modifier.weight(1f).fillMaxHeight(),
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatTile(
                 R.drawable.ic_sparkles,
-                "Langka",
+                stringResource(R.string.dashboard_rare),
                 stats.specialItems.toString(),
-                if (stats.specialItems > 0) "${stats.superTreasureHunts} Super Treasure Hunt" else "Belum ada TH / STH / Chase",
+                if (stats.specialItems > 0) pluralStringResource(R.plurals.dashboard_sth_count, stats.superTreasureHunts, stats.superTreasureHunts) else stringResource(R.string.dashboard_no_rare),
                 Modifier.weight(1f).fillMaxHeight(),
             )
             StatTile(
                 R.drawable.ic_favorite,
-                "Wishlist",
+                stringResource(R.string.status_wishlist),
                 stats.wishlist.toString(),
                 when {
-                    stats.spotted > 0 -> "diburu · ${stats.spotted} pernah ditemui"
-                    stats.wishlist > 0 -> "diecast sedang diburu"
-                    else -> "Tambahkan diecast buruanmu"
+                    stats.spotted > 0 -> stringResource(R.string.dashboard_hunted_spotted, stats.spotted)
+                    stats.wishlist > 0 -> stringResource(R.string.dashboard_hunted)
+                    else -> stringResource(R.string.dashboard_add_hunt)
                 },
                 Modifier.weight(1f).fillMaxHeight(),
             ) { onCollection(CollectionLink(status = DiecastStatus.Wishlist)) }
@@ -450,7 +457,7 @@ private fun StatTiles(stats: DashboardStats, onCollection: (CollectionLink) -> U
 
 @Composable
 private fun DexPanel(dex: List<CatalogSummary>, onOpenCatalog: (Long) -> Unit, onAll: () -> Unit) {
-    SectionCard("Dex", action = { SeeAll(onAll) }) {
+    SectionCard(stringResource(R.string.tab_dex), action = { SeeAll(onAll) }) {
         dex.forEach { summary ->
             Column(
                 Modifier
@@ -470,10 +477,10 @@ private fun DexPanel(dex: List<CatalogSummary>, onOpenCatalog: (Long) -> Unit, o
 
 @Composable
 private fun MostValuable(items: List<DiecastListItem>, opener: Opener, onAll: () -> Unit) {
-    SectionCard("Paling berharga", action = if (items.isNotEmpty()) ({ SeeAll(onAll) }) else null) {
+    SectionCard(stringResource(R.string.dashboard_most_valuable), action = if (items.isNotEmpty()) ({ SeeAll(onAll) }) else null) {
         if (items.isEmpty()) {
             Text(
-                "Belum ada harga pasaran. Buka diecast → Cek harga pasaran untuk menghitungnya dari screenshot Tokopedia/Shopee.",
+                stringResource(R.string.dashboard_no_market_values),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Garage.MutedForeground,
             )
@@ -510,7 +517,7 @@ private fun MostValuable(items: List<DiecastListItem>, opener: Opener, onAll: ()
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f).padding(end = 8.dp),
                         )
-                        Text(formatRupiah(item.marketValue), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        Text(formatMoney(item.marketValue), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     }
                     subtitle(item)?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -533,7 +540,7 @@ private fun MissingField.icon() = when (this) {
 
 @Composable
 private fun CompletenessPanel(completeness: List<Completeness>, total: Int, onCollection: (CollectionLink) -> Unit) {
-    SectionCard("Kelengkapan data") {
+    SectionCard(stringResource(R.string.dashboard_completeness)) {
         completeness.forEach { (field, done) ->
             val complete = done >= total
             Column(
@@ -546,12 +553,12 @@ private fun CompletenessPanel(completeness: List<Completeness>, total: Int, onCo
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(painterResource(field.icon()), contentDescription = null, tint = Garage.MutedForeground, modifier = Modifier.size(18.dp))
-                    Text(field.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(stringResource(field.label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Text("$done/$total", style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
                     if (complete) {
-                        Icon(painterResource(R.drawable.ic_check_circle), contentDescription = "Lengkap", tint = Garage.Gain, modifier = Modifier.size(18.dp))
+                        Icon(painterResource(R.drawable.ic_check_circle), contentDescription = stringResource(R.string.dashboard_complete), tint = Garage.Gain, modifier = Modifier.size(18.dp))
                     } else {
-                        Text("Lengkapi →", style = MaterialTheme.typography.bodySmall, color = Garage.Brand, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.dashboard_complete_it), style = MaterialTheme.typography.bodySmall, color = Garage.Brand, fontWeight = FontWeight.Medium)
                     }
                 }
                 Bar(done.toFloat() / total.coerceAtLeast(1), Garage.MeterBar, track = Garage.MeterTrack)
@@ -566,18 +573,18 @@ private fun BrandPanel(brands: List<BrandCount>, totalItems: Int, onCollection: 
     val shown = brands.sortedByDescending { if (byValue) it.value else it.total.toLong() }.take(8)
     val max = shown.maxOfOrNull { if (byValue) it.value else it.total.toLong() }?.coerceAtLeast(1L) ?: 1L
 
-    SectionCard("Per merek", action = { MeasureToggle(byValue) { byValue = it } }) {
+    SectionCard(stringResource(R.string.dashboard_per_brand), action = { MeasureToggle(byValue) { byValue = it } }) {
         BarList(
             shown.map { brand ->
                 BarRow(
                     key = brand.label,
                     label = brand.label,
-                    display = if (byValue) formatRupiahCompact(brand.value) else "${brand.total} pcs",
+                    display = if (byValue) formatMoneyCompact(brand.value) else stringResource(R.string.dashboard_pcs, brand.total),
                     fraction = (if (byValue) brand.value else brand.total.toLong()).toFloat() / max,
                     detail = if (byValue) {
-                        "${brand.total} pcs"
+                        stringResource(R.string.dashboard_pcs, brand.total)
                     } else {
-                        "${(brand.total * 100f / totalItems.coerceAtLeast(1)).roundToInt()}% dari koleksi · nilai ${formatRupiah(brand.value)}"
+                        stringResource(R.string.dashboard_brand_share, (brand.total * 100f / totalItems.coerceAtLeast(1)).roundToInt(), formatMoney(brand.value))
                     },
                     onClick = brand.brand?.let { name -> { onCollection(OWNED.copy(brand = name)) } },
                 )
@@ -594,7 +601,7 @@ private fun MeasureToggle(byValue: Boolean, onChange: (Boolean) -> Unit) {
             .border(1.dp, Garage.Border, RoundedCornerShape(6.dp))
             .padding(2.dp),
     ) {
-        listOf(false to "Jumlah", true to "Nilai").forEach { (value, label) ->
+        listOf(false to stringResource(R.string.dashboard_by_count), true to stringResource(R.string.dashboard_by_value)).forEach { (value, label) ->
             val selected = byValue == value
             Text(
                 label,
@@ -613,7 +620,7 @@ private fun MeasureToggle(byValue: Boolean, onChange: (Boolean) -> Unit) {
 
 @Composable
 private fun RarityPanel(rarities: List<RarityCount>, onCollection: (CollectionLink) -> Unit) {
-    SectionCard("Kelangkaan") {
+    SectionCard(stringResource(R.string.field_rarity)) {
         if (rarities.none { it.rarity != Rarity.Regular }) {
             Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
@@ -622,9 +629,9 @@ private fun RarityPanel(rarities: List<RarityCount>, onCollection: (CollectionLi
                     tint = Garage.MutedForeground.copy(alpha = 0.6f),
                     modifier = Modifier.size(32.dp),
                 )
-                Text("Semua masih regular", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 8.dp))
+                Text(stringResource(R.string.dashboard_all_regular), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 8.dp))
                 Text(
-                    "Belum ada Treasure Hunt, Super TH, atau Chase. Semangat berburu! 🔥",
+                    stringResource(R.string.dashboard_all_regular_text),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                     textAlign = TextAlign.Center,
@@ -638,8 +645,8 @@ private fun RarityPanel(rarities: List<RarityCount>, onCollection: (CollectionLi
             rarities.map { (rarity, total) ->
                 BarRow(
                     key = rarity.key,
-                    label = rarity.label,
-                    display = "$total pcs",
+                    label = stringResource(rarity.label),
+                    display = stringResource(R.string.dashboard_pcs, total),
                     fraction = total.toFloat() / max,
                     color = Garage.rarityColor(rarity) ?: RegularBar,
                     onClick = { onCollection(OWNED.copy(rarity = rarity)) },
@@ -651,14 +658,14 @@ private fun RarityPanel(rarities: List<RarityCount>, onCollection: (CollectionLi
 
 @Composable
 private fun MakePanel(makes: List<Count>, onCollection: (CollectionLink) -> Unit) {
-    SectionCard("Pabrikan mobil") {
+    SectionCard(stringResource(R.string.dashboard_makes)) {
         CountBars(makes) { make -> onCollection(OWNED.copy(search = make)) }
     }
 }
 
 @Composable
 private fun ScalePanel(scales: List<Count>) {
-    SectionCard("Skala") { CountBars(scales, onClick = null) }
+    SectionCard(stringResource(R.string.field_scale)) { CountBars(scales, onClick = null) }
 }
 
 @Composable
@@ -669,7 +676,7 @@ private fun CountBars(counts: List<Count>, onClick: ((String) -> Unit)?) {
             BarRow(
                 key = count.label,
                 label = count.label,
-                display = "${count.total} pcs",
+                display = stringResource(R.string.dashboard_pcs, count.total),
                 fraction = count.total.toFloat() / max,
                 onClick = onClick?.let { open -> { open(count.label) } },
             )
@@ -679,11 +686,11 @@ private fun CountBars(counts: List<Count>, onClick: ((String) -> Unit)?) {
 
 @Composable
 private fun YearPanel(years: List<YearColumn>, unknownYears: Int) {
-    SectionCard("Tahun rilis") {
+    SectionCard(stringResource(R.string.dashboard_release_years)) {
         ColumnChart(years)
         if (unknownYears > 0) {
             Text(
-                "$unknownYears diecast belum ada tahun rilisnya.",
+                pluralStringResource(R.plurals.dashboard_unknown_years, unknownYears, unknownYears),
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
@@ -693,18 +700,17 @@ private fun YearPanel(years: List<YearColumn>, unknownYears: Int) {
 
 @Composable
 private fun GainersPanel(items: List<DiecastListItem>, opener: Opener) {
-    SectionCard("Harga paling naik") {
+    SectionCard(stringResource(R.string.dashboard_gainers)) {
         MiniList(items, "gainers", opener) { item ->
+            val description = stringResource(R.string.dashboard_gain, formatMoney((item.marketValue ?: 0L) - (item.purchasePrice ?: 0L)))
             Row(
-                Modifier.semantics(mergeDescendants = true) {
-                    contentDescription = "Naik ${formatRupiah((item.marketValue ?: 0L) - (item.purchasePrice ?: 0L))}"
-                },
+                Modifier.semantics(mergeDescendants = true) { contentDescription = description },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Icon(painterResource(R.drawable.ic_trending_up), contentDescription = null, tint = Garage.Gain, modifier = Modifier.size(14.dp))
                 Text(
-                    formatRupiah((item.marketValue ?: 0L) - (item.purchasePrice ?: 0L)),
+                    formatMoney((item.marketValue ?: 0L) - (item.purchasePrice ?: 0L)),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.Gain,
                     fontWeight = FontWeight.Medium,
@@ -716,10 +722,10 @@ private fun GainersPanel(items: List<DiecastListItem>, opener: Opener) {
 
 @Composable
 private fun WishlistPanel(items: List<DiecastListItem>, count: Int, opener: Opener, onAll: () -> Unit) {
-    SectionCard("Wishlist ($count)", action = { SeeAll(onAll) }) {
+    SectionCard(stringResource(R.string.dashboard_wishlist, count), action = { SeeAll(onAll) }) {
         MiniList(items, "wishlist", opener) { item ->
             item.targetPrice?.let {
-                Text("≤ ${formatRupiah(it)}", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                Text("≤ ${formatMoney(it)}", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
             }
         }
     }

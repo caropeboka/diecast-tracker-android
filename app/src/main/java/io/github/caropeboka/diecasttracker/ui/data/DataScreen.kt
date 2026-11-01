@@ -45,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -168,10 +170,10 @@ fun DataScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Heading("Data & backup") },
+                title = { Heading(stringResource(R.string.settings_data)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Kembali")
+                        Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
@@ -187,7 +189,7 @@ fun DataScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                "Koleksimu: ${counts.diecasts} diecast, ${counts.photos} foto.",
+                stringResource(R.string.data_counts, pluralStringResource(R.plurals.data_diecasts, counts.diecasts, counts.diecasts), pluralStringResource(R.plurals.data_photos, counts.photos, counts.photos)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Garage.MutedForeground,
             )
@@ -195,15 +197,14 @@ fun DataScreen(
             ExportFeedback(exportState, viewModel::dismissExport)
             ImportFeedback(importState, viewModel::dismissResult)
 
-            SectionCard("Backup") {
+            SectionCard(stringResource(R.string.data_backup)) {
                 Hint(
-                    "Satu file .zip berisi semua diecast, foto, catatan temuan, dan Dex. Simpan di luar HP (Google Drive, " +
-                        "laptop) supaya koleksi aman kalau HP hilang atau aplikasinya terhapus. File ini juga bisa dipulihkan di web app.",
+                    stringResource(R.string.data_backup_text),
                 )
                 backupTimes?.let { times ->
                     Text(
-                        times.last?.let { "Backup terakhir: ${formatDate(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate())}." }
-                            ?: "Belum pernah backup dari HP ini.",
+                        times.last?.let { stringResource(R.string.data_last_backup, formatDate(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate())) }
+                            ?: stringResource(R.string.data_never_backed_up),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -215,8 +216,8 @@ fun DataScreen(
                 )
             }
 
-            SectionCard("Export Excel") {
-                Hint("Daftar koleksi dalam satu tabel (.xlsx), kolomnya sama dengan export di web. Foto tidak ikut.")
+            SectionCard(stringResource(R.string.data_export_excel)) {
+                Hint(stringResource(R.string.data_export_excel_text))
                 ExportButtons(
                     enabled = !busy && counts.diecasts > 0,
                     primary = false,
@@ -225,15 +226,14 @@ fun DataScreen(
                 )
             }
 
-            SectionCard("Pulihkan dari backup") {
+            SectionCard(stringResource(R.string.data_restore)) {
                 Hint(
-                    "Pilih file backup .zip dari HP ini, atau dari web app (Settings → Backup & Data → Download backup). " +
-                        "Data dan semua fotonya ikut; backup dari HP juga membawa Dex-nya.",
+                    stringResource(R.string.data_restore_text),
                 )
 
                 Column(Modifier.selectableGroup()) {
-                    ModeOption("Tambahkan ke koleksi sekarang", selected = !replace, enabled = !busy) { replace = false }
-                    ModeOption("Ganti seluruh koleksi sekarang dengan isi backup", selected = replace, enabled = !busy) {
+                    ModeOption(stringResource(R.string.data_mode_merge), selected = !replace, enabled = !busy) { replace = false }
+                    ModeOption(stringResource(R.string.data_mode_replace), selected = replace, enabled = !busy) {
                         replace = true
                     }
                 }
@@ -253,8 +253,7 @@ fun DataScreen(
                         ) {
                             Checkbox(checked = confirmed, onCheckedChange = null)
                             Text(
-                                "Saya mengerti ${counts.diecasts} diecast yang ada sekarang (beserta fotonya) akan dihapus dan " +
-                                    "diganti isi backup. Backup dari HP juga mengganti Dex sendiri.",
+                                pluralStringResource(R.plurals.data_replace_confirm, counts.diecasts, counts.diecasts),
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(start = 12.dp),
                             )
@@ -273,7 +272,7 @@ fun DataScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    IconLabel(R.drawable.ic_folder_zip, "Pilih file backup (.zip)")
+                    IconLabel(R.drawable.ic_folder_zip, stringResource(R.string.data_pick_backup))
                 }
             }
         }
@@ -291,15 +290,15 @@ private fun ExportButtons(enabled: Boolean, primary: Boolean, onSave: () -> Unit
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         if (primary) {
             Button(onClick = onSave, enabled = enabled, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                IconLabel(R.drawable.ic_download, "Simpan")
+                IconLabel(R.drawable.ic_download, stringResource(R.string.save))
             }
         } else {
             OutlinedButton(onClick = onSave, enabled = enabled, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                IconLabel(R.drawable.ic_table, "Simpan")
+                IconLabel(R.drawable.ic_table, stringResource(R.string.save))
             }
         }
         OutlinedButton(onClick = onShare, enabled = enabled, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-            IconLabel(R.drawable.ic_share, "Bagikan")
+            IconLabel(R.drawable.ic_share, stringResource(R.string.data_share))
         }
     }
 }
@@ -328,7 +327,7 @@ private fun Progress(text: String, done: Int, total: Int) {
             LinearProgressIndicator(progress = { done.toFloat() / total }, modifier = Modifier.fillMaxWidth())
         }
         Text(
-            "Boleh pindah layar; jangan tutup aplikasinya sampai selesai.",
+            stringResource(R.string.data_keep_open),
             style = MaterialTheme.typography.bodySmall,
             color = Garage.MutedForeground,
         )
@@ -341,30 +340,36 @@ private fun ExportFeedback(state: ExportState, onDismiss: () -> Unit) {
         ExportState.Idle -> Unit
         is ExportState.Running -> Progress(
             when {
-                state.kind == ExportKind.Excel -> "Membuat file Excel…"
-                state.total == 0 -> "Menyiapkan backup…"
-                else -> "Menyalin foto ${state.done} dari ${state.total}…"
+                state.kind == ExportKind.Excel -> stringResource(R.string.data_making_excel)
+                state.total == 0 -> stringResource(R.string.data_preparing_backup)
+                else -> stringResource(R.string.data_copying_photos, state.done, state.total)
             },
             state.done,
             state.total,
         )
         is ExportState.Failed -> Notice(Garage.Loss, R.drawable.ic_warning, state.message, emptyList(), onDismiss)
         is ExportState.Finished -> {
-            val what = if (state.kind == ExportKind.Backup) "Backup" else "File Excel"
             val summary = state.summary
             val contents = buildList {
-                add("${summary.diecasts} diecast")
+                add(pluralStringResource(R.plurals.data_diecasts, summary.diecasts, summary.diecasts))
                 if (state.kind == ExportKind.Backup) {
-                    add("${summary.photos} foto")
-                    if (summary.sightingPhotos > 0) add("${summary.sightingPhotos} foto temuan")
-                    if (summary.dexes > 0) add("${summary.dexes} daftar Dex")
+                    add(pluralStringResource(R.plurals.data_photos, summary.photos, summary.photos))
+                    if (summary.sightingPhotos > 0) add(pluralStringResource(R.plurals.data_sighting_photos, summary.sightingPhotos, summary.sightingPhotos))
+                    if (summary.dexes > 0) add(pluralStringResource(R.plurals.data_dex_lists, summary.dexes, summary.dexes))
                 }
             }.joinToString(", ")
             Notice(
                 Garage.Gain,
                 R.drawable.ic_check_circle,
-                if (state.forSharing) "$what siap dibagikan." else "$what tersimpan.",
-                listOf("${state.fileName} (${formatBytes(state.bytes)})", "Isinya $contents."),
+                stringResource(
+                    when {
+                        state.kind == ExportKind.Backup && state.forSharing -> R.string.data_backup_ready
+                        state.kind == ExportKind.Backup -> R.string.data_backup_saved
+                        state.forSharing -> R.string.data_excel_ready
+                        else -> R.string.data_excel_saved
+                    },
+                ),
+                listOf("${state.fileName} (${formatBytes(state.bytes)})", stringResource(R.string.data_contents, contents)),
                 onDismiss,
             )
         }
@@ -376,21 +381,21 @@ private fun ImportFeedback(state: ImportState, onDismiss: () -> Unit) {
     when (state) {
         ImportState.Idle -> Unit
         is ImportState.Running -> Progress(
-            if (state.total == 0) "Membaca file backup…" else "Memulihkan ${state.done} dari ${state.total} diecast…",
+            if (state.total == 0) stringResource(R.string.data_reading_backup) else stringResource(R.string.data_restoring, state.done, state.total),
             state.done,
             state.total,
         )
         is ImportState.Failed -> Notice(Garage.Loss, R.drawable.ic_warning, state.message, emptyList(), onDismiss)
         is ImportState.Finished -> {
             val result = state.result
-            val title = buildString {
-                append("${result.imported} diecast berhasil ")
-                append(if (state.replaced) "dipulihkan" else "ditambahkan")
-                if (result.skipped.isNotEmpty()) append(", ${result.skipped.size} dilewati:") else append(".")
-            }
+            val title = pluralStringResource(
+                if (state.replaced) R.plurals.data_restored else R.plurals.data_added,
+                result.imported,
+                result.imported,
+            ) + if (result.skipped.isNotEmpty()) pluralStringResource(R.plurals.data_skipped, result.skipped.size, result.skipped.size) else "."
             val details = listOfNotNull(
-                result.exportedOn?.let { "Backup dibuat ${formatDate(it)}." },
-                "Dex: ${result.dexes} daftar ikut dipulihkan.".takeIf { result.dexes > 0 },
+                result.exportedOn?.let { stringResource(R.string.data_backup_made, formatDate(it)) },
+                pluralStringResource(R.plurals.data_dexes_restored, result.dexes, result.dexes).takeIf { result.dexes > 0 },
             ) + result.skipped.take(50)
             Notice(
                 if (result.skipped.isEmpty()) Garage.Gain else Garage.Brand2,
@@ -423,7 +428,7 @@ private fun Notice(color: Color, icon: Int, title: String, lines: List<String>, 
                     modifier = Modifier.padding(start = 26.dp, top = 4.dp, end = 8.dp),
                 )
             }
-            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("Tutup") }
+            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.close)) }
         }
     }
 }

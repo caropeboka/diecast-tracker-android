@@ -8,6 +8,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.github.caropeboka.diecasttracker.data.backup.BackupTimes
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
+import io.github.caropeboka.diecasttracker.util.Currency
+import io.github.caropeboka.diecasttracker.util.DateStyle
+import io.github.caropeboka.diecasttracker.util.ExchangeRates
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -72,7 +75,40 @@ class UserPrefs(context: Context) {
         return place.takeIf { it.name.isNotBlank() && it.isFresh(now) }
     }
 
+    /** What prices are shown in; they stay stored in Rupiah. */
+    val currency: Flow<Currency> = store.data.map { Currency.of(it[CURRENCY]) }
+
+    suspend fun setCurrency(currency: Currency) {
+        store.edit { it[CURRENCY] = currency.key }
+    }
+
+    val dateStyle: Flow<DateStyle> = store.data.map { DateStyle.of(it[DATE_STYLE]) }
+
+    suspend fun setDateStyle(style: DateStyle) {
+        store.edit { it[DATE_STYLE] = style.key }
+    }
+
+    /** The last exchange rates fetched, kept for when there's no connection. */
+    val rates: Flow<ExchangeRates?> = store.data.map { prefs ->
+        prefs[RATES]?.let { runCatching { Json.decodeFromString<ExchangeRates>(it) }.getOrNull() }
+    }
+
+    suspend fun setRates(rates: ExchangeRates) {
+        store.edit { it[RATES] = Json.encodeToString(rates) }
+    }
+
+    /** The first-run tour was finished or skipped. */
+    val tourDone: Flow<Boolean> = store.data.map { it[TOUR_DONE] ?: false }
+
+    suspend fun setTourDone(done: Boolean) {
+        store.edit { it[TOUR_DONE] = done }
+    }
+
     private companion object {
+        val CURRENCY = stringPreferencesKey("currency")
+        val DATE_STYLE = stringPreferencesKey("date_style")
+        val RATES = stringPreferencesKey("exchange_rates")
+        val TOUR_DONE = booleanPreferencesKey("tour_done")
         val LAYOUT = stringPreferencesKey("collection_layout")
         val SORT = stringPreferencesKey("collection_sort")
         val HUNT_PLACE = stringPreferencesKey("hunt_place")

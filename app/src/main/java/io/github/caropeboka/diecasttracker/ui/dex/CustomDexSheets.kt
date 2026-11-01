@@ -38,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -62,10 +64,10 @@ import io.github.caropeboka.diecasttracker.ui.theme.Garage
 fun CustomDexTools(viewModel: CustomDexViewModel) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = viewModel::addEntry, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-            IconLabel(R.drawable.ic_add, "Tambah entri")
+            IconLabel(R.drawable.ic_add, stringResource(R.string.dex_add_entry))
         }
         OutlinedButton(onClick = { viewModel.openImport(true) }, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-            IconLabel(R.drawable.ic_view_list, "Isi banyak")
+            IconLabel(R.drawable.ic_view_list, stringResource(R.string.dex_fill_many))
         }
     }
 }
@@ -105,26 +107,26 @@ fun CatalogSheet(
 ) {
     val isNew = draft.id == 0L
     DexSheet(
-        title = if (isNew) "Buat dex sendiri" else "Ubah dex",
-        subtitle = if (isNew) "Untuk merek yang tidak punya daftar di wiki (Mini GT, Tarmac, Inno64, Roll Speed…)." else null,
+        title = stringResource(if (isNew) R.string.dex_own_create else R.string.dex_edit),
+        subtitle = if (isNew) stringResource(R.string.dex_create_own_hint) else null,
         onDismiss = onDismiss,
     ) {
         SuggestInput(
-            draft.brand, { v -> onChange(CatalogField.Brand) { it.copy(brand = v) } }, brands, "Merek *",
+            draft.brand, { v -> onChange(CatalogField.Brand) { it.copy(brand = v) } }, brands, stringResource(R.string.field_brand) + " *",
             placeholder = "Mini GT", error = errors[CatalogField.Brand],
         )
         TextInput(
-            draft.name, { v -> onChange(CatalogField.Name) { it.copy(name = v) } }, "Nama dex *",
-            placeholder = "Mini GT 2026, Roll Speed Polisi…", error = errors[CatalogField.Name], capitalization = KeyboardCapitalization.Words,
+            draft.name, { v -> onChange(CatalogField.Name) { it.copy(name = v) } }, stringResource(R.string.dex_name_label),
+            placeholder = stringResource(R.string.dex_name_placeholder), error = errors[CatalogField.Name], capitalization = KeyboardCapitalization.Words,
         )
         TextInput(
-            draft.year, { v -> onChange(CatalogField.Year) { it.copy(year = v.filter(Char::isDigit).take(4)) } }, "Tahun (opsional)",
+            draft.year, { v -> onChange(CatalogField.Year) { it.copy(year = v.filter(Char::isDigit).take(4)) } }, stringResource(R.string.dex_year_optional),
             error = errors[CatalogField.Year], keyboardType = KeyboardType.Number,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onDismiss, shape = MaterialTheme.shapes.medium) { Text("Batal") }
+            TextButton(onClick = onDismiss, shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.cancel)) }
             Button(onClick = onSave, shape = MaterialTheme.shapes.medium) {
-                if (isNew) IconLabel(R.drawable.ic_add, "Buat dex") else Text("Simpan")
+                if (isNew) IconLabel(R.drawable.ic_add, stringResource(R.string.dex_create)) else Text(stringResource(R.string.save))
             }
         }
     }
@@ -143,37 +145,37 @@ fun EntryEditorSheet(viewModel: CustomDexViewModel, seriesSuggestions: List<Stri
     fun set(field: RowField, change: (DexRow) -> DexRow) = viewModel.updateDraft(field, change)
 
     DexSheet(
-        title = if (draft.isNew) "Tambah entri" else "Ubah entri",
-        subtitle = if (draft.isNew) "Satu rilisan. Nomor yang sama dengan varian berbeda jadi varian dari entri itu." else null,
+        title = stringResource(if (draft.isNew) R.string.dex_add_entry else R.string.dex_edit_entry),
+        subtitle = if (draft.isNew) stringResource(R.string.dex_add_entry_hint) else null,
         onDismiss = viewModel::closeEntry,
     ) {
         viewModel.lastAdded?.let {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(painterResource(R.drawable.ic_check_circle), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(18.dp))
-                Text("$it Lanjut entri berikutnya, atau Selesai.", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.dex_added_next, it), style = MaterialTheme.typography.bodySmall)
             }
         }
         TextInput(
-            row.number.orEmpty(), { v -> set(RowField.Number) { it.copy(number = v) } }, "Nomor / kode",
-            placeholder = if (draft.isNew) "MGT00512 (kosongkan = urut otomatis)" else null,
+            row.number.orEmpty(), { v -> set(RowField.Number) { it.copy(number = v) } }, stringResource(R.string.dex_number_code),
+            placeholder = if (draft.isNew) stringResource(R.string.dex_number_placeholder) else null,
             error = errors[RowField.Number], capitalization = KeyboardCapitalization.Characters,
         )
         TextInput(
-            row.name, { v -> set(RowField.Name) { it.copy(name = v) } }, "Nama model *",
+            row.name, { v -> set(RowField.Name) { it.copy(name = v) } }, stringResource(R.string.edit_model_name),
             placeholder = "Nissan Skyline GT-R (R34)", error = errors[RowField.Name], capitalization = KeyboardCapitalization.Words,
         )
         SuggestInput(
-            row.series.orEmpty(), { v -> set(RowField.Series) { it.copy(series = v) } }, seriesSuggestions, "Seri",
-            placeholder = "Opsional", error = errors[RowField.Series],
+            row.series.orEmpty(), { v -> set(RowField.Series) { it.copy(series = v) } }, seriesSuggestions, stringResource(R.string.field_series),
+            placeholder = stringResource(R.string.optional), error = errors[RowField.Series],
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextInput(
-                row.seriesNumber.orEmpty(), { v -> set(RowField.SeriesNumber) { it.copy(seriesNumber = v) } }, "Nomor seri",
-                placeholder = "mis. 3/5", error = errors[RowField.SeriesNumber], modifier = Modifier.weight(1f),
+                row.seriesNumber.orEmpty(), { v -> set(RowField.SeriesNumber) { it.copy(seriesNumber = v) } }, stringResource(R.string.dex_series_number),
+                placeholder = stringResource(R.string.dex_series_number_placeholder), error = errors[RowField.SeriesNumber], modifier = Modifier.weight(1f),
             )
             TextInput(
-                row.variantLabel.orEmpty(), { v -> set(RowField.Variant) { it.copy(variantLabel = v) } }, "Varian / warna",
-                placeholder = "Bayside Blue, LHD…", error = errors[RowField.Variant], modifier = Modifier.weight(1.4f),
+                row.variantLabel.orEmpty(), { v -> set(RowField.Variant) { it.copy(variantLabel = v) } }, stringResource(R.string.dex_variant_colour),
+                placeholder = stringResource(R.string.dex_variant_placeholder), error = errors[RowField.Variant], modifier = Modifier.weight(1.4f),
                 capitalization = KeyboardCapitalization.Words,
             )
         }
@@ -184,13 +186,13 @@ fun EntryEditorSheet(viewModel: CustomDexViewModel, seriesSuggestions: List<Stri
             val current = draft.currentPhoto?.takeIf { !draft.removePhoto }
             Box(contentAlignment = Alignment.Center) {
                 when {
-                    draft.photo != null -> DiecastPhoto(draft.photo, "Foto entri", photoModifier, placeholderSize = 32.dp)
+                    draft.photo != null -> DiecastPhoto(draft.photo, stringResource(R.string.dex_entry_photo), photoModifier, placeholderSize = 32.dp)
                     else -> DexImage(current, photoModifier, placeholderSize = 32.dp)
                 }
                 if (viewModel.processingPhoto) CircularProgressIndicator(Modifier.size(28.dp))
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Foto (opsional)", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.dex_photo_optional), style = MaterialTheme.typography.bodyMedium)
                 Row {
                     TextButton(
                         onClick = {
@@ -201,28 +203,28 @@ fun EntryEditorSheet(viewModel: CustomDexViewModel, seriesSuggestions: List<Stri
                             }
                         },
                         shape = MaterialTheme.shapes.medium,
-                    ) { IconLabel(R.drawable.ic_photo_camera, "Kamera") }
+                    ) { IconLabel(R.drawable.ic_photo_camera, stringResource(R.string.camera)) }
                     TextButton(
                         onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                         shape = MaterialTheme.shapes.medium,
-                    ) { IconLabel(R.drawable.ic_photo_library, "Galeri") }
+                    ) { IconLabel(R.drawable.ic_photo_library, stringResource(R.string.gallery)) }
                 }
                 if (draft.photo != null || current != null) {
                     TextButton(onClick = viewModel::removeEntryPhoto, shape = MaterialTheme.shapes.medium) {
-                        Text("Hapus foto", color = Garage.Loss)
+                        Text(stringResource(R.string.edit_delete_photo), color = Garage.Loss)
                     }
                 }
             }
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = viewModel::closeEntry, shape = MaterialTheme.shapes.medium) { Text(if (draft.isNew) "Selesai" else "Batal") }
+            TextButton(onClick = viewModel::closeEntry, shape = MaterialTheme.shapes.medium) { Text(stringResource(if (draft.isNew) R.string.done else R.string.cancel)) }
             Button(
                 onClick = viewModel::saveEntry,
                 enabled = !viewModel.savingEntry && !viewModel.processingPhoto,
                 shape = MaterialTheme.shapes.medium,
             ) {
-                if (draft.isNew) IconLabel(R.drawable.ic_add, "Tambah") else Text("Simpan")
+                if (draft.isNew) IconLabel(R.drawable.ic_add, stringResource(R.string.add)) else Text(stringResource(R.string.save))
             }
         }
     }
@@ -241,8 +243,8 @@ fun ImportSheet(viewModel: CustomDexViewModel, brand: String, onAiSettings: () -
     val sheet = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(viewModel::importSpreadsheet) }
 
     DexSheet(
-        title = "Isi banyak sekaligus",
-        subtitle = "Entri yang sudah ada tidak digandakan.",
+        title = stringResource(R.string.dex_fill_many_title),
+        subtitle = stringResource(R.string.dex_fill_many_hint),
         onDismiss = { if (busy == null) viewModel.openImport(false) },
     ) {
         viewModel.importNote?.let {
@@ -253,12 +255,11 @@ fun ImportSheet(viewModel: CustomDexViewModel, brand: String, onAiSettings: () -
         }
         ImportOption(
             icon = R.drawable.ic_sparkles,
-            title = "Dari screenshot checklist (AI)",
+            title = stringResource(R.string.dex_from_checklist),
             text = if (aiEnabled) {
-                "Screenshot daftar rilisan (post checklist, katalog, pre-order toko), maks. $MAX_CHECKLIST_IMAGES, atau foto lembar " +
-                    "checklist. AI yang mengetik daftarnya; kamu periksa dulu sebelum ditambahkan."
+                stringResource(R.string.dex_from_checklist_text, MAX_CHECKLIST_IMAGES)
             } else {
-                "AI belum aktif. Isi API key di Pengaturan AI."
+                stringResource(R.string.ai_err_not_set)
             },
             busy = busy == ImportBusy.Checklist,
         ) {
@@ -268,7 +269,7 @@ fun ImportSheet(viewModel: CustomDexViewModel, brand: String, onAiSettings: () -
                         onClick = { screenshots.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                         enabled = busy == null,
                         shape = MaterialTheme.shapes.medium,
-                    ) { IconLabel(R.drawable.ic_photo_library, "Pilih screenshot") }
+                    ) { IconLabel(R.drawable.ic_photo_library, stringResource(R.string.dex_pick_screenshots)) }
                     TextButton(
                         onClick = {
                             try {
@@ -279,26 +280,26 @@ fun ImportSheet(viewModel: CustomDexViewModel, brand: String, onAiSettings: () -
                         },
                         enabled = busy == null,
                         shape = MaterialTheme.shapes.medium,
-                    ) { IconLabel(R.drawable.ic_photo_camera, "Foto") }
+                    ) { IconLabel(R.drawable.ic_photo_camera, stringResource(R.string.photo)) }
                 }
             } else {
-                TextButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { Text("Buka Pengaturan AI") }
+                TextButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.dex_open_ai_settings)) }
             }
         }
         checklistProgress?.let { AiProgressView(it) }
 
         ImportOption(
             icon = R.drawable.ic_grid_view,
-            title = "Dari Excel / CSV",
-            text = "Baris pertama berisi judul kolom: Nomor, Nama, Seri, Nomor seri, Varian. Minimal kolom Nama. Hanya sheet pertama yang dibaca.",
+            title = stringResource(R.string.dex_from_sheet),
+            text = stringResource(R.string.dex_from_sheet_text),
             busy = busy == ImportBusy.Spreadsheet,
             onClick = { if (busy == null) sheet.launch(SPREADSHEET_TYPES) },
         )
 
         ImportOption(
             icon = R.drawable.ic_car,
-            title = "Dari koleksiku",
-            text = "Semua diecast $brand di koleksimu jadi entri, langsung tertaut (dengan fotonya).",
+            title = stringResource(R.string.dex_from_collection),
+            text = stringResource(R.string.dex_from_collection_text, brand),
             busy = busy == ImportBusy.Collection,
             onClick = { if (busy == null) viewModel.fromCollection() },
         )
@@ -357,9 +358,9 @@ fun ChecklistReviewSheet(viewModel: CustomDexViewModel) {
 
     ModalBottomSheet(onDismissRequest = viewModel::closeReview, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Garage.Card) {
         Column(Modifier.padding(horizontal = 16.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SubHeading("Periksa hasil AI")
+            SubHeading(stringResource(R.string.dex_review_title))
             Text(
-                "AI membaca ${review.rows.size} rilisan. Hapus centang yang salah baca; yang keliru sedikit bisa diubah setelah ditambahkan.",
+                pluralStringResource(R.plurals.dex_checklist_review, review.rows.size, review.rows.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
@@ -382,7 +383,7 @@ fun ChecklistReviewSheet(viewModel: CustomDexViewModel) {
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            val details = listOfNotNull(row.series, row.seriesNumber, row.variantLabel, "sudah ada di dex".takeIf { known })
+                            val details = listOfNotNull(row.series, row.seriesNumber, row.variantLabel, stringResource(R.string.dex_already_there).takeIf { known })
                             if (details.isNotEmpty()) {
                                 Text(details.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                             }
@@ -391,9 +392,9 @@ fun ChecklistReviewSheet(viewModel: CustomDexViewModel) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-                TextButton(onClick = viewModel::closeReview, shape = MaterialTheme.shapes.medium) { Text("Batal") }
+                TextButton(onClick = viewModel::closeReview, shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.cancel)) }
                 Button(onClick = viewModel::confirmReview, enabled = count > 0 && viewModel.busy == null, shape = MaterialTheme.shapes.medium) {
-                    IconLabel(R.drawable.ic_add, "Tambahkan $count entri")
+                    IconLabel(R.drawable.ic_add, pluralStringResource(R.plurals.dex_add_count, count, count))
                 }
             }
         }

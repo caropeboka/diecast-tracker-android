@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -58,12 +59,13 @@ fun DexMeter(counts: DexCounts, modifier: Modifier = Modifier) {
         (counts.seen - counts.caught) to Garage.MeterSoft,
         (counts.total - counts.seen) to Garage.MeterTrack,
     ).filter { it.first > 0 }
+    val description = stringResource(R.string.dex_meter_description, counts.seen, counts.caught, counts.total)
 
     Row(
         modifier
             .fillMaxWidth()
             .height(10.dp)
-            .semantics { contentDescription = "Dilihat ${counts.seen}, dimiliki ${counts.caught}, dari ${counts.total}" },
+            .semantics { contentDescription = description },
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (segments.isEmpty()) Box(Modifier.fillMaxSize().background(Garage.MeterTrack, RoundedCornerShape(4.dp)))
@@ -78,9 +80,9 @@ fun DexMeter(counts: DexCounts, modifier: Modifier = Modifier) {
 fun DexLegend(counts: DexCounts, modifier: Modifier = Modifier) {
     val style = MaterialTheme.typography.bodySmall
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        LegendItem(Garage.MeterBar, "Dimiliki ${counts.caught} (${percent(counts.caught, counts.total)}%)")
-        LegendItem(Garage.MeterSoft, "Dilihat ${counts.seen} (${percent(counts.seen, counts.total)}%)")
-        Text("dari ${counts.total}", style = style, color = Garage.MutedForeground)
+        LegendItem(Garage.MeterBar, stringResource(R.string.dex_legend_owned, counts.caught, percent(counts.caught, counts.total)))
+        LegendItem(Garage.MeterSoft, stringResource(R.string.dex_legend_seen, counts.seen, percent(counts.seen, counts.total)))
+        Text(stringResource(R.string.dex_legend_of, counts.total), style = style, color = Garage.MutedForeground)
     }
 }
 
@@ -115,9 +117,9 @@ fun DexImage(path: String?, modifier: Modifier = Modifier, dim: Boolean = false,
 @Composable
 fun StateBadge(state: EntryState, modifier: Modifier = Modifier) {
     val (icon, label, background) = when {
-        state.caught -> Triple(R.drawable.ic_check, "Dimiliki", Garage.MeterBar)
-        state.seen -> Triple(R.drawable.ic_visibility, "Dilihat", Garage.MeterSoft)
-        state.wanted -> Triple(R.drawable.ic_favorite, "Diincar", Garage.Background.copy(alpha = 0.85f))
+        state.caught -> Triple(R.drawable.ic_check, stringResource(R.string.dex_state_owned), Garage.MeterBar)
+        state.seen -> Triple(R.drawable.ic_visibility, stringResource(R.string.dex_state_seen), Garage.MeterSoft)
+        state.wanted -> Triple(R.drawable.ic_favorite, stringResource(R.string.dex_state_wanted), Garage.Background.copy(alpha = 0.85f))
         else -> return
     }
     Box(modifier.size(20.dp).background(background, CircleShape), contentAlignment = Alignment.Center) {
@@ -125,12 +127,15 @@ fun StateBadge(state: EntryState, modifier: Modifier = Modifier) {
     }
 }
 
-fun stateLabel(state: EntryState) = when {
-    state.caught -> "Dimiliki"
-    state.seen -> "Dilihat"
-    state.wanted -> "Diincar"
-    else -> "Belum ditelusuri"
-}
+@Composable
+fun stateLabel(state: EntryState): String = stringResource(
+    when {
+        state.caught -> R.string.dex_state_owned
+        state.seen -> R.string.dex_state_seen
+        state.wanted -> R.string.dex_state_wanted
+        else -> R.string.dex_state_none
+    },
+)
 
 @Composable
 fun HuntChip(isTh: Boolean, isSth: Boolean, modifier: Modifier = Modifier) {

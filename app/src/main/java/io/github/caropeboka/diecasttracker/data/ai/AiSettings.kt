@@ -45,7 +45,7 @@ enum class AiProvider(
 
     // The free router picks a free model that can do what the request needs (images, JSON), whichever are up.
     OpenRouter("openrouter", "OpenRouter", "OpenRouter", "https://openrouter.ai/api/v1", "openrouter/free", "https://openrouter.ai/keys"),
-    Custom("custom", "Server lain", "OpenAI-compatible", null, "", null),
+    Custom("custom", "Server", "OpenAI-compatible", null, "", null),
 }
 
 /** One provider as set up: its key, model and whether it may be used. [baseUrl] and [name] are the custom one's. */

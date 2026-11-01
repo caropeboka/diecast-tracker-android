@@ -19,11 +19,11 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 class ShelfTest {
     private var clock = 1_000L
     private val env = TestEnvironment { clock }
-    private val shelves = ShelfRepository(env.db) { clock }
+    private val shelves = ShelfRepository(env.db, env.texts) { clock }
 
     @After
     fun tearDown() = env.close()
@@ -51,13 +51,13 @@ class ShelfTest {
 
     @Test
     fun `every place has a name for its storage location`() {
-        assertEquals("Papan 1 · jalur 1", ShelfLayout.label(Shelf.Boards, 0))
-        assertEquals("Papan 2 · jalur 3", ShelfLayout.label(Shelf.Boards, 6))
-        assertEquals("Laci hitam · susun bawah", ShelfLayout.label(Shelf.Corner, 0))
-        assertEquals("Laci hitam · susun atas", ShelfLayout.label(Shelf.Corner, 2))
-        assertEquals("Rak putih · baris 1 kolom 1", ShelfLayout.label(Shelf.Case, 0))
-        assertEquals("Rak putih · baris 3 kolom 2", ShelfLayout.label(Shelf.Case, 13))
-        assertEquals("Rak putih · baris 10 kolom 6", ShelfLayout.label(Shelf.Case, 59))
+        assertEquals("Papan 1 · jalur 1", ShelfLayout.label(env.texts, Shelf.Boards, 0))
+        assertEquals("Papan 2 · jalur 3", ShelfLayout.label(env.texts, Shelf.Boards, 6))
+        assertEquals("Laci hitam · susun bawah", ShelfLayout.label(env.texts, Shelf.Corner, 0))
+        assertEquals("Laci hitam · susun atas", ShelfLayout.label(env.texts, Shelf.Corner, 2))
+        assertEquals("Rak putih · baris 1 kolom 1", ShelfLayout.label(env.texts, Shelf.Case, 0))
+        assertEquals("Rak putih · baris 3 kolom 2", ShelfLayout.label(env.texts, Shelf.Case, 13))
+        assertEquals("Rak putih · baris 10 kolom 6", ShelfLayout.label(env.texts, Shelf.Case, 59))
     }
 
     @Test

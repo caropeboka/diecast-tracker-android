@@ -1,6 +1,8 @@
 package io.github.caropeboka.diecasttracker.data.ai
 
 import android.util.Log
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.util.array
 import io.github.caropeboka.diecasttracker.util.obj
 import io.github.caropeboka.diecasttracker.util.string
@@ -32,6 +34,7 @@ import java.util.Base64
  */
 class OpenAiClient(
     private val http: OkHttpClient,
+    private val texts: Texts,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     /** Checks a key by listing its models: only those that read images where the service says which do. */
@@ -42,11 +45,11 @@ class OpenAiClient(
         val reply = try {
             http.withTimeout(LIST_TIMEOUT_S).newCall(request).fetch(::reply)
         } catch (_: IOException) {
-            throw AiException("Tidak bisa menghubungi $label. Cek koneksi internet dan alamatnya.")
+            throw AiException(texts(R.string.ai_err_connect_address, label))
         }
 
         if (!reply.ok) {
-            throw AiException(if (reply.code in listOf(401, 403)) "API key $label tidak valid." else "$label menjawab ${reply.code}. Cek alamat dan key-nya.")
+            throw AiException(if (reply.code in listOf(401, 403)) texts(R.string.ai_err_key_invalid_short, label) else texts(R.string.ai_err_answered_code, label, reply.code))
         }
 
         val models = reply.json()?.array("data").orEmpty().mapNotNull { it as? JsonObject }
@@ -83,7 +86,7 @@ class OpenAiClient(
 
             // Some models refuse JSON mode; the schema in the prompt still asks for an object.
             if (jsonMode && reply.code == 400 && reply.body.contains("response_format")) {
-                onEvent(AiEvent.Missed(provider.model, "tidak mendukung mode JSON", retrying = true))
+                onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_no_json), retrying = true))
                 jsonMode = false
                 continue
             }
@@ -97,7 +100,7 @@ class OpenAiClient(
             }
 
             onEvent(AiEvent.Answered)
-            return answer(reply) ?: throw AiException("Hasil ${provider.label} tidak terbaca. Coba lagi atau foto ulang dengan cahaya lebih terang.")
+            return answer(reply) ?: throw AiException(texts(R.string.ai_err_unreadable_named, provider.label))
         }
     }
 
@@ -110,11 +113,11 @@ class OpenAiClient(
         return try {
             http.withTimeout(TIMEOUT_S).newCall(request).fetch(::reply)
         } catch (_: UnknownHostException) {
-            onEvent(AiEvent.Missed(provider.model, "tidak bisa dihubungi (cek koneksi)", retrying = false))
-            throw AiOfflineException("Tidak bisa terhubung ke ${provider.label}. Cek koneksi internet.")
+            onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_offline), retrying = false))
+            throw AiOfflineException(texts(R.string.ai_err_offline, provider.label))
         } catch (_: IOException) {
-            onEvent(AiEvent.Missed(provider.model, "tidak menjawab", retrying = false))
-            throw AiRetryLaterException("${provider.label} tidak merespons (server penuh atau koneksi lambat). Coba lagi sebentar lagi.")
+            onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_timeout), retrying = false))
+            throw AiRetryLaterException(texts(R.string.ai_err_timeout, provider.label))
         }
     }
 
@@ -165,11 +168,11 @@ class OpenAiClient(
     }
 
     private fun missReason(code: Int) = when (code) {
-        429 -> "kuotanya habis"
-        401, 403 -> "key tidak diterima"
-        404 -> "model tidak ada"
-        in 500..599 -> "sedang sibuk"
-        else -> "gagal ($code)"
+        429 -> texts(R.string.ai_miss_quota)
+        401, 403 -> texts(R.string.ai_miss_key)
+        404 -> texts(R.string.ai_miss_no_model)
+        in 500..599 -> texts(R.string.ai_miss_busy)
+        else -> texts(R.string.ai_miss_failed, code)
     }
 
     private fun failure(provider: ProviderSettings, reply: Reply): AiException {
@@ -177,13 +180,13 @@ class OpenAiClient(
         val said = reply.json()?.let { it.obj("error")?.string("message") ?: it.string("message") ?: it.string("detail") }?.trim()?.take(160)
 
         return when (reply.code) {
-            401, 403 -> AiException("API key $label tidak valid. Cek Pengaturan AI.")
-            402 -> AiException("$label minta kredit untuk model \"${provider.model}\". Pilih model gratis di Pengaturan AI.")
-            404 -> AiException("Model \"${provider.model}\" tidak ada di $label. Pilih model lain di Pengaturan AI.")
-            413 -> AiException("Fotonya terlalu besar untuk $label.")
-            429 -> AiRetryLaterException("Kuota gratis $label habis untuk saat ini. Tunggu sebentar (atau besok) lalu coba lagi.", restUntil = quotaBack(reply))
-            in 500..599 -> AiRetryLaterException("Server $label sedang sibuk. Coba lagi sebentar lagi.")
-            else -> AiException("$label menolak permintaan ini" + (said?.let { ": $it" } ?: " (${reply.code})."))
+            401, 403 -> AiException(texts(R.string.ai_err_key_invalid, label))
+            402 -> AiException(texts(R.string.ai_err_credit, label, provider.model))
+            404 -> AiException(texts(R.string.ai_err_model_missing, label, provider.model))
+            413 -> AiException(texts(R.string.ai_err_too_big, label))
+            429 -> AiRetryLaterException(texts(R.string.ai_err_quota, label), restUntil = quotaBack(reply))
+            in 500..599 -> AiRetryLaterException(texts(R.string.ai_err_busy, label))
+            else -> AiException(said?.let { texts(R.string.ai_err_refused_said, label, it) } ?: texts(R.string.ai_err_refused_code, label, reply.code))
         }
     }
 
@@ -202,7 +205,7 @@ class OpenAiClient(
 
     private fun url(provider: ProviderSettings, path: String): String {
         val endpoint = provider.endpoint?.takeIf { it.toHttpUrlOrNull() != null }
-            ?: throw AiException("Alamat server ${provider.label} tidak valid. Cek Pengaturan AI.")
+            ?: throw AiException(texts(R.string.ai_err_bad_address, provider.label))
         return "$endpoint/$path"
     }
 

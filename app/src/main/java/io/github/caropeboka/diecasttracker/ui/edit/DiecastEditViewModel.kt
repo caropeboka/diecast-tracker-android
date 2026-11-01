@@ -16,6 +16,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.toRoute
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.COMMON_BRANDS
 import io.github.caropeboka.diecasttracker.data.CollectionMatcher
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
@@ -37,6 +38,7 @@ import io.github.caropeboka.diecasttracker.data.dex.DexLinkState
 import io.github.caropeboka.diecasttracker.data.dex.DexRef
 import io.github.caropeboka.diecasttracker.data.dex.DexRepository
 import io.github.caropeboka.diecasttracker.data.dex.LinkAction
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.data.studio.CardCutout
@@ -107,6 +109,7 @@ class DiecastEditViewModel(
     private val dex: DexRepository,
     private val queue: ScanQueue,
     private val studio: StudioPhoto,
+    private val texts: Texts,
 ) : ViewModel() {
     private val route = saved.toRoute<DiecastEditRoute>()
     val diecastId = route.id
@@ -161,7 +164,7 @@ class DiecastEditViewModel(
 
     val scanning get() = scan == ScanState.Scanning
 
-    private val scanLog = AiProgressLog("Biasanya 10–30 detik.")
+    private val scanLog = AiProgressLog(texts, R.string.ai_hint_quick)
 
     /** What the running scan is doing, step by step. */
     val scanProgress: StateFlow<AiProgress?> = scanLog.state
@@ -173,7 +176,7 @@ class DiecastEditViewModel(
     var studioPhotos by mutableStateOf(saved.get<List<String>>(STUDIO_PHOTOS).orEmpty().toSet())
         private set
 
-    private val studioLog = AiProgressLog("Diproses di HP. Biasanya beberapa detik.")
+    private val studioLog = AiProgressLog(texts, R.string.ai_hint_studio)
     val studioProgress: StateFlow<AiProgress?> = studioLog.state
 
     /** The corner editor of a card or box's studio photo; null while closed. */
@@ -230,7 +233,7 @@ class DiecastEditViewModel(
             viewModelScope.launch {
                 val details = repository.details(route.id)
                 if (details == null) {
-                    messages.show("Diecast tidak ditemukan.")
+                    messages.show(texts(R.string.edit_not_found))
                     _events.send(EditEvent.Close)
                     return@launch
                 }
@@ -260,7 +263,7 @@ class DiecastEditViewModel(
         viewModelScope.launch {
             val item = queue.item(itemId)
             if (item == null) {
-                messages.show("Foto ini sudah tidak ada di antrean.")
+                messages.show(texts(R.string.edit_queue_photo_gone))
                 _events.send(EditEvent.Close)
                 return@launch
             }
@@ -314,7 +317,7 @@ class DiecastEditViewModel(
         if (scanning || makingStudio || form.photos.isEmpty()) return
 
         scan = ScanState.Scanning
-        scanLog.start("Menyiapkan ${minOf(form.photos.size, MAX_SCAN_PHOTOS)} foto")
+        minOf(form.photos.size, MAX_SCAN_PHOTOS).let { count -> scanLog.start(texts.plural(R.plurals.ai_preparing_photos, count, count)) }
         viewModelScope.launch {
             scan = try {
                 // The AI reads the first few: the sides themselves before their studio copies.
@@ -324,7 +327,7 @@ class DiecastEditViewModel(
                 replaceForm(next)
                 markAiFields(filled)
                 errors = errors - filled
-                scanLog.step(if (isNew) "Mencocokkan dengan koleksi dan Dex" else "Mencocokkan dengan koleksi")
+                scanLog.step(texts(if (isNew) R.string.ai_matching_dex else R.string.ai_matching))
                 ScanState.Done(
                     fields.confidence,
                     matcher.find(fields).filter { it.id != existing?.id },
@@ -336,7 +339,7 @@ class DiecastEditViewModel(
             } catch (e: AiException) {
                 ScanState.Failed(e.message.orEmpty(), retryLater = e is AiRetryLaterException)
             } catch (e: Exception) {
-                ScanState.Failed("Scan gagal (${e.message ?: e::class.simpleName}). Isi manual dulu atau coba lagi.", retryLater = false)
+                ScanState.Failed(texts(R.string.scan_failed, e.message ?: e::class.simpleName.orEmpty()), retryLater = false)
             } finally {
                 scanLog.stop()
             }
@@ -371,7 +374,7 @@ class DiecastEditViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.show("Gagal mengubah tautan Dex: ${e.message ?: e::class.simpleName}")
+                messages.show(texts(R.string.edit_dex_link_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 dexBusy = false
             }
@@ -431,12 +434,12 @@ class DiecastEditViewModel(
     fun cameraUnavailable() {
         saved.get<String>(CAMERA)?.let { File(it).delete() }
         saved[CAMERA] = null
-        photoError = "Tidak ada aplikasi kamera di perangkat ini."
+        photoError = texts(R.string.edit_no_camera)
     }
 
     private fun addPhotos(loads: List<() -> String>) {
         val room = (MAX_PHOTOS - form.photos.size - processingPhotos).coerceAtLeast(0)
-        photoError = if (loads.size > room) "Maksimal $MAX_PHOTOS foto." else null
+        photoError = if (loads.size > room) texts(R.string.edit_max_photos, MAX_PHOTOS) else null
         val todo = loads.take(room)
         if (todo.isEmpty()) return
 
@@ -452,7 +455,7 @@ class DiecastEditViewModel(
                 } catch (e: PhotoException) {
                     photoError = e.message
                 } catch (e: Exception) {
-                    photoError = "Foto gagal diproses (${e.message ?: e::class.simpleName})."
+                    photoError = texts(R.string.edit_photo_failed, e.message ?: e::class.simpleName.orEmpty())
                 } finally {
                     processingPhotos--
                 }
@@ -483,7 +486,7 @@ class DiecastEditViewModel(
         val name = form.photos.getOrNull(index) ?: return
         if (makingStudio || scanning || processingPhotos > 0 || cardCrop != null) return
         if (form.photos.size >= MAX_PHOTOS) {
-            photoError = "Foto sudah $MAX_PHOTOS. Hapus satu dulu untuk membuat foto studio."
+            photoError = texts(R.string.edit_studio_full, MAX_PHOTOS)
             return
         }
 
@@ -491,16 +494,16 @@ class DiecastEditViewModel(
         if (form.packaging == Packaging.Loose) cutOut(name) else openCardCrop(name)
     }
 
-    private fun cutOut(name: String) = makeStudio("Menyiapkan foto") {
+    private fun cutOut(name: String) = makeStudio(texts(R.string.studio_preparing)) {
         studio.make(name) { step ->
             when (step) {
                 is StudioStep.Downloading -> if (step.fraction == null) {
-                    studioLog.step("Mengunduh pemisah latar (sekali saja)")
+                    studioLog.step(texts(R.string.studio_downloading))
                 } else {
                     studioLog.progress(step.fraction)
                 }
-                StudioStep.Cutting -> studioLog.step("Memisahkan diecast dari latar")
-                StudioStep.Composing -> studioLog.step("Meluruskan dan menaruh di latar putih")
+                StudioStep.Cutting -> studioLog.step(texts(R.string.studio_cutting))
+                StudioStep.Composing -> studioLog.step(texts(R.string.studio_composing))
             }
         }
     }
@@ -523,7 +526,7 @@ class DiecastEditViewModel(
                 throw e
             } catch (e: Exception) {
                 cardCrop = null
-                photoError = "Foto gagal dibuka (${e.message ?: e::class.simpleName})."
+                photoError = texts(R.string.edit_photo_open_failed, e.message ?: e::class.simpleName.orEmpty())
             }
         }
     }
@@ -597,7 +600,7 @@ class DiecastEditViewModel(
         val cutout = crop.cutout ?: return
         if (crop.working) return
         closeCardCrop()
-        makeStudio("Menaruh kartu di latar putih") { studio.makeCard(cutout) }
+        makeStudio(texts(R.string.studio_card)) { studio.makeCard(cutout) }
     }
 
     /** Makes a studio photo with [make], its steps shown from [first]; it becomes the cover. */
@@ -611,13 +614,13 @@ class DiecastEditViewModel(
                 saved[STUDIO_PHOTOS] = ArrayList(studioPhotos)
                 update { it.copy(photos = listOf(made) + it.photos) }
                 selectedPhoto = 0
-                messages.show("Foto studio jadi cover. Foto aslinya tetap ada.")
+                messages.show(texts(R.string.studio_done))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: StudioException) {
                 photoError = e.message
             } catch (e: Exception) {
-                photoError = "Foto studio gagal dibuat (${e.message ?: e::class.simpleName})."
+                photoError = texts(R.string.studio_failed, e.message ?: e::class.simpleName.orEmpty())
             } finally {
                 makingStudio = false
                 studioLog.stop()
@@ -675,7 +678,7 @@ class DiecastEditViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.show((e as? PhotoException)?.message ?: "Foto gagal diproses (${e.message ?: e::class.simpleName}).")
+                messages.show((e as? PhotoException)?.message ?: texts(R.string.edit_photo_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 processingSightingPhoto = false
             }
@@ -688,7 +691,7 @@ class DiecastEditViewModel(
         if (savingSighting || processingSightingPhoto) return
 
         val today = LocalDate.now()
-        sightingErrors = draft.validate(today)
+        sightingErrors = draft.validate(today, texts)
         if (sightingErrors.isNotEmpty()) return
 
         savingSighting = true
@@ -696,11 +699,11 @@ class DiecastEditViewModel(
             try {
                 repository.addSighting(draft.toEntity(diecast.id, today, System.currentTimeMillis()))
                 storeSightingDraft(null)
-                messages.show("Temuan dicatat.")
+                messages.show(texts(R.string.sighting_logged))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.show("Gagal menyimpan temuan: ${e.message ?: e::class.simpleName}")
+                messages.show(texts(R.string.sighting_save_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 savingSighting = false
             }
@@ -717,7 +720,7 @@ class DiecastEditViewModel(
     fun deleteSighting(id: Long) {
         viewModelScope.launch {
             repository.deleteSighting(id)
-            messages.show("Temuan dihapus.")
+            messages.show(texts(R.string.sighting_deleted))
         }
     }
 
@@ -732,9 +735,9 @@ class DiecastEditViewModel(
         if (saving || processingPhotos > 0 || loading || scanning || makingStudio) return
 
         val today = LocalDate.now()
-        errors = form.validate(today)
+        errors = form.validate(today, texts)
         if (errors.isNotEmpty()) {
-            messages.show("Periksa lagi isian yang ditandai.")
+            messages.show(texts(R.string.edit_check_marked))
             return
         }
 
@@ -748,9 +751,9 @@ class DiecastEditViewModel(
 
                 messages.show(
                     when {
-                        !isNew -> "Perubahan disimpan."
-                        form.status == DiecastStatus.Spotted -> "${entity.name} dicatat sebagai temuan."
-                        else -> "${entity.name} ditambahkan ke koleksi."
+                        !isNew -> texts(R.string.edit_saved)
+                        form.status == DiecastStatus.Spotted -> texts(R.string.edit_saved_spotted, entity.name)
+                        else -> texts(R.string.edit_saved_new, entity.name)
                     },
                 )
 
@@ -769,7 +772,7 @@ class DiecastEditViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.show("Gagal menyimpan: ${e.message ?: e::class.simpleName}")
+                messages.show(texts(R.string.save_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 saving = false
             }
@@ -780,7 +783,7 @@ class DiecastEditViewModel(
         val diecast = existing ?: return
         viewModelScope.launch {
             repository.delete(diecast.id)
-            messages.show("${diecast.name} dihapus.")
+            messages.show(texts(R.string.deleted_named, diecast.name))
             original = form
             _events.send(EditEvent.Close)
         }
@@ -825,7 +828,7 @@ class DiecastEditViewModel(
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 with(app.container) {
-                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher, prefs, dex, scanQueue, studio)
+                    DiecastEditViewModel(createSavedStateHandle(), repository, photos, messages, scanner, matcher, prefs, dex, scanQueue, studio, texts)
                 }
             }
         }

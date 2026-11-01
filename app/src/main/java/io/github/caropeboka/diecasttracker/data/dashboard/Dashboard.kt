@@ -50,8 +50,8 @@ data class Count(val label: String, val total: Int)
 
 data class RarityCount(val rarity: Rarity, val total: Int)
 
-/** Owned pieces released in [start] (or the five years from it): [label] "'24" or "1990an". */
-data class YearColumn(val start: Int, val label: String, val longLabel: String, val total: Int)
+/** Owned pieces released in [start], or in the [span] years from it. */
+data class YearColumn(val start: Int, val span: Int, val total: Int)
 
 /** Everything the "Garasi" tab shows (web: `DashboardController` and the sums in `dashboard.tsx`). */
 data class Dashboard(
@@ -85,9 +85,8 @@ data class Dashboard(
             Rarity.TreasureHunt, Rarity.SuperTreasureHunt, Rarity.Chase, Rarity.Exclusive, Rarity.Limited, Rarity.Regular,
         )
 
-        const val NO_BRAND = "Tanpa merek"
-
-        fun build(rows: List<DashboardRow>, catalogs: List<CatalogSummary>): Dashboard {
+        /** [noBrand] labels the diecasts without a brand. */
+        fun build(rows: List<DashboardRow>, catalogs: List<CatalogSummary>, noBrand: String): Dashboard {
             val owned = rows.filter { it.item.status == DiecastStatus.Owned }
             val valued = owned.filter { it.item.marketValue != null }
             val bothPrices = valued.filter { it.item.purchasePrice != null }
@@ -124,7 +123,7 @@ data class Dashboard(
                     val brand = group.first().item.brand
                     BrandCount(
                         brand = brand,
-                        label = brand ?: NO_BRAND,
+                        label = brand ?: noBrand,
                         total = group.sumOf { it.item.quantity },
                         value = group.sumOf { (it.item.marketValue ?: 0L) * it.item.quantity },
                     )
@@ -197,9 +196,9 @@ data class Dashboard(
             return (first - first % step..last step step).map { start ->
                 val total = (start until start + step).sumOf { counts[it] ?: 0 }
                 if (step == 1) {
-                    YearColumn(start, "'${start.toString().takeLast(2)}", start.toString(), total)
+                    YearColumn(start, 1, total)
                 } else {
-                    YearColumn(start, "${start}an", "${start}an", total)
+                    YearColumn(start, step, total)
                 }
             }
         }

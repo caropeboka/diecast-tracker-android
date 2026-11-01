@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/dex.json; edit all three languages together. -->
+<resources>
+    <string name="dex_intro">How many releases you\'ve seen and own, per year and per series.</string>
+    <string name="dex_delete_text">The list and its photos are removed from the phone. The diecasts in your collection stay; only their links to this Dex go.</string>
+    <plurals name="dex_review_count">
+        <item quantity="one">%d diecast to check</item>
+        <item quantity="other">%d diecasts to check</item>
+    </plurals>
+    <string name="dex_review_text">Confirm automatic matches, pick suggestions and fix wrong years.</string>
+    <string name="dex_review_open">Match</string>
+    <plurals name="dex_images_downloading">
+        <item quantity="one">Downloading catalogue photos… %d to go</item>
+        <item quantity="other">Downloading catalogue photos… %d to go</item>
+    </plurals>
+    <plurals name="dex_images_retrying">
+        <item quantity="one">%d catalogue photo isn\'t downloaded yet; retrying automatically.</item>
+        <item quantity="other">%d catalogue photos aren\'t downloaded yet; retrying automatically.</item>
+    </plurals>
+    <plurals name="dex_images_wait_connection">
+        <item quantity="one">%d catalogue photo is waiting for a connection.</item>
+        <item quantity="other">%d catalogue photos are waiting for a connection.</item>
+    </plurals>
+    <plurals name="dex_images_wait_wifi">
+        <item quantity="one">%d catalogue photo is waiting for Wi-Fi.</item>
+        <item quantity="other">%d catalogue photos are waiting for Wi-Fi.</item>
+    </plurals>
+    <string name="dex_cellular">Use mobile data too</string>
+    <string name="dex_cellular_hint">About 5–8 MB per year. Off: photos download over Wi-Fi only.</string>
+    <string name="dex_empty_title">The Dex is empty</string>
+    <string name="dex_empty_text">Sync the Hot Wheels or Matchbox release lists below, or make your own dex for other brands. Your collection is matched at once, and you can see how many you\'ve seen and own.</string>
+    <string name="dex_counts">own %1$d · seen %2$d of %3$d</string>
+    <string name="dex_counts_wanted">%1$d wanted</string>
+    <string name="dex_menu_for">Menu for %1$s</string>
+    <string name="dex_resync">Sync again</string>
+    <string name="dex_edit">Edit dex</string>
+    <string name="dex_remove">Remove from the Dex</string>
+    <string name="dex_own">Own dexes</string>
+    <string name="dex_own_text">For brands without a list on the wiki (Mini GT, Tarmac, Inno64, Roll Speed…). Fill the list by hand, from Excel, from checklist screenshots (read by the AI) or from your collection.</string>
+    <string name="dex_own_create">Make your own dex</string>
+    <string name="dex_sync_title">Sync catalogues</string>
+    <string name="dex_sync_text">Fetch the official release lists per year from the Hot Wheels Wiki or the Matchbox Wiki (CC BY-SA). Syncing a year again updates its list without unlinking your collection.</string>
+    <string name="dex_from">From</string>
+    <string name="dex_to">To</string>
+    <string name="dex_sync_one">Sync %1$d</string>
+    <plurals name="dex_sync_range">
+        <item quantity="one">Sync %1$d–%2$d (%3$d year)</item>
+        <item quantity="other">Sync %1$d–%2$d (%3$d years)</item>
+    </plurals>
+    <string name="dex_syncing">Syncing %1$d (%2$d of %3$d)…</string>
+    <string name="waiting_for_connection">Waiting for an internet connection…</string>
+    <plurals name="dex_sync_releases">
+        <item quantity="one">%1$s: %2$d release</item>
+        <item quantity="other">%1$s: %2$d releases</item>
+    </plurals>
+    <string name="dex_sync_new">, %1$d new</string>
+    <string name="dex_sync_removed">, %1$d removed</string>
+    <plurals name="dex_sync_linked">
+        <item quantity="one">%d diecast linked</item>
+        <item quantity="other">%d diecasts linked</item>
+    </plurals>
+    <string name="dex_removed">%1$s removed from the Dex.</string>
+    <string name="dex_created">Dex %1$s made. Now fill in its list.</string>
+    <string name="dex_saved">Dex saved.</string>
+    <string name="dex_meter_description">Seen %1$d, owned %2$d, of %3$d</string>
+    <string name="dex_legend_owned">Owned %1$d (%2$d%%)</string>
+    <string name="dex_legend_seen">Seen %1$d (%2$d%%)</string>
+    <string name="dex_legend_of">of %1$d</string>
+    <string name="dex_state_owned">Owned</string>
+    <string name="dex_state_seen">Seen</string>
+    <string name="dex_state_wanted">Wanted</string>
+    <string name="dex_state_none">Not tracked yet</string>
+    <string name="dex_matches_title">Match the Dex</string>
+    <string name="dex_matches_intro">Check the Dex entry of each diecast. Automatic matches just need confirming; a wrong year can be fixed right away.</string>
+    <string name="dex_matches_done">All checked</string>
+    <plurals name="dex_matches_more">
+        <item quantity="one">%d more diecast shows up once the ones above are checked.</item>
+        <item quantity="other">%d more diecasts show up once the ones above are checked.</item>
+    </plurals>
+    <string name="dex_no_number">No number</string>
+    <string name="dex_msg_year_fixed">Correct; the year is now %1$d.</string>
+    <string name="dex_correct_fix_year">Correct &amp; change the year to %1$d</string>
+    <string name="dex_msg_confirmed">Confirmed.</string>
+    <string name="dex_correct_keep_year">Correct, keep the year</string>
+    <string name="dex_msg_unlinked">Unlinked from the Dex.</string>
+    <string name="dex_not_this">Not this one</string>
+    <string name="dex_year_mismatch">The collection says %1$s, but this release is from %2$d. The year on a card is usually the model\'s copyright year, not the release year.</string>
+    <string name="dex_no_year">no year</string>
+    <string name="dex_msg_linked_year">Linked; the year is now %1$d.</string>
+    <string name="dex_msg_linked">Linked.</string>
+    <string name="dex_this_is_it_year">This is it (year %1$d)</string>
+    <string name="dex_this_is_it">This is it</string>
+    <string name="dex_not_here">Not here</string>
+    <string name="dex_not_found_synced">Not found in the synced Dex.</string>
+    <string name="dex_filter_all">All</string>
+    <string name="dex_filter_missing">Missing</string>
+    <plurals name="dex_numbers">
+        <item quantity="one">%d number</item>
+        <item quantity="other">%d numbers</item>
+    </plurals>
+    <string name="dex_open_wiki">Open on the wiki</string>
+    <string name="dex_menu">Dex menu</string>
+    <string name="dex_delete">Delete dex</string>
+    <string name="dex_wanted_wishlist">%1$d wanted (wishlist)</string>
+    <string name="dex_search">Search name, number, series…</string>
+    <string name="dex_group_series">Group by series</string>
+    <string name="dex_custom_empty">No entries yet. Add them one by one, or many at once from Excel/CSV, checklist screenshots or your collection.</string>
+    <string name="dex_catalog_empty">This dex is empty.</string>
+    <string name="dex_no_match">No matching entries.</string>
+    <string name="dex_other_series">Other</string>
+    <string name="dex_owned_of">%1$d/%2$d owned</string>
+    <string name="dex_new_model">New model</string>
+    <string name="dex_exclusive">%1$s exclusive</string>
+    <string name="dex_variants">Variants (%1$d)</string>
+    <string name="dex_main_colour">Main colour</string>
+    <string name="dex_log">Log</string>
+    <string name="dex_log_variant">Log (%1$s)</string>
+    <string name="dex_add_variant">Add a variant</string>
+    <string name="dex_matched_auto_lower">matched automatically</string>
+    <plurals name="dex_entry_delete_linked">
+        <item quantity="one">%d diecast in your collection is linked to this entry; the link goes, the diecast stays.</item>
+        <item quantity="other">%d diecasts in your collection are linked to this entry; the links go, the diecasts stay.</item>
+    </plurals>
+    <string name="dex_entry_delete">This entry is removed from the dex.</string>
+    <string name="ai_hint_checklist">This can take up to a minute, depending on how long the list is.</string>
+    <string name="dex_entry_added">%1$s added.</string>
+    <string name="dex_checklist_max">At most %1$d screenshots per reading; the first %1$d are read.</string>
+    <string name="dex_preparing_images">Preparing the images</string>
+    <string name="dex_checklist_none">The AI found no releases in that image.</string>
+    <string name="dex_checking_known">Checking what is already on the list</string>
+    <string name="dex_checklist_failed">Couldn\'t read the checklist (%1$s).</string>
+    <string name="dex_add_failed">Couldn\'t add them: %1$s</string>
+    <string name="dex_file_too_big">The file can be 5 MB at most.</string>
+    <string name="dex_import_failed">Couldn\'t import (%1$s).</string>
+    <string name="dex_collection_none">No %1$s diecasts in your collection to add yet.</string>
+    <string name="dex_collection_failed">Couldn\'t take them from the collection: %1$s</string>
+    <string name="dex_add_entry">Add an entry</string>
+    <string name="dex_fill_many">Add many</string>
+    <string name="dex_create_own_hint">For brands without a list on the wiki (Mini GT, Tarmac, Inno64, Roll Speed…).</string>
+    <string name="dex_name_label">Dex name *</string>
+    <string name="dex_name_placeholder">Mini GT 2026, Roll Speed Police…</string>
+    <string name="dex_year_optional">Year (optional)</string>
+    <string name="dex_create">Create dex</string>
+    <string name="dex_edit_entry">Edit entry</string>
+    <string name="dex_add_entry_hint">One release. The same number with another variant becomes a variant of that entry.</string>
+    <string name="dex_added_next">%1$s Go on with the next entry, or tap Done.</string>
+    <string name="dex_number_code">Number / code</string>
+    <string name="dex_number_placeholder">MGT00512 (empty = numbered in order)</string>
+    <string name="dex_series_number">Series number</string>
+    <string name="dex_series_number_placeholder">e.g. 3/5</string>
+    <string name="dex_variant_colour">Variant / colour</string>
+    <string name="dex_variant_placeholder">Bayside Blue, LHD…</string>
+    <string name="dex_entry_photo">Entry photo</string>
+    <string name="dex_photo_optional">Photo (optional)</string>
+    <string name="dex_fill_many_title">Add many at once</string>
+    <string name="dex_fill_many_hint">Entries already there aren\'t doubled.</string>
+    <string name="dex_from_checklist">From checklist screenshots (AI)</string>
+    <string name="dex_from_checklist_text">Screenshots of a release list (checklist posts, catalogues, shop pre-orders), up to %1$d, or a photo of a printed checklist. The AI types the list; you check it before anything is added.</string>
+    <string name="dex_pick_screenshots">Pick screenshots</string>
+    <string name="dex_open_ai_settings">Open the AI settings</string>
+    <string name="dex_from_sheet">From Excel / CSV</string>
+    <string name="dex_from_sheet_text">The first row holds the column titles: Number, Name, Series, Series number, Variant (English or Indonesian). Name is required. Only the first sheet is read.</string>
+    <string name="dex_from_collection">From my collection</string>
+    <string name="dex_from_collection_text">Every %1$s diecast in your collection becomes an entry, linked at once (with its photo).</string>
+    <string name="dex_review_title">Check the AI\'s reading</string>
+    <string name="dex_already_there">already in the dex</string>
+    <plurals name="dex_add_count">
+        <item quantity="one">Add %d entry</item>
+        <item quantity="other">Add %d entries</item>
+    </plurals>
+    <plurals name="dex_checklist_review">
+        <item quantity="one">The AI read %d release. Untick what it misread; small mistakes can be fixed after adding.</item>
+        <item quantity="other">The AI read %d releases. Untick what it misread; small mistakes can be fixed after adding.</item>
+    </plurals>
+</resources>

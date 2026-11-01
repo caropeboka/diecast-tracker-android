@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/dashboard.json; edit all three languages together. -->
+<resources>
+    <plurals name="dashboard_year_column">
+        <item quantity="one">%1$s: %2$d diecast</item>
+        <item quantity="other">%1$s: %2$d diecasts</item>
+    </plurals>
+    <string name="dashboard_years_from">%1$d+</string>
+    <string name="see_all">All →</string>
+    <string name="dashboard_title">Your garage</string>
+    <string name="dashboard_recent">Recently added</string>
+    <string name="dashboard_shelves_3d">3D shelves</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_noon">Good afternoon</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="dashboard_empty_title">Your garage is empty</string>
+    <string name="dashboard_empty_text">Your collection\'s numbers and charts show up here once you own a diecast.</string>
+    <string name="dashboard_value">Collection value</string>
+    <string name="dashboard_average">Average / diecast</string>
+    <string name="dashboard_dearest">Most valuable</string>
+    <string name="dashboard_brands">Brands</string>
+    <string name="dashboard_value_basis">Worked out from the diecasts with a market value: %1$d of %2$d.</string>
+    <string name="dashboard_fill_prices_text">Add purchase prices to see your collection\'s gain or loss.</string>
+    <string name="dashboard_fill_prices">Add purchase prices →</string>
+    <string name="dashboard_up">Up</string>
+    <string name="dashboard_down">Down</string>
+    <string name="dashboard_vs_purchase">against the purchase price</string>
+    <string name="dashboard_total">Total diecasts</string>
+    <string name="dashboard_pcs">%1$d pcs</string>
+    <plurals name="dashboard_models">
+        <item quantity="one">%d different model</item>
+        <item quantity="other">%d different models</item>
+    </plurals>
+    <string name="dashboard_spent">Total spent</string>
+    <string name="dashboard_priced">%1$d of %2$d have a purchase price</string>
+    <string name="dashboard_rare">Rare</string>
+    <plurals name="dashboard_sth_count">
+        <item quantity="one">%d Super Treasure Hunt</item>
+        <item quantity="other">%d Super Treasure Hunts</item>
+    </plurals>
+    <string name="dashboard_no_rare">No TH / STH / Chase yet</string>
+    <string name="dashboard_hunted_spotted">hunted · %1$d spotted before</string>
+    <string name="dashboard_hunted">diecasts being hunted</string>
+    <string name="dashboard_add_hunt">Add the diecasts you\'re hunting</string>
+    <string name="dashboard_most_valuable">Most valuable</string>
+    <string name="dashboard_no_market_values">No market values yet. Open a diecast → Check the market price to work one out from Tokopedia/Shopee screenshots.</string>
+    <string name="dashboard_completeness">Data completeness</string>
+    <string name="dashboard_complete">Complete</string>
+    <string name="dashboard_complete_it">Fill in →</string>
+    <string name="dashboard_per_brand">By brand</string>
+    <string name="dashboard_brand_share">%1$d%% of the collection · worth %2$s</string>
+    <string name="dashboard_by_count">Count</string>
+    <string name="dashboard_by_value">Value</string>
+    <string name="dashboard_all_regular">All regular so far</string>
+    <string name="dashboard_all_regular_text">No Treasure Hunt, Super TH or Chase yet. Happy hunting! 🔥</string>
+    <string name="dashboard_makes">Car makes</string>
+    <string name="dashboard_release_years">Release years</string>
+    <plurals name="dashboard_unknown_years">
+        <item quantity="one">%d diecast has no release year yet.</item>
+        <item quantity="other">%d diecasts have no release year yet.</item>
+    </plurals>
+    <string name="dashboard_gainers">Biggest price gains</string>
+    <string name="dashboard_gain">Up %1$s</string>
+    <string name="dashboard_wishlist">Wishlist (%1$d)</string>
+</resources>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/explore.json; edit all three languages together. -->
+<resources>
+    <string name="explore_all">全部</string>
+    <string name="explore_sightings">发现</string>
+    <string name="explore_purchases">购买</string>
+    <string name="explore_30_days">30 天</string>
+    <string name="explore_3_months">3 个月</string>
+    <string name="explore_1_year">1 年</string>
+    <string name="explore_bought_count">购买 %1$d</string>
+    <string name="explore_spotted_count">发现 %1$d</string>
+    <string name="explore_title">寻车地图</string>
+    <string name="explore_intro">你在哪里购买和发现合金车、何时，以及那里有什么。</string>
+    <string name="explore_places_explored">探索过的地点</string>
+    <string name="explore_mapped">%1$d 个在地图上</string>
+    <string name="explore_days">寻车天数</string>
+    <string name="explore_most_often">最常去：%1$s</string>
+    <string name="explore_since">开始寻车于</string>
+    <string name="explore_last">最近 %1$s</string>
+    <string name="explore_no_points">地图上还没有地点</string>
+    <string name="explore_no_points_text">添加合金车或记录发现时，点按“购买地点”或“发现地点”旁的定位按钮，地点就会显示在这里。</string>
+    <string name="explore_legend_bought">有购买</string>
+    <string name="explore_legend_spotted">仅发现</string>
+    <string name="explore_legend_size">大小 = 数量</string>
+    <plurals name="explore_visits_last">
+        <item quantity="other">到访 %1$d 次 · 最近 %2$s · %3$s</item>
+    </plurals>
+    <string name="explore_bought_on">%1$s 购买</string>
+    <string name="explore_spotted_on">%1$s 发现</string>
+    <string name="explore_bought">已购买</string>
+    <string name="explore_more">另有 %1$d 个</string>
+    <string name="explore_places">地点</string>
+    <string name="explore_no_data">这个时间范围内还没有数据。</string>
+    <string name="explore_show_on_map">在地图上查看</string>
+    <plurals name="explore_visits">
+        <item quantity="other">到访 %d 次</item>
+    </plurals>
+    <string name="explore_no_point">尚无定位</string>
+    <string name="explore_timeline">寻车记录</string>
+    <string name="explore_no_history">还没有记录。</string>
+</resources>

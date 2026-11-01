@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/common.json; edit all three languages together. -->
+<resources>
+    <string name="back">Back</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="close">Close</string>
+    <string name="edit">Edit</string>
+    <string name="retry">Try again</string>
+    <string name="optional">Optional</string>
+    <string name="later">Later</string>
+    <string name="next">Next</string>
+    <string name="done">Done</string>
+    <string name="skip">Skip</string>
+    <string name="add">Add</string>
+    <string name="filled_by_ai">Filled in by the AI</string>
+    <string name="number_too_big">That number is too big.</string>
+    <string name="pick_date">Pick a date</string>
+</resources>

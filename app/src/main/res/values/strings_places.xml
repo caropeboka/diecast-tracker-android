@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/places.json; edit all three languages together. -->
+<resources>
+    <string name="place_permission_denied">Location permission denied. Drag the map or search for the place.</string>
+    <string name="place_pick_title">Pick a location</string>
+    <string name="place_pick_hint">Drag the map until the pin is right on the place, or search for its name.</string>
+    <string name="place_name">Place name</string>
+    <string name="place_name_placeholder">Shop / place name</string>
+    <string name="place_drag_to">Drag the map to the place</string>
+    <string name="place_finding_name">Looking up the place name…</string>
+    <string name="place_use_this">Use this location</string>
+    <string name="place_search_placeholder">Search for a place, e.g. Toys Kingdom GI</string>
+    <string name="place_search">Search</string>
+    <string name="place_not_found">Not found. Try another name, or drag the map to the place.</string>
+    <string name="place_visited">You\'ve been here</string>
+    <string name="place_my_location">My location</string>
+    <string name="place_finding_name_here">Looking up the name of this spot…</string>
+    <string name="place_no_name_here">No place name found at this spot — type one yourself.</string>
+    <string name="place_at_this_spot">"At this spot: "</string>
+    <string name="place_use_name">use this name</string>
+    <string name="place_from_history">From your history</string>
+    <string name="place_from_history_distance">From your history (%1$d m from the pin)</string>
+    <string name="place_from_osm">Name from OpenStreetMap — change it if it\'s not quite right</string>
+    <string name="place_pick_on_map">Pick the spot on the map</string>
+    <string name="place_change_point">change spot</string>
+    <string name="place_remove_point">remove spot</string>
+</resources>

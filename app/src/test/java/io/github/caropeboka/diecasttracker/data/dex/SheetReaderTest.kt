@@ -11,7 +11,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 class SheetReaderTest {
     @Test
     fun `csv fields can be quoted, span lines and hold the delimiter`() {

@@ -15,6 +15,7 @@ import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEventRow
 import io.github.caropeboka.diecasttracker.data.db.TagEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.data.shelf.unshelve
 import io.github.caropeboka.diecasttracker.util.naturalCaseInsensitiveOrder
@@ -30,6 +31,7 @@ import java.time.LocalDate
 class DiecastRepository(
     private val db: AppDatabase,
     private val photos: PhotoStore,
+    private val texts: Texts,
     private val clock: () -> Long = System::currentTimeMillis,
     private val dexMatcher: DexMatcher = DexMatcher(db.dex()),
 ) {
@@ -111,7 +113,7 @@ class DiecastRepository(
 
             val id = if (existing == null) dao.insert(record) else record.id.also { dao.update(record) }
             // Sold or no longer had: off the garage's shelves.
-            if (record.status != DiecastStatus.Owned) db.shelves().unshelve(id, now)
+            if (record.status != DiecastStatus.Owned) db.shelves().unshelve(id, now, texts)
 
             if (photoNames != null) {
                 syncPhotos(id, photoNames, toPromote, toDelete)

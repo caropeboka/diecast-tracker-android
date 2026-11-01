@@ -42,6 +42,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -66,6 +68,7 @@ import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.ai.AiException
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.price.ListingStatus
 import io.github.caropeboka.diecasttracker.data.price.MAX_PRICE_SCREENSHOTS
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
@@ -79,7 +82,7 @@ import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import io.github.caropeboka.diecasttracker.util.formatDate
-import io.github.caropeboka.diecasttracker.util.formatRupiah
+import io.github.caropeboka.diecasttracker.util.formatMoney
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -97,6 +100,7 @@ class PriceCheckViewModel(
     private val checker: PriceChecker,
     private val photos: PhotoStore,
     private val messages: Messages,
+    private val texts: Texts,
     diecastId: Long,
 ) : ViewModel() {
     /** Newest first; null while loading. */
@@ -117,7 +121,7 @@ class PriceCheckViewModel(
     var analyzing by mutableStateOf(false)
         private set
 
-    private val log = AiProgressLog("Biasanya 20–60 detik, tergantung jumlah screenshot.")
+    private val log = AiProgressLog(texts, R.string.ai_hint_price)
 
     /** What the running check is doing, step by step. */
     val progress: StateFlow<AiProgress?> = log.state
@@ -138,7 +142,7 @@ class PriceCheckViewModel(
     fun addScreenshots(uris: List<Uri>) {
         val all = (picked.value + uris.map(Uri::toString)).distinct()
         saved[PICKED] = ArrayList(all.take(MAX_PRICE_SCREENSHOTS))
-        error = if (all.size > MAX_PRICE_SCREENSHOTS) "Maksimal $MAX_PRICE_SCREENSHOTS screenshot sekali cek." else null
+        error = if (all.size > MAX_PRICE_SCREENSHOTS) texts(R.string.price_max_screenshots, MAX_PRICE_SCREENSHOTS) else null
     }
 
     fun removeScreenshot(index: Int) {
@@ -151,7 +155,7 @@ class PriceCheckViewModel(
 
         analyzing = true
         error = null
-        log.start("Menyiapkan ${uris.size} screenshot")
+        log.start(texts.plural(R.plurals.price_preparing, uris.size, uris.size))
         viewModelScope.launch {
             try {
                 val images = try {
@@ -159,7 +163,7 @@ class PriceCheckViewModel(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (_: Exception) {
-                    throw AiException("Screenshot tidak bisa dibuka lagi. Hapus lalu pilih ulang dari galeri.")
+                    throw AiException(texts(R.string.price_screenshot_gone))
                 }
                 checker.check(diecast, images, log::onEvent)
                 saved[PICKED] = ArrayList<String>()
@@ -169,7 +173,7 @@ class PriceCheckViewModel(
             } catch (e: AiException) {
                 error = e.message
             } catch (e: Exception) {
-                error = "Gagal membaca screenshot: ${e.message ?: e::class.simpleName}"
+                error = texts(R.string.price_read_failed, e.message ?: e::class.simpleName.orEmpty())
             } finally {
                 analyzing = false
                 log.stop()
@@ -185,11 +189,11 @@ class PriceCheckViewModel(
             try {
                 val diecast = checker.apply(check)
                 onApplied(diecast)
-                messages.show("Harga pasaran diset ${formatRupiah(diecast.marketValue)}.")
+                messages.show(texts(R.string.price_applied, formatMoney(diecast.marketValue)))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.show("Gagal memakai harga: ${e.message ?: e::class.simpleName}")
+                messages.show(texts(R.string.price_apply_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 applyingId = null
             }
@@ -208,7 +212,7 @@ class PriceCheckViewModel(
         fun factory(diecastId: Long): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                with(app.container) { PriceCheckViewModel(createSavedStateHandle(), priceChecker, photos, messages, diecastId) }
+                with(app.container) { PriceCheckViewModel(createSavedStateHandle(), priceChecker, photos, messages, texts, diecastId) }
             }
         }
     }
@@ -228,21 +232,21 @@ fun PriceCheckPanel(diecast: DiecastEntity, onApplied: (DiecastEntity) -> Unit, 
     val all = checks.orEmpty()
 
     SectionCard(
-        "Cek harga pasaran",
+        stringResource(R.string.price_title),
         action = if (!open && enabled) {
-            { TextButton(onClick = { viewModel.setOpen(true) }) { IconLabel(R.drawable.ic_search, if (all.isEmpty()) "Cek harga" else "Cek ulang") } }
+            { TextButton(onClick = { viewModel.setOpen(true) }) { IconLabel(R.drawable.ic_search, stringResource(if (all.isEmpty()) R.string.price_check else R.string.price_recheck)) } }
         } else {
             null
         },
     ) {
         when {
             !enabled -> {
-                Hint("Cek harga memakai AI untuk membaca screenshot marketplace. Isi API key dulu di Pengaturan AI.")
-                OutlinedButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_sparkles, "Pengaturan AI") }
+                Hint(stringResource(R.string.price_needs_ai))
+                OutlinedButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_sparkles, stringResource(R.string.settings_ai)) }
             }
             open -> Steps(viewModel, diecast)
             all.isEmpty() -> Hint(
-                "Cari diecast ini di Tokopedia/Shopee, screenshot hasilnya, lalu AI akan membaca semua listing dan menghitung harga pasarannya.",
+                stringResource(R.string.price_intro),
             )
         }
 
@@ -254,7 +258,7 @@ fun PriceCheckPanel(diecast: DiecastEntity, onApplied: (DiecastEntity) -> Unit, 
         val older = all.drop(1).take(4)
         if (older.isNotEmpty()) {
             TextButton(onClick = { showOlder = !showOlder }, contentPadding = PaddingValues(0.dp)) {
-                Text(if (showOlder) "Sembunyikan cek sebelumnya" else "Lihat ${older.size} cek sebelumnya")
+                Text(if (showOlder) stringResource(R.string.price_hide_older) else pluralStringResource(R.plurals.price_show_older, older.size, older.size))
             }
             if (showOlder) {
                 older.forEach { check ->
@@ -282,12 +286,12 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
     fun open(url: String) = runCatching { uriHandler.openUri(url) }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("1. Cari di marketplace", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.price_step_search), style = MaterialTheme.typography.titleSmall)
         OutlinedTextField(
             value = text,
             onValueChange = viewModel::setQuery,
             singleLine = true,
-            label = { Text("Kata kunci pencarian") },
+            label = { Text(stringResource(R.string.price_keywords)) },
             colors = fieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -304,23 +308,23 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
             ) { IconLabel(R.drawable.ic_open_in_new, "Shopee") }
         }
         Text(
-            "Tips: urutkan \"Terlaris\", lalu screenshot 2–4 layar sambil scroll ke bawah.",
+            stringResource(R.string.price_tip_screens),
             style = MaterialTheme.typography.bodySmall,
             color = Garage.MutedForeground,
         )
 
-        Text("2. Pilih screenshot (${picked.size}/$MAX_PRICE_SCREENSHOTS)", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 6.dp))
+        Text(stringResource(R.string.price_step_pick, picked.size, MAX_PRICE_SCREENSHOTS), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 6.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(picked, key = { _, uri -> uri }) { index, uri ->
                 Box(Modifier.size(width = 64.dp, height = 112.dp).clip(RoundedCornerShape(6.dp)).background(Garage.Muted)) {
-                    AsyncImage(model = uri, contentDescription = "Screenshot ${index + 1}", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                    AsyncImage(model = uri, contentDescription = stringResource(R.string.price_screenshot_n, index + 1), contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                     Box(
                         Modifier
                             .align(Alignment.TopEnd)
                             .padding(4.dp)
                             .size(24.dp)
                             .background(Color.Black.copy(alpha = 0.6f), CircleShape)
-                            .clickable(enabled = !viewModel.analyzing, onClickLabel = "Hapus screenshot") { viewModel.removeScreenshot(index) },
+                            .clickable(enabled = !viewModel.analyzing, onClickLabel = stringResource(R.string.price_remove_screenshot)) { viewModel.removeScreenshot(index) },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(painterResource(R.drawable.ic_close), contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
@@ -341,7 +345,7 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
                         verticalArrangement = Arrangement.Center,
                     ) {
                         Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null, tint = Garage.MutedForeground)
-                        Text("Tambah", style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground)
+                        Text(stringResource(R.string.add), style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground)
                     }
                 }
             }
@@ -361,9 +365,9 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.weight(1f),
                 ) {
-                    IconLabel(R.drawable.ic_sparkles, "Hitung harga pasaran")
+                    IconLabel(R.drawable.ic_sparkles, stringResource(R.string.price_calculate))
                 }
-                TextButton(onClick = { viewModel.setOpen(false) }, enabled = !viewModel.analyzing) { Text("Batal") }
+                TextButton(onClick = { viewModel.setOpen(false) }, enabled = !viewModel.analyzing) { Text(stringResource(R.string.cancel)) }
             }
         }
     }
@@ -414,27 +418,27 @@ private fun CheckResult(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        "Dicek ${formatDate(day)} · ${check.listings.size} listing terbaca dari ${check.screenshots} screenshot",
+                        stringResource(R.string.price_checked_on, formatDate(day), check.listings.size, check.screenshots),
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Pill(check.accuracy.label, check.accuracy.color())
-                        if (check.appliedAt != null) Pill("Dipakai", Garage.MutedForeground)
+                        Pill(stringResource(check.accuracy.label), check.accuracy.color())
+                        if (check.appliedAt != null) Pill(stringResource(R.string.price_used), Garage.MutedForeground)
                     }
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(painterResource(R.drawable.ic_delete), contentDescription = "Hapus hasil cek ini", tint = Garage.MutedForeground)
+                    Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.price_delete_check), tint = Garage.MutedForeground)
                 }
             }
 
             if (stats != null) {
                 Column {
-                    Text("Median (${stats.count} listing)", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
-                    Text(formatRupiah(stats.median), style = MaterialTheme.typography.headlineSmall)
-                    Text("Rentang wajar: ${formatRupiah(stats.q1)} – ${formatRupiah(stats.q3)}", style = MaterialTheme.typography.bodyMedium)
+                    Text(pluralStringResource(R.plurals.price_median, stats.count, stats.count), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                    Text(formatMoney(stats.median), style = MaterialTheme.typography.headlineSmall)
+                    Text(stringResource(R.string.price_fair_range, formatMoney(stats.q1), formatMoney(stats.q3)), style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        "Termurah ${formatRupiah(stats.min)} · termahal ${formatRupiah(stats.max)}",
+                        stringResource(R.string.price_min_max, formatMoney(stats.min), formatMoney(stats.max)),
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                     )
@@ -442,14 +446,13 @@ private fun CheckResult(
                 if (target != null) {
                     val realistic = target >= stats.median
                     Text(
-                        "Target kamu ${formatRupiah(target)} — " +
-                            if (realistic) "realistis, di atas median pasar." else "di bawah median, perlu sabar cari promo.",
+                        stringResource(if (realistic) R.string.price_target_realistic else R.string.price_target_low, formatMoney(target)),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (realistic) Garage.Gain else Garage.Brand2,
                     )
                 }
             } else {
-                Text("Belum ada listing yang cocok.", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.price_no_match), style = MaterialTheme.typography.bodyMedium)
             }
 
             check.reasons.forEach { Bullet(it, Garage.MutedForeground) }
@@ -459,7 +462,7 @@ private fun CheckResult(
             }
 
             if (stats != null) {
-                val label = "Pakai ${formatRupiah(stats.suggested)} sebagai harga pasaran"
+                val label = stringResource(R.string.price_use, formatMoney(stats.suggested))
                 if (check.appliedAt == null) {
                     Button(onClick = onApply, enabled = !applying, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                         Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -473,7 +476,7 @@ private fun CheckResult(
 
             if (check.listings.isNotEmpty()) {
                 TextButton(onClick = { showListings = !showListings }, contentPadding = PaddingValues(0.dp)) {
-                    Text("${if (showListings) "Sembunyikan" else "Lihat"} rincian ${check.listings.size} listing ($counted dihitung)")
+                    Text(stringResource(if (showListings) R.string.price_hide_listings else R.string.price_show_listings, check.listings.size, counted))
                 }
                 if (showListings) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -497,15 +500,15 @@ private fun Bullet(text: String, color: Color) {
 private fun ListingRow(listing: PriceListing) {
     val counted = listing.status == ListingStatus.Included
     val (icon, tint, state) = when (listing.status) {
-        ListingStatus.Included -> Triple(R.drawable.ic_check_circle, Garage.Gain, "Dihitung")
-        ListingStatus.Outlier -> Triple(R.drawable.ic_warning, Garage.Brand2, "Tidak dihitung")
-        ListingStatus.Excluded -> Triple(R.drawable.ic_block, Garage.MutedForeground, "Tidak dihitung")
+        ListingStatus.Included -> Triple(R.drawable.ic_check_circle, Garage.Gain, stringResource(R.string.price_counted))
+        ListingStatus.Outlier -> Triple(R.drawable.ic_warning, Garage.Brand2, stringResource(R.string.price_not_counted))
+        ListingStatus.Excluded -> Triple(R.drawable.ic_block, Garage.MutedForeground, stringResource(R.string.price_not_counted))
     }
     val meta = listOfNotNull(
         listing.shop,
         listing.location,
-        listing.sold?.takeIf { it > 0 }?.let { "$it+ terjual" },
-        "Iklan".takeIf { listing.isAd },
+        listing.sold?.takeIf { it > 0 }?.let { stringResource(R.string.price_sold, it) },
+        stringResource(R.string.price_ad).takeIf { listing.isAd },
         listing.marketplace.takeIf { it != "tokopedia" },
     ).joinToString(" · ")
 
@@ -522,14 +525,14 @@ private fun ListingRow(listing: PriceListing) {
             if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground)
             if (!counted) {
                 Text(
-                    "Tidak dihitung: ${listing.excludedReason ?: "Tidak jelas"}" + listing.reason?.let { " — $it" }.orEmpty(),
+                    stringResource(R.string.price_not_counted_why, listing.excludedReason ?: stringResource(R.string.listing_unclear)) + listing.reason?.let { " — $it" }.orEmpty(),
                     style = MaterialTheme.typography.labelSmall,
                     color = Garage.MutedForeground,
                 )
             }
         }
         Text(
-            formatRupiah(listing.price) + if (listing.isPriceRange) "+" else "",
+            formatMoney(listing.price) + if (listing.isPriceRange) "+" else "",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = if (counted) FontWeight.Medium else FontWeight.Normal,
             color = if (counted) Garage.Foreground else Garage.MutedForeground,

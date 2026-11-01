@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/pricedata.json; edit all three languages together. -->
+<resources>
+    <string name="listing_different_variant">Varian berbeda</string>
+    <string name="listing_different_condition">Kondisi berbeda</string>
+    <string name="listing_bundle">Paket / borongan</string>
+    <string name="listing_different_item">Barang lain</string>
+    <string name="listing_unclear">Tidak jelas</string>
+    <string name="accuracy_high">Akurasi tinggi</string>
+    <string name="accuracy_medium">Akurasi sedang</string>
+    <string name="accuracy_low">Akurasi rendah</string>
+    <string name="accuracy_insufficient">Data kurang</string>
+    <string name="listing_far_above">Harga jauh di atas yang lain</string>
+    <string name="listing_far_below">Harga jauh di bawah yang lain</string>
+    <string name="price_reason_one">Hanya 1 listing yang cocok — belum bisa disebut harga pasaran.</string>
+    <string name="price_reason_none">Tidak ada listing yang cocok dengan diecast ini.</string>
+    <string name="price_tip_keywords">Coba kata kunci lain (misalnya tanpa nomor seri), lalu screenshot lagi.</string>
+    <plurals name="price_reason_counted_many">
+        <item quantity="other">%d listing cocok dihitung — cukup banyak.</item>
+    </plurals>
+    <plurals name="price_reason_counted_few">
+        <item quantity="other">%d listing cocok dihitung — masih sedikit.</item>
+    </plurals>
+    <string name="price_reason_even">Harga cukup seragam (selisih tengah %1$d%% dari median).</string>
+    <string name="price_reason_varied">Harga agak bervariasi (selisih tengah %1$d%% dari median).</string>
+    <string name="price_reason_scattered">Harga sangat bervariasi (selisih tengah %1$d%% dari median).</string>
+    <string name="price_tip_same_variant">Harga sangat beragam — pastikan varian dan kondisinya sama (misalnya STH vs biasa, carded vs loose).</string>
+    <plurals name="price_reason_sold">
+        <item quantity="other">%d listing menunjukkan jumlah terjual — ada bukti harga yang laku.</item>
+    </plurals>
+    <string name="price_tip_best_selling">Urutkan hasil pencarian berdasarkan \"Terlaris\" supaya terlihat harga yang benar-benar laku.</string>
+    <string name="price_reason_unclear">Banyak listing yang tidak jelas cocok atau tidak.</string>
+    <string name="price_tip_more_screenshots">Tambah screenshot (scroll ke bawah) supaya lebih banyak listing terbaca.</string>
+    <string name="price_tip_condition">Banyak listing beda kondisi — tambahkan kata \"carded\" atau \"loose\" di pencarian.</string>
+    <string name="price_tip_search_hint">Coba cari dengan kata kunci: \"%1$s\".</string>
+    <string name="price_nothing_to_use">Belum ada harga untuk dipakai.</string>
+</resources>

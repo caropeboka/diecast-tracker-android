@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/garage.json; edit all three languages together. -->
+<resources>
+    <string name="ai_hint_decor">在手机上处理；照片不会发送到任何地方。</string>
+    <string name="decor_reading_photo">正在读取照片</string>
+    <string name="decor_separating">正在将物体与背景分离</string>
+    <string name="decor_downloading">正在下载背景分离模型（仅一次）</string>
+    <string name="decor_tidying">正在整理边缘、清除灰尘</string>
+    <string name="decor_photo_failed">无法处理这张照片。</string>
+    <string name="decor_placed">%1$s 已放到%2$s。</string>
+    <string name="decor_corner_only">装饰只能放在黑色角架上。</string>
+    <string name="garage_no_room">那里没有空间了。</string>
+    <string name="decor_deleted">已从车库移除 %1$s。</string>
+    <string name="garage_arrange_none">没有合适的空位。</string>
+    <plurals name="garage_arranged">
+        <item quantity="other">已将 %d 辆合金车放上展架。</item>
+    </plurals>
+    <plurals name="garage_arranged_some">
+        <item quantity="other">已放好 %d 辆；</item>
+    </plurals>
+    <plurals name="garage_arranged_left">
+        <item quantity="other">%d 辆放不下，仍在托盘中。</item>
+    </plurals>
+    <string name="garage_lane_full">这一道已满：%1$d 张卡。</string>
+    <string name="garage_to_tray_done">%1$s 已放回托盘。</string>
+    <string name="garage_cards_on_boards">吸塑卡只能挂在展板上。</string>
+    <string name="garage_boards_cards_only">展板只用于吸塑卡。</string>
+    <string name="garage_case_small_only">白色收纳柜只能放 1:64 或更小的比例。</string>
+    <string name="garage_does_not_fit">那里放不下。</string>
+    <string name="garage_quality_normal">标准</string>
+    <string name="garage_quality_plain">简洁</string>
+    <string name="garage_quality_light">省电</string>
+    <string name="garage_focus_all">全部</string>
+    <string name="garage_focus_shelf">黑色角架</string>
+    <string name="garage_focus_boards">展板</string>
+    <string name="garage_focus_case">白色收纳柜</string>
+    <string name="garage_title">3D 车库</string>
+    <string name="garage_decor_there">那里已经有装饰了。</string>
+    <string name="garage_tap_corner">点按黑色角架上的空位。</string>
+    <string name="garage_tray_empty">托盘是空的：全部都已上架。</string>
+    <string name="garage_none_fits">托盘里没有能放在这里的合金车。</string>
+    <string name="garage_decor_at">装饰 · %1$s</string>
+    <string name="garage_move">移动</string>
+    <string name="garage_pick_shelf">先在下方选择展架，再点按位置。</string>
+    <string name="garage_tap_spot">点按空位，或点按另一辆合金车互换位置。</string>
+    <string name="garage_in_tray">在托盘中</string>
+    <string name="garage_to_tray">放回托盘</string>
+    <string name="garage_details">详情</string>
+    <string name="garage_unplaced">尚未摆放</string>
+    <string name="garage_unplaced_hint">选一辆，然后点按它在展架上的位置。存放位置会一并填写。</string>
+    <string name="garage_put_here">放在这里</string>
+    <string name="garage_tray">托盘 · %1$d</string>
+    <string name="garage_all_placed">全部都已上架。</string>
+    <string name="garage_arrange_all">全部自动摆放</string>
+    <plurals name="garage_without_photo">
+        <item quantity="other">%d 辆没有照片的合金车不会显示在车库中。</item>
+    </plurals>
+    <string name="garage_no_longer_fits">%1$s 已放不下</string>
+    <string name="decor_new_here">在这里添加新装饰</string>
+    <string name="decor_new_text">用照片添加手办或摆件：在手机上抠除背景并清除灰尘。</string>
+    <string name="decor_new">新装饰</string>
+    <string name="decor_as_shot">原图</string>
+    <string name="decor_cleaned">已清理</string>
+    <string name="decor_name_placeholder">例如：兔子手办</string>
+    <string name="decor_default_name">装饰</string>
+    <string name="decor_place">放到角架上</string>
+    <string name="decor_height">实际高度（厘米）</string>
+    <string name="decor_height_hint">这样它在合金车旁的大小才合适。</string>
+    <string name="decor_edit">编辑装饰</string>
+    <string name="decor_delete_text">该装饰将从车库移除。你的合金车收藏不受影响。</string>
+</resources>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/collection.json; edit all three languages together. -->
+<resources>
+    <string name="collection_title">Collection</string>
+    <plurals name="collection_count">
+        <item quantity="one">%d item recorded</item>
+        <item quantity="other">%d items recorded</item>
+    </plurals>
+    <string name="collection_show_list">Show as a list</string>
+    <string name="collection_show_grid">Show as a grid</string>
+    <string name="collection_more_menu">More options</string>
+    <string name="menu_store_check">Store check</string>
+    <string name="menu_bulk_scan">Bulk scan</string>
+    <string name="collection_search">Search name, series, colour, place…</string>
+    <string name="collection_clear_search">Clear search</string>
+    <string name="collection_all_completeness">Any completeness</string>
+    <string name="collection_all_but_spotted">All but spotted</string>
+    <string name="collection_all_brands">All brands</string>
+    <string name="collection_all_rarities">All rarities</string>
+    <string name="collection_tag">Tag: %1$s</string>
+    <string name="collection_all_tags">All tags</string>
+    <plurals name="backup_reminder_days">
+        <item quantity="one">Last backup %d day ago</item>
+        <item quantity="other">Last backup %d days ago</item>
+    </plurals>
+    <string name="backup_reminder_never">Your collection has never been backed up from this phone</string>
+    <string name="backup_reminder_text">Save a backup to Google Drive or a laptop so the collection is safe if the phone is lost or the app is removed.</string>
+    <string name="backup_reminder_now">Back up now</string>
+    <string name="collection_empty_title">Your collection is empty</string>
+    <string name="collection_empty_text">Add your first diecast, or restore a collection from a backup file.</string>
+    <string name="collection_add_first">Add the first diecast</string>
+    <string name="restore_from_backup">Restore from a backup</string>
+    <string name="collection_no_matches">Nothing matches</string>
+    <string name="collection_reset_filter">Reset filters</string>
+    <string name="card_price_from">from %1$s</string>
+    <string name="card_spotted_times">Spotted %1$d×</string>
+    <string name="collection_selected">Selected</string>
+</resources>

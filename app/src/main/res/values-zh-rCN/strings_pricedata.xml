@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/pricedata.json; edit all three languages together. -->
+<resources>
+    <string name="listing_different_variant">不同版本</string>
+    <string name="listing_different_condition">品相不同</string>
+    <string name="listing_bundle">套装 / 批量</string>
+    <string name="listing_different_item">其他商品</string>
+    <string name="listing_unclear">不明确</string>
+    <string name="accuracy_high">准确度高</string>
+    <string name="accuracy_medium">准确度中等</string>
+    <string name="accuracy_low">准确度低</string>
+    <string name="accuracy_insufficient">数据不足</string>
+    <string name="listing_far_above">价格远高于其他</string>
+    <string name="listing_far_below">价格远低于其他</string>
+    <string name="price_reason_one">只有 1 条匹配的商品——还不足以称为市场价。</string>
+    <string name="price_reason_none">没有与这辆合金车匹配的商品。</string>
+    <string name="price_tip_keywords">换个关键词试试（例如去掉系列编号），然后重新截图。</string>
+    <plurals name="price_reason_counted_many">
+        <item quantity="other">计入 %d 条匹配商品——数量充足。</item>
+    </plurals>
+    <plurals name="price_reason_counted_few">
+        <item quantity="other">计入 %d 条匹配商品——数量偏少。</item>
+    </plurals>
+    <string name="price_reason_even">价格比较一致（中间价差为中位数的 %1$d%%）。</string>
+    <string name="price_reason_varied">价格有些差异（中间价差为中位数的 %1$d%%）。</string>
+    <string name="price_reason_scattered">价格差异很大（中间价差为中位数的 %1$d%%）。</string>
+    <string name="price_tip_same_variant">价格差异很大——请确认版本和品相相同（例如 STH 与普通版、卡装与裸车）。</string>
+    <plurals name="price_reason_sold">
+        <item quantity="other">%d 条商品显示了销量——有成交价格为证。</item>
+    </plurals>
+    <string name="price_tip_best_selling">将搜索结果按“销量”排序，以查看真正成交的价格。</string>
+    <string name="price_reason_unclear">很多商品无法确定是否匹配。</string>
+    <string name="price_tip_more_screenshots">多截几张图（向下滚动），以便读取更多商品。</string>
+    <string name="price_tip_condition">很多商品品相不同——在搜索中加上“carded”或“loose”。</string>
+    <string name="price_tip_search_hint">试试搜索：“%1$s”。</string>
+    <string name="price_nothing_to_use">还没有可用的价格。</string>
+</resources>

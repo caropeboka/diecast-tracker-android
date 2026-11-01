@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/ai.json; edit all three languages together. -->
+<resources>
+    <string name="ai_err_connect">Tidak bisa menghubungi %1$s. Cek koneksi internet.</string>
+    <string name="ai_err_key_invalid_short">API key %1$s tidak valid.</string>
+    <string name="ai_err_trouble_later">%1$s sedang bermasalah. Coba lagi nanti.</string>
+    <string name="ai_err_blocked">AI tidak bisa memproses gambar ini.</string>
+    <string name="ai_err_unreadable">Hasil AI tidak terbaca. Coba foto ulang dengan cahaya lebih terang.</string>
+    <string name="ai_miss_offline">tidak bisa dihubungi (cek koneksi)</string>
+    <string name="ai_miss_timeout">tidak menjawab</string>
+    <string name="ai_miss_quota">kuotanya habis</string>
+    <string name="ai_miss_busy">sedang sibuk</string>
+    <string name="ai_miss_unavailable">tidak tersedia</string>
+    <string name="ai_miss_failed">gagal (%1$d)</string>
+    <string name="ai_err_key_invalid">API key %1$s tidak valid. Cek Pengaturan AI.</string>
+    <string name="ai_err_quota">Kuota gratis %1$s habis untuk saat ini. Tunggu sebentar (atau besok) lalu coba lagi.</string>
+    <string name="ai_err_gemini_busy">Server Gemini sedang sibuk (banyak pengguna). Coba lagi sebentar lagi.</string>
+    <string name="ai_err_offline">Tidak bisa terhubung ke %1$s. Cek koneksi internet.</string>
+    <string name="ai_err_timeout">%1$s tidak merespons (server penuh atau koneksi lambat). Coba lagi sebentar lagi.</string>
+    <string name="ai_err_gemini_model_missing">Model Gemini \"%1$s\" tidak ditemukan. Pilih model lain di Pengaturan AI.</string>
+    <string name="ai_err_gemini_other">Gemini sedang bermasalah. Isi manual dulu atau coba lagi.</string>
+    <string name="ai_err_connect_address">Tidak bisa menghubungi %1$s. Cek koneksi internet dan alamatnya.</string>
+    <string name="ai_err_answered_code">%1$s menjawab %2$d. Cek alamat dan key-nya.</string>
+    <string name="ai_miss_no_json">tidak mendukung mode JSON</string>
+    <string name="ai_err_unreadable_named">Hasil %1$s tidak terbaca. Coba lagi atau foto ulang dengan cahaya lebih terang.</string>
+    <string name="ai_miss_key">key tidak diterima</string>
+    <string name="ai_miss_no_model">model tidak ada</string>
+    <string name="ai_err_credit">%1$s minta kredit untuk model \"%2$s\". Pilih model gratis di Pengaturan AI.</string>
+    <string name="ai_err_model_missing">Model \"%2$s\" tidak ada di %1$s. Pilih model lain di Pengaturan AI.</string>
+    <string name="ai_err_too_big">Fotonya terlalu besar untuk %1$s.</string>
+    <string name="ai_err_busy">Server %1$s sedang sibuk. Coba lagi sebentar lagi.</string>
+    <string name="ai_err_refused_said">%1$s menolak permintaan ini: %2$s</string>
+    <string name="ai_err_refused_code">%1$s menolak permintaan ini (%2$d).</string>
+    <string name="ai_err_bad_address">Alamat server %1$s tidak valid. Cek Pengaturan AI.</string>
+    <string name="ai_err_not_set">AI belum aktif. Isi API key di Pengaturan AI.</string>
+    <string name="ai_err_all_failed">Semua AI yang diatur gagal:</string>
+    <string name="confidence_high">Yakin</string>
+    <string name="confidence_medium">Cukup yakin</string>
+    <string name="confidence_low">Kurang yakin — cek lagi</string>
+    <string name="ai_err_scan_not_set">Scan AI belum aktif. Isi API key di Pengaturan AI.</string>
+    <string name="ai_answer_language">Indonesian</string>
+</resources>

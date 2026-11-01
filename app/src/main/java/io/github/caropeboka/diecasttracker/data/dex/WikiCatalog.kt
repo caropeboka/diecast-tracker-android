@@ -1,5 +1,7 @@
 package io.github.caropeboka.diecasttracker.data.dex
 
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.util.array
 import io.github.caropeboka.diecasttracker.util.obj
 import io.github.caropeboka.diecasttracker.util.string
@@ -74,6 +76,7 @@ sealed interface Download {
 class WikiCatalog(
     http: OkHttpClient,
     private val userAgent: String,
+    private val texts: Texts,
     private val apiBase: (wiki: String) -> String = { "https://$it.fandom.com/api.php" },
     private val pauseMs: Long = 400,
     private val retryPauseMs: Long = 2_000,
@@ -91,9 +94,9 @@ class WikiCatalog(
         response.obj("error")?.let { error ->
             throw DexSyncException(
                 if (error.string("code") == "missingtitle") {
-                    "Daftar $year belum ada di wiki."
+                    texts(R.string.wiki_year_missing, year)
                 } else {
-                    "Wiki menolak permintaan: " + (error.string("info") ?: error.string("code"))
+                    texts(R.string.wiki_refused, error.string("info") ?: error.string("code").orEmpty())
                 },
             )
         }
@@ -287,7 +290,7 @@ class WikiCatalog(
             val response = try {
                 api.newCall(request).fetch()
             } catch (_: IOException) {
-                if (attempt == 3) throw DexSyncException("Tidak bisa menghubungi wiki. Cek koneksi internet lalu coba lagi.")
+                if (attempt == 3) throw DexSyncException(texts(R.string.wiki_offline))
                 attempt++
                 delay(retryPauseMs)
                 continue
@@ -295,7 +298,7 @@ class WikiCatalog(
 
             val (code, body) = response.use { it.code to runCatching { it.body.string() }.getOrNull() }
             val json = body?.let { runCatching { Json.parseToJsonElement(it) }.getOrNull() } as? JsonObject
-            if (code !in 200..299 || json == null) throw DexSyncException("Wiki sedang bermasalah (HTTP $code). Coba lagi nanti.")
+            if (code !in 200..299 || json == null) throw DexSyncException(texts(R.string.wiki_trouble, code))
             return json
         }
     }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/common.json; edit all three languages together. -->
+<resources>
+    <string name="back">Kembali</string>
+    <string name="save">Simpan</string>
+    <string name="cancel">Batal</string>
+    <string name="delete">Hapus</string>
+    <string name="close">Tutup</string>
+    <string name="edit">Ubah</string>
+    <string name="retry">Coba lagi</string>
+    <string name="optional">Opsional</string>
+    <string name="later">Nanti</string>
+    <string name="next">Lanjut</string>
+    <string name="done">Selesai</string>
+    <string name="skip">Lewati</string>
+    <string name="add">Tambah</string>
+    <string name="filled_by_ai">Diisi oleh AI</string>
+    <string name="number_too_big">Angkanya terlalu besar.</string>
+    <string name="pick_date">Pilih tanggal</string>
+</resources>

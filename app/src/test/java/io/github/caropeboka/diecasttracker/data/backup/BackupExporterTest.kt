@@ -54,7 +54,7 @@ import java.time.LocalDate
 import java.util.zip.ZipFile
 
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BackupExporterTest {
     /** The phone that makes the backup. */
@@ -101,7 +101,7 @@ class BackupExporterTest {
         )
         dao.insertItem(CatalogItemEntity(catalogId = wikiId, number = "061", sort = 61, variant = 2, name = "'71 Datsun 510", isTh = true))
 
-        val custom = DexCustom(env.db, DexMatcher(dao), env.photos, env.root)
+        val custom = DexCustom(env.db, DexMatcher(dao), env.photos, env.texts, env.root)
         val ownId = custom.create("Tomica", "Tomica Premium", "")
         val ownItem = custom.addOne(ownId, DexRow(number = "01", name = "Nissan Skyline GT-R"), env.pendingPhoto())!!
 
@@ -278,7 +278,7 @@ class BackupExporterTest {
     fun `merging adds the entries an own dex of the same name lacks`() = runBlocking {
         seed()
         val zip = backup()
-        val custom = DexCustom(other.db, DexMatcher(other.db.dex()), other.photos, other.root)
+        val custom = DexCustom(other.db, DexMatcher(other.db.dex()), other.photos, other.texts, other.root)
         val ownId = custom.create("Tomica", "tomica premium", "")
         custom.addOne(ownId, DexRow(number = "01", name = "Honda NSX"), null)
 
@@ -295,7 +295,7 @@ class BackupExporterTest {
     fun `replacing swaps the own dexes too, a web backup leaves them`() = runBlocking {
         seed()
         val zip = backup()
-        val custom = DexCustom(other.db, DexMatcher(other.db.dex()), other.photos, other.root)
+        val custom = DexCustom(other.db, DexMatcher(other.db.dex()), other.photos, other.texts, other.root)
         val oldId = custom.create("Majorette", "Majorette Premium", "")
         custom.addOne(oldId, DexRow(number = "1", name = "Porsche 911"), other.pendingPhoto())
         other.repository.save(DiecastEntity(name = "Will be replaced"))
@@ -340,7 +340,7 @@ class BackupExporterTest {
         seed()
         val datsun = byName(env, "'71 Datsun 510").diecast.id
         val skyline = byName(env, "Nissan Skyline GT-R").diecast.id
-        ShelfRepository(env.db).apply(mapOf(datsun to ShelfSlotEntity(datsun, Shelf.Case, 13), skyline to ShelfSlotEntity(skyline, Shelf.Boards, 5, 3)))
+        ShelfRepository(env.db, env.texts).apply(mapOf(datsun to ShelfSlotEntity(datsun, Shelf.Case, 13), skyline to ShelfSlotEntity(skyline, Shelf.Boards, 5, 3)))
         val file = backup()
 
         val record = Json.parseToJsonElement(ZipFile(file).use { zip -> zip.getInputStream(zip.getEntry("diecasts.json")).reader().readText() })

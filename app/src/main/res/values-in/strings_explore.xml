@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/explore.json; edit all three languages together. -->
+<resources>
+    <string name="explore_all">Semua</string>
+    <string name="explore_sightings">Temuan</string>
+    <string name="explore_purchases">Pembelian</string>
+    <string name="explore_30_days">30 hari</string>
+    <string name="explore_3_months">3 bulan</string>
+    <string name="explore_1_year">1 tahun</string>
+    <string name="explore_bought_count">%1$d dibeli</string>
+    <string name="explore_spotted_count">%1$d ditemui</string>
+    <string name="explore_title">Peta jelajah</string>
+    <string name="explore_intro">Tempat-tempat kamu membeli dan menemukan diecast, kapan, dan apa saja yang ada di sana.</string>
+    <string name="explore_places_explored">Tempat dijelajahi</string>
+    <string name="explore_mapped">%1$d punya titik di peta</string>
+    <string name="explore_days">Hari berburu</string>
+    <string name="explore_most_often">Paling sering: %1$s</string>
+    <string name="explore_since">Berburu sejak</string>
+    <string name="explore_last">Terakhir %1$s</string>
+    <string name="explore_no_points">Belum ada titik di peta</string>
+    <string name="explore_no_points_text">Tekan tombol lokasi di Beli di atau Ditemui di saat menambah diecast atau mencatat temuan. Tempatnya akan muncul di sini.</string>
+    <string name="explore_legend_bought">Ada pembelian</string>
+    <string name="explore_legend_spotted">Hanya ditemui</string>
+    <string name="explore_legend_size">Ukuran = jumlah</string>
+    <plurals name="explore_visits_last">
+        <item quantity="other">%1$d× kunjungan · terakhir %2$s · %3$s</item>
+    </plurals>
+    <string name="explore_bought_on">Dibeli %1$s</string>
+    <string name="explore_spotted_on">Ditemui %1$s</string>
+    <string name="explore_bought">Dibeli</string>
+    <string name="explore_more">+%1$d lainnya</string>
+    <string name="explore_places">Tempat</string>
+    <string name="explore_no_data">Belum ada data di rentang waktu ini.</string>
+    <string name="explore_show_on_map">Lihat di peta</string>
+    <plurals name="explore_visits">
+        <item quantity="other">%d× kunjungan</item>
+    </plurals>
+    <string name="explore_no_point">belum ada titik</string>
+    <string name="explore_timeline">Riwayat jelajah</string>
+    <string name="explore_no_history">Belum ada riwayat.</string>
+</resources>

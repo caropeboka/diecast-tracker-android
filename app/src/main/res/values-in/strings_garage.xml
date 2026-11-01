@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/garage.json; edit all three languages together. -->
+<resources>
+    <string name="ai_hint_decor">Diproses di HP; fotonya tidak dikirim ke mana pun.</string>
+    <string name="decor_reading_photo">Membaca foto</string>
+    <string name="decor_separating">Memisahkan benda dari latar</string>
+    <string name="decor_downloading">Mengunduh pemisah latar (sekali saja)</string>
+    <string name="decor_tidying">Merapikan tepi, membersihkan debu</string>
+    <string name="decor_photo_failed">Fotonya tidak bisa diproses.</string>
+    <string name="decor_placed">%1$s ditaruh di %2$s.</string>
+    <string name="decor_corner_only">Hiasan hanya bisa di laci hitam.</string>
+    <string name="garage_no_room">Tidak ada ruang lagi di sana.</string>
+    <string name="decor_deleted">%1$s dihapus dari garasi.</string>
+    <string name="garage_arrange_none">Tidak ada tempat kosong yang muat.</string>
+    <plurals name="garage_arranged">
+        <item quantity="other">%d diecast ditaruh di rak.</item>
+    </plurals>
+    <plurals name="garage_arranged_some">
+        <item quantity="other">%d diecast ditaruh;</item>
+    </plurals>
+    <plurals name="garage_arranged_left">
+        <item quantity="other">%d tidak muat dan masih di nampan.</item>
+    </plurals>
+    <string name="garage_lane_full">Jalur itu sudah penuh: %1$d kartu.</string>
+    <string name="garage_to_tray_done">%1$s masuk nampan.</string>
+    <string name="garage_cards_on_boards">Kartu (blister) hanya bisa di papan.</string>
+    <string name="garage_boards_cards_only">Papan hanya untuk kartu (blister).</string>
+    <string name="garage_case_small_only">Rak putih hanya muat skala 1:64 atau lebih kecil.</string>
+    <string name="garage_does_not_fit">Tidak muat di sana.</string>
+    <string name="garage_quality_normal">Normal</string>
+    <string name="garage_quality_plain">Polos</string>
+    <string name="garage_quality_light">Hemat</string>
+    <string name="garage_focus_all">Semua</string>
+    <string name="garage_focus_shelf">Laci</string>
+    <string name="garage_focus_boards">Papan</string>
+    <string name="garage_focus_case">Rak putih</string>
+    <string name="garage_title">Garasi 3D</string>
+    <string name="garage_decor_there">Di situ sudah ada hiasan.</string>
+    <string name="garage_tap_corner">Tap tempat kosong di laci hitam.</string>
+    <string name="garage_tray_empty">Nampan kosong: semua sudah di rak.</string>
+    <string name="garage_none_fits">Tidak ada diecast di nampan yang muat di sini.</string>
+    <string name="garage_decor_at">Hiasan · %1$s</string>
+    <string name="garage_move">Pindahkan</string>
+    <string name="garage_pick_shelf">Pilih raknya di bawah, lalu tap tempatnya.</string>
+    <string name="garage_tap_spot">Tap tempat kosong, atau diecast lain untuk bertukar tempat.</string>
+    <string name="garage_in_tray">Di nampan</string>
+    <string name="garage_to_tray">Ke nampan</string>
+    <string name="garage_details">Detail</string>
+    <string name="garage_unplaced">Belum ditaruh</string>
+    <string name="garage_unplaced_hint">Pilih satu, lalu tap tempatnya di rak. Lokasi simpannya ikut terisi.</string>
+    <string name="garage_put_here">Taruh di sini</string>
+    <string name="garage_tray">Nampan · %1$d</string>
+    <string name="garage_all_placed">Semua sudah di rak.</string>
+    <string name="garage_arrange_all">Taruh semua otomatis</string>
+    <plurals name="garage_without_photo">
+        <item quantity="other">%d diecast tanpa foto tidak tampil di garasi.</item>
+    </plurals>
+    <string name="garage_no_longer_fits">Tidak muat lagi di %1$s</string>
+    <string name="decor_new_here">Hiasan baru di sini</string>
+    <string name="decor_new_text">Figur atau pajangan dari foto: latarnya dipotong dan debunya dibersihkan di HP.</string>
+    <string name="decor_new">Hiasan baru</string>
+    <string name="decor_as_shot">Seperti difoto</string>
+    <string name="decor_cleaned">Dibersihkan</string>
+    <string name="decor_name_placeholder">mis. Figur Risky Ridho</string>
+    <string name="decor_default_name">Hiasan</string>
+    <string name="decor_place">Taruh di laci</string>
+    <string name="decor_height">Tinggi asli (cm)</string>
+    <string name="decor_height_hint">Supaya ukurannya pas di samping diecast.</string>
+    <string name="decor_edit">Ubah hiasan</string>
+    <string name="decor_delete_text">Hiasan ini hilang dari garasi. Koleksi diecast-mu tidak berubah.</string>
+</resources>

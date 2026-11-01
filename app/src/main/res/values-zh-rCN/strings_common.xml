@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/common.json; edit all three languages together. -->
+<resources>
+    <string name="back">返回</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="delete">删除</string>
+    <string name="close">关闭</string>
+    <string name="edit">编辑</string>
+    <string name="retry">重试</string>
+    <string name="optional">可选</string>
+    <string name="later">稍后</string>
+    <string name="next">下一步</string>
+    <string name="done">完成</string>
+    <string name="skip">跳过</string>
+    <string name="add">添加</string>
+    <string name="filled_by_ai">由 AI 填写</string>
+    <string name="number_too_big">数字太大了。</string>
+    <string name="pick_date">选择日期</string>
+</resources>

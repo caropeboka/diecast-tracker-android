@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/settings.json; edit all three languages together. -->
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_menu">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system_now">Phone language (now %1$s)</string>
+    <string name="settings_language_note">When the phone uses another language, the app shows English.</string>
+    <string name="settings_currency">Currency</string>
+    <string name="settings_currency_idr">Indonesian rupiah (Rp)</string>
+    <string name="settings_currency_usd">US dollar ($)</string>
+    <string name="settings_currency_cny">Chinese yuan (¥)</string>
+    <string name="settings_currency_note">Prices stay stored in rupiah. Other currencies are converted at the day\'s exchange rate, and a price you type in them is converted back to rupiah.</string>
+    <string name="settings_rates">1 USD = %1$s · 1 CNY = %2$s</string>
+    <string name="settings_rates_source">Rates from %1$s, %2$s</string>
+    <string name="settings_rates_none">No exchange rate yet: prices show in rupiah until the phone is online.</string>
+    <string name="settings_rates_refresh">Update rates</string>
+    <string name="settings_rates_updated">Exchange rates updated.</string>
+    <string name="settings_rates_failed">Couldn\'t get the exchange rates. Check the internet connection.</string>
+    <string name="settings_date_format">Date format</string>
+    <string name="settings_date_language">Like the language (%1$s)</string>
+    <string name="settings_more">More</string>
+    <string name="settings_ai">AI settings</string>
+    <string name="settings_ai_note">Keys and the order of the AI providers</string>
+    <string name="settings_data">Data &amp; backup</string>
+    <string name="settings_data_note">Back up, restore, export to Excel</string>
+    <string name="settings_tour">Show the tour again</string>
+    <string name="settings_tour_note">The short walk through the app from the first launch</string>
+    <string name="ai_key_needed">Enter an API key first.</string>
+    <string name="ai_url_needed">Enter the server address first, e.g. https://…/v1.</string>
+    <string name="ai_settings_saved">AI settings saved.</string>
+    <string name="ai_key_removed">The %1$s API key is removed.</string>
+    <string name="ai_key_removed_off">The %1$s API key is removed. The AI is off.</string>
+    <string name="ai_url_invalid">The address must start with https:// (or http://), e.g. https://integrate.api.nvidia.com/v1.</string>
+    <string name="ai_model_needed">Enter a model name.</string>
+    <string name="ai_model_gemini_chars">A model name may only hold lower-case letters, digits, dots and hyphens.</string>
+    <string name="ai_model_no_spaces">A model name may not hold spaces.</string>
+    <string name="ai_scan_off_text">The scan isn\'t on yet. Add an API key for one of the AIs first (Gemini is the easiest). Then Scan with AI (the + button at the bottom centre) opens the camera: shoot every side, then tap Scan with AI.</string>
+    <string name="ai_settings_intro">The AI reads a photo of the card or the car and fills in the form. Photos are only sent when you ask the AI to read them. The AIs are tried from top to bottom: when one runs out of quota, is busy or takes too long, the same photos go straight to the next.</string>
+    <string name="ai_remove_key_title">Remove the %1$s API key?</string>
+    <string name="ai_remove_key_text">%1$s isn\'t used until you add a key again.</string>
+    <string name="ai_status_unsaved">New key not saved yet</string>
+    <string name="ai_status_not_set">Not set up</string>
+    <string name="ai_status_off">Turned off</string>
+    <string name="ai_status_resting">Out of quota until %1$s</string>
+    <string name="ai_status_on">On · %1$s</string>
+    <string name="ai_move_up">Move %1$s up</string>
+    <string name="ai_move_down">Move %1$s down</string>
+    <string name="ai_open">Open</string>
+    <string name="ai_use">Use %1$s</string>
+    <string name="ai_custom_name">Name (optional)</string>
+    <string name="ai_custom_name_placeholder">e.g. NVIDIA</string>
+    <string name="ai_server_address">Server address</string>
+    <string name="ai_saved_key">Saved key: %1$s</string>
+    <string name="ai_remove_key">Remove key</string>
+    <string name="ai_replace_key">Replace the API key</string>
+    <string name="ai_key_optional">API key (optional)</string>
+    <string name="ai_key">API key</string>
+    <string name="ai_keep_key_hint">Leave it empty to keep the saved key.</string>
+    <string name="ai_hide_key">Hide key</string>
+    <string name="ai_show_key">Show key</string>
+    <string name="ai_test_server">Test server</string>
+    <string name="ai_test_key">Test key</string>
+    <string name="ai_make_key">Get a key at %1$s ↗</string>
+    <string name="ai_test_no_vision">Connected, but no model can read photos.</string>
+    <plurals name="ai_test_models_pick">
+        <item quantity="one">Connected. %d model — pick one that can read photos (vision).</item>
+        <item quantity="other">Connected. %d models — pick one that can read photos (vision).</item>
+    </plurals>
+    <plurals name="ai_test_models_vision">
+        <item quantity="one">The key works. %d model can read photos — pick it below.</item>
+        <item quantity="other">The key works. %d models can read photos — pick one below.</item>
+    </plurals>
+    <string name="ai_model">Model</string>
+    <string name="ai_model_placeholder">model name</string>
+    <string name="ai_note_gemini">A free daily quota from Google. When one model is busy or out of quota, other Gemini models are tried before moving to the next AI.</string>
+    <string name="ai_note_groq">Free and very fast (about 1,000 requests a day). Each request takes 3 photos at most; the others are left out.</string>
+    <string name="ai_note_mistral">Free on the Experiment plan (needs a phone number check). On the free plan, Mistral may use the photos you send to train its models.</string>
+    <string name="ai_note_openrouter">Free models: 50 requests a day (1,000 a day after a one-time $10 top-up). The openrouter/free model picks a free model that can read photos by itself.</string>
+    <string name="ai_note_custom">Another service that speaks the OpenAI API format. Example addresses — NVIDIA NIM: https://integrate.api.nvidia.com/v1, Cloudflare Workers AI: https://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID>/ai/v1. Pick a model that can read photos.</string>
+    <string name="ai_custom_key_placeholder">Leave empty if the server needs no key</string>
+</resources>

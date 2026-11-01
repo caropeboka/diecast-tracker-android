@@ -1,28 +1,31 @@
 package io.github.caropeboka.diecasttracker.data.explore
 
+import androidx.annotation.StringRes
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.db.PurchaseEventRow
 import io.github.caropeboka.diecasttracker.data.db.SightingEventRow
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.round6
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
 
-enum class ExploreType(val key: String, val label: String) {
-    All("all", "Semua"),
-    Sighting("sighting", "Temuan"),
-    Purchase("purchase", "Pembelian");
+enum class ExploreType(val key: String, @StringRes val label: Int) {
+    All("all", R.string.explore_all),
+    Sighting("sighting", R.string.explore_sightings),
+    Purchase("purchase", R.string.explore_purchases);
 
     companion object {
         fun fromKey(key: String?): ExploreType = entries.find { it.key == key } ?: All
     }
 }
 
-enum class ExploreRange(val key: String, val label: String, val days: Long?) {
-    All("all", "Semua", null),
-    Month("30", "30 hari", 30),
-    Quarter("90", "3 bulan", 90),
-    Year("365", "1 tahun", 365);
+enum class ExploreRange(val key: String, @StringRes val label: Int, val days: Long?) {
+    All("all", R.string.explore_all, null),
+    Month("30", R.string.explore_30_days, 30),
+    Quarter("90", R.string.explore_3_months, 90),
+    Year("365", R.string.explore_1_year, 365);
 
     companion object {
         fun fromKey(key: String?): ExploreRange = entries.find { it.key == key } ?: All
@@ -91,7 +94,6 @@ data class Exploration(
     val timeline: List<TimelineDay> = emptyList(),
 ) {
     companion object {
-        const val UNNAMED = "Tanpa nama tempat"
         private const val TIMELINE_DAYS = 30
 
         fun build(
@@ -100,6 +102,7 @@ data class Exploration(
             type: ExploreType,
             range: ExploreRange,
             today: LocalDate,
+            texts: Texts,
             zone: ZoneId = ZoneId.systemDefault(),
         ): Exploration {
             val since = range.days?.let { today.minusDays(it) }
@@ -111,7 +114,7 @@ data class Exploration(
             val events = (sightingEvents + purchaseEvents)
                 .filter { since == null || it.date >= since }
                 .sortedByDescending { it.date }
-            val places = groupByPlace(events)
+            val places = groupByPlace(events, texts)
 
             return Exploration(
                 places = places,
@@ -133,7 +136,7 @@ data class Exploration(
                     .map { (date, day) ->
                         TimelineDay(
                             date,
-                            day.groupBy { it.place ?: UNNAMED }.map { (name, items) ->
+                            day.groupBy { it.place ?: texts(R.string.place_unnamed) }.map { (name, items) ->
                                 TimelinePlace(
                                     name,
                                     sightings = items.count { it.kind == EventKind.Sighting },
@@ -146,7 +149,7 @@ data class Exploration(
         }
 
         /** One marker per place: grouped by (case-insensitive) name; unnamed ones by ~100 m cell. [events] newest first. */
-        private fun groupByPlace(events: List<ExploreEvent>): List<ExplorePlace> = events
+        private fun groupByPlace(events: List<ExploreEvent>, texts: Texts): List<ExplorePlace> = events
             .groupBy { event ->
                 when {
                     !event.place.isNullOrBlank() -> "name:" + event.place.trim().lowercase()
@@ -163,7 +166,7 @@ data class Exploration(
                 ExplorePlace(
                     key = key,
                     name = spellings.entries.firstOrNull { it.value == top }?.key
-                        ?: if (key == "unknown") UNNAMED else "Titik tanpa nama",
+                        ?: texts(if (key == "unknown") R.string.place_unnamed else R.string.place_unnamed_spot),
                     lat = located.takeIf { it.isNotEmpty() }?.let { round6(it.map { e -> e.lat!! }.average()) },
                     lng = located.takeIf { it.isNotEmpty() }?.let { round6(it.map { e -> e.lng!! }.average()) },
                     count = items.size,

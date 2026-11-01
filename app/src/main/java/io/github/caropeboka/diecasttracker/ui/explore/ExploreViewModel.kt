@@ -12,6 +12,7 @@ import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.explore.Exploration
 import io.github.caropeboka.diecasttracker.data.explore.ExploreRange
 import io.github.caropeboka.diecasttracker.data.explore.ExploreType
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +22,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 
-class ExploreViewModel(repository: DiecastRepository, private val saved: SavedStateHandle) : ViewModel() {
+class ExploreViewModel(repository: DiecastRepository, private val saved: SavedStateHandle, private val texts: Texts) : ViewModel() {
     val type: StateFlow<ExploreType> = saved.getStateFlow(TYPE, ExploreType.All.key)
         .map(ExploreType::fromKey)
         .stateIn(viewModelScope, SharingStarted.Eagerly, ExploreType.All)
@@ -35,7 +36,7 @@ class ExploreViewModel(repository: DiecastRepository, private val saved: SavedSt
 
     /** Null while loading. */
     val exploration: StateFlow<Exploration?> = combine(repository.observeExploreEvents(), type, range) { (sightings, purchases), type, range ->
-        Exploration.build(sightings, purchases, type, range, LocalDate.now())
+        Exploration.build(sightings, purchases, type, range, LocalDate.now(), texts)
     }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -60,7 +61,7 @@ class ExploreViewModel(repository: DiecastRepository, private val saved: SavedSt
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                ExploreViewModel(app.container.repository, createSavedStateHandle())
+                ExploreViewModel(app.container.repository, createSavedStateHandle(), app.container.texts)
             }
         }
     }

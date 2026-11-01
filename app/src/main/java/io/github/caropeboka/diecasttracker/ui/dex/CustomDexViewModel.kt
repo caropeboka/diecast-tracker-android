@@ -15,6 +15,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.toRoute
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.PhotoException
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.ai.AiException
@@ -30,6 +31,7 @@ import io.github.caropeboka.diecasttracker.data.dex.DexSync
 import io.github.caropeboka.diecasttracker.data.dex.MAX_CHECKLIST_IMAGES
 import io.github.caropeboka.diecasttracker.data.dex.PhotoEdit
 import io.github.caropeboka.diecasttracker.data.dex.RowField
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.ui.DexCatalogRoute
 import io.github.caropeboka.diecasttracker.ui.components.AiProgress
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
@@ -83,6 +85,7 @@ class CustomDexViewModel(
     private val dexSync: DexSync,
     private val photos: PhotoStore,
     private val messages: Messages,
+    private val texts: Texts,
 ) : ViewModel() {
     val catalogId = saved.toRoute<DexCatalogRoute>().id
 
@@ -106,7 +109,7 @@ class CustomDexViewModel(
     var busy by mutableStateOf<ImportBusy?>(null)
         private set
 
-    private val checklistLog = AiProgressLog("Bisa sampai satu menit, tergantung panjang daftarnya.")
+    private val checklistLog = AiProgressLog(texts, R.string.ai_hint_checklist)
 
     /** What the AI reading a checklist is doing, step by step. */
     val checklistProgress: StateFlow<AiProgress?> = checklistLog.state
@@ -162,7 +165,7 @@ class CustomDexViewModel(
     fun saveEntry() {
         val current = draft ?: return
         if (savingEntry || processingPhoto) return
-        draftErrors = DexCustom.checkRow(current.row)
+        draftErrors = DexCustom.checkRow(current.row, texts)
         if (draftErrors.isNotEmpty()) return
 
         savingEntry = true
@@ -171,9 +174,9 @@ class CustomDexViewModel(
                 if (current.isNew) {
                     val item = custom.addOne(catalogId, current.row, current.photo)
                     if (item == null) {
-                        draftErrors = mapOf(RowField.Name to "Entri itu sudah ada di dex ini.")
+                        draftErrors = mapOf(RowField.Name to texts(R.string.dex_entry_exists))
                     } else {
-                        lastAdded = "#${item.number} ${item.name}" + (item.variantLabel?.let { " ($it)" } ?: "") + " ditambahkan."
+                        lastAdded = texts(R.string.dex_entry_added, "#${item.number} ${item.name}" + (item.variantLabel?.let { " ($it)" } ?: ""))
                         storeDraft(EntryDraft(row = DexRow(series = current.row.series)))
                     }
                 } else {
@@ -184,14 +187,14 @@ class CustomDexViewModel(
                     }
                     custom.edit(current.itemId, current.row, photo)
                     storeDraft(null)
-                    messages.show("Perubahan disimpan.")
+                    messages.show(texts(R.string.edit_saved))
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: DexCustomException) {
                 draftErrors = mapOf(RowField.Name to e.message.orEmpty())
             } catch (e: Exception) {
-                messages.show("Gagal menyimpan: ${e.message ?: e::class.simpleName}")
+                messages.show(texts(R.string.save_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 savingEntry = false
             }
@@ -201,7 +204,7 @@ class CustomDexViewModel(
     fun deleteEntry(item: CatalogItemEntity) {
         viewModelScope.launch {
             custom.delete(item.id)
-            messages.show("#${item.number} ${item.name} dihapus.")
+            messages.show(texts(R.string.deleted_named, "#${item.number} ${item.name}"))
         }
     }
 
@@ -217,7 +220,7 @@ class CustomDexViewModel(
     fun cameraUnavailable(key: String) {
         saved.get<String>(key)?.let { File(it).delete() }
         saved[key] = null
-        messages.show("Tidak ada aplikasi kamera di perangkat ini.")
+        messages.show(texts(R.string.edit_no_camera))
     }
 
     fun onEntryCamera(success: Boolean) {
@@ -248,7 +251,7 @@ class CustomDexViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.show((e as? PhotoException)?.message ?: "Foto gagal diproses (${e.message ?: e::class.simpleName}).")
+                messages.show((e as? PhotoException)?.message ?: texts(R.string.edit_photo_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 processingPhoto = false
             }
@@ -272,7 +275,7 @@ class CustomDexViewModel(
     fun readChecklist(uris: List<Uri>) {
         if (uris.isEmpty()) return
         readChecklist { uris.take(MAX_CHECKLIST_IMAGES).map(photos::screenshot) }
-        if (uris.size > MAX_CHECKLIST_IMAGES) note("Maksimal $MAX_CHECKLIST_IMAGES screenshot sekali baca; $MAX_CHECKLIST_IMAGES pertama yang dibaca.")
+        if (uris.size > MAX_CHECKLIST_IMAGES) note(texts(R.string.dex_checklist_max, MAX_CHECKLIST_IMAGES))
     }
 
     /** A photo of a printed checklist. */
@@ -284,16 +287,16 @@ class CustomDexViewModel(
     private fun readChecklist(load: () -> List<ByteArray>) {
         if (busy != null) return
         busy = ImportBusy.Checklist
-        checklistLog.start("Menyiapkan gambar")
+        checklistLog.start(texts(R.string.dex_preparing_images))
         viewModelScope.launch {
             try {
                 val images = withContext(Dispatchers.IO) { load() }
                 val catalog = dex.catalog(catalogId) ?: return@launch
                 val rows = checklist.read(catalog, images, checklistLog::onEvent)
                 if (rows.isEmpty()) {
-                    note("AI tidak menemukan rilisan di gambar itu.")
+                    note(texts(R.string.dex_checklist_none))
                 } else {
-                    checklistLog.step("Mengecek yang sudah ada di daftar")
+                    checklistLog.step(texts(R.string.dex_checking_known))
                     val known = custom.known(catalogId, rows)
                     storeReview(ChecklistReview(rows, known, rows.indices.filterNot { known[it] }.toSet()))
                     openImport(false)
@@ -305,7 +308,7 @@ class CustomDexViewModel(
             } catch (e: PhotoException) {
                 note(e.message.orEmpty())
             } catch (e: Exception) {
-                note("Gagal membaca checklist (${e.message ?: e::class.simpleName}).")
+                note(texts(R.string.dex_checklist_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 busy = null
                 checklistLog.stop()
@@ -329,11 +332,11 @@ class CustomDexViewModel(
             try {
                 val result = custom.add(catalogId, current.selected.sorted().map(current.rows::get))
                 storeReview(null)
-                messages.show(result.summary)
+                messages.show(result.summary(texts))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.show("Gagal menambahkan: ${e.message ?: e::class.simpleName}")
+                messages.show(texts(R.string.dex_add_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 busy = null
             }
@@ -353,19 +356,19 @@ class CustomDexViewModel(
                             val read = input.read(buffer)
                             if (read < 0) break
                             out.write(buffer, 0, read)
-                            if (out.size() > MAX_SHEET_BYTES) throw DexCustomException("File maksimal 5 MB.")
+                            if (out.size() > MAX_SHEET_BYTES) throw DexCustomException(texts(R.string.dex_file_too_big))
                         }
                         out.toByteArray()
-                    } ?: throw DexCustomException("File tidak bisa dibuka.")
+                    } ?: throw DexCustomException(texts(R.string.import_cant_open))
                 }
-                messages.show(custom.fromSpreadsheet(catalogId, bytes).summary)
+                messages.show(custom.fromSpreadsheet(catalogId, bytes).summary(texts))
                 openImport(false)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: DexCustomException) {
                 note(e.message.orEmpty())
             } catch (e: Exception) {
-                note("Gagal mengimpor (${e.message ?: e::class.simpleName}).")
+                note(texts(R.string.dex_import_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 busy = null
             }
@@ -381,16 +384,16 @@ class CustomDexViewModel(
                 val brand = dex.catalog(catalogId)?.brand.orEmpty()
                 messages.show(
                     if (result.linked > 0) {
-                        "${result.added} entri ditambahkan · ${result.linked} diecast tertaut."
+                        texts.plural(R.plurals.dex_added, result.added, result.added) + " · " + texts.plural(R.plurals.dex_sync_linked, result.linked, result.linked) + "."
                     } else {
-                        "Belum ada diecast $brand di koleksimu yang bisa dimasukkan."
+                        texts(R.string.dex_collection_none, brand)
                     },
                 )
                 openImport(false)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.show("Gagal mengambil dari koleksi: ${e.message ?: e::class.simpleName}")
+                messages.show(texts(R.string.dex_collection_failed, e.message ?: e::class.simpleName.orEmpty()))
             } finally {
                 busy = null
             }
@@ -424,7 +427,7 @@ class CustomDexViewModel(
             if (catalogErrors.isNotEmpty()) return@launch
             custom.update(catalogId, current.brand, current.name, current.year)
             closeCatalog()
-            messages.show("Dex disimpan.")
+            messages.show(texts(R.string.dex_saved))
         }
     }
 
@@ -432,7 +435,7 @@ class CustomDexViewModel(
         viewModelScope.launch {
             val name = dex.catalog(catalogId)?.name
             dexSync.delete(catalogId)
-            messages.show("$name dihapus dari Dex.")
+            messages.show(texts(R.string.dex_removed, name.orEmpty()))
             _closed.send(Unit)
         }
     }
@@ -470,7 +473,7 @@ class CustomDexViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                with(app.container) { CustomDexViewModel(app, createSavedStateHandle(), dex, dexCustom, checklist, dexSync, photos, messages) }
+                with(app.container) { CustomDexViewModel(app, createSavedStateHandle(), dex, dexCustom, checklist, dexSync, photos, messages, texts) }
             }
         }
     }

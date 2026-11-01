@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/ai.json; edit all three languages together. -->
+<resources>
+    <string name="ai_err_connect">无法连接 %1$s，请检查网络连接。</string>
+    <string name="ai_err_key_invalid_short">%1$s API 密钥无效。</string>
+    <string name="ai_err_trouble_later">%1$s 出现问题，请稍后再试。</string>
+    <string name="ai_err_blocked">AI 无法处理这张图片。</string>
+    <string name="ai_err_unreadable">无法读取 AI 的回复。请在更明亮的光线下重拍。</string>
+    <string name="ai_miss_offline">无法连接（请检查网络）</string>
+    <string name="ai_miss_timeout">没有回应</string>
+    <string name="ai_miss_quota">配额已用完</string>
+    <string name="ai_miss_busy">正忙</string>
+    <string name="ai_miss_unavailable">不可用</string>
+    <string name="ai_miss_failed">失败（%1$d）</string>
+    <string name="ai_err_key_invalid">%1$s API 密钥无效，请检查 AI 设置。</string>
+    <string name="ai_err_quota">%1$s 的免费配额暂时用完了。请稍等（或明天）再试。</string>
+    <string name="ai_err_gemini_busy">Gemini 服务器繁忙（用户较多），请稍后再试。</string>
+    <string name="ai_err_offline">无法连接到 %1$s，请检查网络连接。</string>
+    <string name="ai_err_timeout">%1$s 没有响应（服务器已满或网络较慢），请稍后再试。</string>
+    <string name="ai_err_gemini_model_missing">找不到 Gemini 模型“%1$s”。请在 AI 设置中选择其他模型。</string>
+    <string name="ai_err_gemini_other">Gemini 出现问题。请先手动填写或重试。</string>
+    <string name="ai_err_connect_address">无法连接 %1$s，请检查网络连接和地址。</string>
+    <string name="ai_err_answered_code">%1$s 返回了 %2$d。请检查地址和密钥。</string>
+    <string name="ai_miss_no_json">不支持 JSON 模式</string>
+    <string name="ai_err_unreadable_named">无法读取 %1$s 的回复。请重试，或在更明亮的光线下重拍。</string>
+    <string name="ai_miss_key">不接受该密钥</string>
+    <string name="ai_miss_no_model">没有该模型</string>
+    <string name="ai_err_credit">%1$s 需要付费才能使用模型“%2$s”。请在 AI 设置中选择免费模型。</string>
+    <string name="ai_err_model_missing">%1$s 上没有模型“%2$s”。请在 AI 设置中选择其他模型。</string>
+    <string name="ai_err_too_big">照片对 %1$s 来说太大了。</string>
+    <string name="ai_err_busy">%1$s 服务器繁忙，请稍后再试。</string>
+    <string name="ai_err_refused_said">%1$s 拒绝了此请求：%2$s</string>
+    <string name="ai_err_refused_code">%1$s 拒绝了此请求（%2$d）。</string>
+    <string name="ai_err_bad_address">%1$s 服务器地址无效，请检查 AI 设置。</string>
+    <string name="ai_err_not_set">AI 尚未启用。请在 AI 设置中填写 API 密钥。</string>
+    <string name="ai_err_all_failed">所有已设置的 AI 都失败了：</string>
+    <string name="confidence_high">有把握</string>
+    <string name="confidence_medium">比较有把握</string>
+    <string name="confidence_low">不太确定——请核对</string>
+    <string name="ai_err_scan_not_set">AI 扫描尚未启用。请在 AI 设置中填写 API 密钥。</string>
+    <string name="ai_answer_language">Simplified Chinese</string>
+</resources>

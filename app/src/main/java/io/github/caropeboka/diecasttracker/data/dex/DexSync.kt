@@ -1,9 +1,11 @@
 package io.github.caropeboka.diecasttracker.data.dex
 
 import androidx.room.withTransaction
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
 import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
 import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -19,6 +21,7 @@ class DexSync(
     private val db: AppDatabase,
     private val wiki: WikiCatalog,
     private val matcher: DexMatcher,
+    private val texts: Texts,
     /** Thumbnails go under `<root>/dex/<catalog id>/`. */
     private val root: File,
     private val clock: () -> Long = System::currentTimeMillis,
@@ -27,7 +30,7 @@ class DexSync(
 
     suspend fun sync(source: WikiSource, year: Int): SyncResult {
         val (page, rows) = wiki.fetch(source, year)
-        if (rows.isEmpty()) throw DexSyncException("Daftar $year di wiki belum berisi data.")
+        if (rows.isEmpty()) throw DexSyncException(texts(R.string.wiki_year_empty, year))
 
         val stale = mutableListOf<String?>()
         val name = "${source.label} $year"

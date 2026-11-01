@@ -1,7 +1,9 @@
 package io.github.caropeboka.diecasttracker.ui.edit
 
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.MAX_MONEY
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
@@ -23,11 +25,11 @@ data class SightingDraft(
     val photo: String? = null,
 ) {
     /** Web: `SightingLog::rules()`. */
-    fun validate(today: LocalDate): Map<SightingField, String> = buildMap {
-        if (place.name.trim().length > 255) put(SightingField.Place, "Maksimal 255 karakter.")
-        if (notes.trim().length > 500) put(SightingField.Notes, "Maksimal 500 karakter.")
-        if ((price.toLongOrNull() ?: 0) > MAX_MONEY) put(SightingField.Price, "Angkanya terlalu besar.")
-        seenOn.toLocalDateOrNull()?.let { if (it > today) put(SightingField.Date, "Tanggal tidak boleh setelah hari ini.") }
+    fun validate(today: LocalDate, texts: Texts): Map<SightingField, String> = buildMap {
+        if (place.name.trim().length > 255) put(SightingField.Place, texts(R.string.valid_max_length, 255))
+        if (notes.trim().length > 500) put(SightingField.Notes, texts(R.string.valid_max_length, 500))
+        if ((price.toLongOrNull() ?: 0) > MAX_MONEY) put(SightingField.Price, texts(R.string.number_too_big))
+        seenOn.toLocalDateOrNull()?.let { if (it > today) put(SightingField.Date, texts(R.string.date_not_future)) }
     }
 
     /** A point older than three hours is probably from another store, so only a fresh one is kept. */

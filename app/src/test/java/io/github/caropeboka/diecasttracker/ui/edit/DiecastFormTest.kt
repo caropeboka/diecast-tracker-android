@@ -1,5 +1,7 @@
 package io.github.caropeboka.diecasttracker.ui.edit
 
+import android.app.Application
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
@@ -7,12 +9,17 @@ import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
+import io.github.caropeboka.diecasttracker.data.testTexts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import java.time.LocalDate
 
+@RunWith(AndroidJUnit4::class)
+@Config(application = Application::class, qualifiers = "in")
 class DiecastFormTest {
     private val today = LocalDate.of(2026, 10, 18)
 
@@ -59,7 +66,7 @@ class DiecastFormTest {
 
     @Test
     fun `validation mirrors the web form rules`() {
-        val errors = DiecastForm(name = " ", year = "1900", quantity = "0", sightingDate = "2026-10-19").validate(today)
+        val errors = DiecastForm(name = " ", year = "1900", quantity = "0", sightingDate = "2026-10-19").validate(today, testTexts())
 
         assertEquals("Nama model wajib diisi.", errors[Field.Name])
         assertEquals("Tahun antara 1950 dan 2027.", errors[Field.Year])
@@ -67,8 +74,8 @@ class DiecastFormTest {
         assertEquals("Tanggal tidak boleh setelah hari ini.", errors[Field.SightingDate])
 
         // Ditemui entries have no quantity field.
-        assertTrue(Field.Quantity !in DiecastForm(name = "X", status = DiecastStatus.Spotted, quantity = "").validate(today))
-        assertTrue(DiecastForm(name = "X", year = "2027").validate(today).isEmpty())
+        assertTrue(Field.Quantity !in DiecastForm(name = "X", status = DiecastStatus.Spotted, quantity = "").validate(today, testTexts()))
+        assertTrue(DiecastForm(name = "X", year = "2027").validate(today, testTexts()).isEmpty())
     }
 
     @Test

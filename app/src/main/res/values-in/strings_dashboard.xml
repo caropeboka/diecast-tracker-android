@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/dashboard.json; edit all three languages together. -->
+<resources>
+    <plurals name="dashboard_year_column">
+        <item quantity="other">%1$s: %2$d diecast</item>
+    </plurals>
+    <string name="dashboard_years_from">%1$dan</string>
+    <string name="see_all">Semua →</string>
+    <string name="dashboard_title">Garasi kamu</string>
+    <string name="dashboard_recent">Baru ditambahkan</string>
+    <string name="dashboard_shelves_3d">Rak 3D</string>
+    <string name="greeting_morning">Selamat pagi</string>
+    <string name="greeting_noon">Selamat siang</string>
+    <string name="greeting_afternoon">Selamat sore</string>
+    <string name="greeting_evening">Selamat malam</string>
+    <string name="dashboard_empty_title">Garasimu masih kosong</string>
+    <string name="dashboard_empty_text">Angka dan grafik koleksimu muncul di sini begitu ada diecast yang dimiliki.</string>
+    <string name="dashboard_value">Nilai koleksi</string>
+    <string name="dashboard_average">Rata-rata / diecast</string>
+    <string name="dashboard_dearest">Termahal</string>
+    <string name="dashboard_brands">Merek</string>
+    <string name="dashboard_value_basis">Dihitung dari %1$d dari %2$d diecast yang sudah punya harga pasaran.</string>
+    <string name="dashboard_fill_prices_text">Isi harga beli untuk melihat untung / rugi koleksimu.</string>
+    <string name="dashboard_fill_prices">Lengkapi harga beli →</string>
+    <string name="dashboard_up">Naik</string>
+    <string name="dashboard_down">Turun</string>
+    <string name="dashboard_vs_purchase">dibanding harga beli</string>
+    <string name="dashboard_total">Total diecast</string>
+    <string name="dashboard_pcs">%1$d pcs</string>
+    <plurals name="dashboard_models">
+        <item quantity="other">%d model berbeda</item>
+    </plurals>
+    <string name="dashboard_spent">Total modal</string>
+    <string name="dashboard_priced">%1$d dari %2$d ada harga beli</string>
+    <string name="dashboard_rare">Langka</string>
+    <plurals name="dashboard_sth_count">
+        <item quantity="other">%d Super Treasure Hunt</item>
+    </plurals>
+    <string name="dashboard_no_rare">Belum ada TH / STH / Chase</string>
+    <string name="dashboard_hunted_spotted">diburu · %1$d pernah ditemui</string>
+    <string name="dashboard_hunted">diecast sedang diburu</string>
+    <string name="dashboard_add_hunt">Tambahkan diecast buruanmu</string>
+    <string name="dashboard_most_valuable">Paling berharga</string>
+    <string name="dashboard_no_market_values">Belum ada harga pasaran. Buka diecast → Cek harga pasaran untuk menghitungnya dari screenshot Tokopedia/Shopee.</string>
+    <string name="dashboard_completeness">Kelengkapan data</string>
+    <string name="dashboard_complete">Lengkap</string>
+    <string name="dashboard_complete_it">Lengkapi →</string>
+    <string name="dashboard_per_brand">Per merek</string>
+    <string name="dashboard_brand_share">%1$d%% dari koleksi · nilai %2$s</string>
+    <string name="dashboard_by_count">Jumlah</string>
+    <string name="dashboard_by_value">Nilai</string>
+    <string name="dashboard_all_regular">Semua masih regular</string>
+    <string name="dashboard_all_regular_text">Belum ada Treasure Hunt, Super TH, atau Chase. Semangat berburu! 🔥</string>
+    <string name="dashboard_makes">Pabrikan mobil</string>
+    <string name="dashboard_release_years">Tahun rilis</string>
+    <plurals name="dashboard_unknown_years">
+        <item quantity="other">%d diecast belum ada tahun rilisnya.</item>
+    </plurals>
+    <string name="dashboard_gainers">Harga paling naik</string>
+    <string name="dashboard_gain">Naik %1$s</string>
+    <string name="dashboard_wishlist">Wishlist (%1$d)</string>
+</resources>

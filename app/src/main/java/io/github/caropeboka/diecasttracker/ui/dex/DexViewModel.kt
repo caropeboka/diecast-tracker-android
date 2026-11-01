@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.COMMON_BRANDS
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.UserPrefs
@@ -27,6 +28,7 @@ import io.github.caropeboka.diecasttracker.data.dex.DexWork
 import io.github.caropeboka.diecasttracker.data.dex.ImageWork
 import io.github.caropeboka.diecasttracker.data.dex.SyncProgress
 import io.github.caropeboka.diecasttracker.data.dex.WikiSource
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -52,6 +54,7 @@ class DexViewModel(
     repository: DiecastRepository,
     private val prefs: UserPrefs,
     private val messages: Messages,
+    private val texts: Texts,
 ) : ViewModel() {
     val currentYear = LocalDate.now().year
 
@@ -125,7 +128,7 @@ class DexViewModel(
     fun delete(catalog: CatalogEntity) {
         viewModelScope.launch {
             dexSync.delete(catalog.id)
-            messages.show("${catalog.name} dihapus dari Dex.")
+            messages.show(texts(R.string.dex_removed, catalog.name))
         }
     }
 
@@ -170,12 +173,12 @@ class DexViewModel(
             if (draft.id == 0L) {
                 val id = custom.create(draft.brand, draft.name, draft.year)
                 closeCatalog()
-                messages.show("Dex ${draft.name.trim()} dibuat. Sekarang isi daftarnya.")
+                messages.show(texts(R.string.dex_created, draft.name.trim()))
                 _opened.send(id)
             } else {
                 custom.update(draft.id, draft.brand, draft.name, draft.year)
                 closeCatalog()
-                messages.show("Dex disimpan.")
+                messages.show(texts(R.string.dex_saved))
             }
         }
     }
@@ -194,7 +197,7 @@ class DexViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                with(app.container) { DexViewModel(app, createSavedStateHandle(), dex, dexSync, dexCustom, repository, prefs, messages) }
+                with(app.container) { DexViewModel(app, createSavedStateHandle(), dex, dexSync, dexCustom, repository, prefs, messages, texts) }
             }
         }
     }

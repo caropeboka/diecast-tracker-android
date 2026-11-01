@@ -6,6 +6,7 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.TestEnvironment
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.testTexts
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -20,7 +21,7 @@ import java.time.ZoneOffset
 
 /** Ports of the web app's map tests (`ExploreTest`): the database queries and the grouping together. */
 @RunWith(AndroidJUnit4::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "in")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ExplorationTest {
     private val today = LocalDate.of(2026, 10, 19)
@@ -40,7 +41,7 @@ class ExplorationTest {
 
     private fun explore(type: ExploreType = ExploreType.All, range: ExploreRange = ExploreRange.All) = runBlocking {
         val (sightings, purchases) = env.repository.observeExploreEvents().first()
-        Exploration.build(sightings, purchases, type, range, today, ZoneOffset.UTC)
+        Exploration.build(sightings, purchases, type, range, today, testTexts(), ZoneOffset.UTC)
     }
 
     @Test

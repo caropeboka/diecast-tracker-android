@@ -10,6 +10,8 @@ import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.math.roundToInt
@@ -18,6 +20,8 @@ class LocationException(message: String) : Exception(message)
 
 /** The phone's position from the fused location provider, with errors worded for the collector. */
 class DeviceLocation(private val context: Context) {
+    private val texts = Texts(context)
+
     private val client = LocationServices.getFusedLocationProviderClient(context)
 
     /** Precise or approximate: either is enough to start, approximate just lands a few hundred meters off. */
@@ -27,11 +31,11 @@ class DeviceLocation(private val context: Context) {
 
     suspend fun current(): GpsFix {
         if (!hasPermission()) {
-            throw LocationException("Izin lokasi ditolak. Izinkan akses lokasi untuk Diecast Tracker di pengaturan HP.")
+            throw LocationException(texts(R.string.location_denied))
         }
         val manager = context.getSystemService(LocationManager::class.java)
         if (manager != null && !manager.isLocationEnabled) {
-            throw LocationException("Lokasi HP mati. Nyalakan lokasi (GPS) lalu coba lagi.")
+            throw LocationException(texts(R.string.location_off))
         }
 
         val request = CurrentLocationRequest.Builder()
@@ -49,10 +53,10 @@ class DeviceLocation(private val context: Context) {
                     .addOnFailureListener { continuation.resume(null) }
             }
         } catch (_: SecurityException) {
-            throw LocationException("Izin lokasi ditolak. Izinkan akses lokasi untuk Diecast Tracker di pengaturan HP.")
+            throw LocationException(texts(R.string.location_denied))
         }
 
-        location ?: throw LocationException("Lokasi tidak ditemukan. Coba lagi di tempat yang sinyalnya lebih baik.")
+        location ?: throw LocationException(texts(R.string.location_not_found))
         return GpsFix(location.latitude, location.longitude, location.accuracy.roundToInt())
     }
 

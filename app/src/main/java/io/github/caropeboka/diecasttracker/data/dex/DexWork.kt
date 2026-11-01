@@ -12,6 +12,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.container
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -125,7 +126,7 @@ object DexWork {
                 } catch (e: Exception) {
                     // A bug, not the wiki: still reported on the screen rather than failing the whole run silently.
                     Log.e(TAG, "Sync of $year failed", e)
-                    YearResult(year, error = "Sinkron gagal (${e.message ?: e::class.simpleName}).")
+                    YearResult(year, error = container.texts(R.string.wiki_sync_failed, e.message ?: e::class.simpleName.orEmpty()))
                 }
             }
 

@@ -33,6 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,7 @@ import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.dex.DexRepository
 import io.github.caropeboka.diecasttracker.data.dex.LinkAction
 import io.github.caropeboka.diecasttracker.data.dex.ReviewItem
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
@@ -65,17 +68,17 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** Diecasts to check against the Dex (web: `DexController::matches`). */
-class DexMatchesViewModel(private val dex: DexRepository, private val messages: Messages) : ViewModel() {
+class DexMatchesViewModel(private val dex: DexRepository, private val messages: Messages, private val texts: Texts) : ViewModel() {
     /** Null while loading; with how many there are in all (the list shows the first [DexRepository.REVIEW_LIMIT]). */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val items: StateFlow<Pair<List<ReviewItem>, Int>?> = combine(dex.observeReview(), dex.observeReviewCount(), ::Pair)
         .mapLatest { (rows, total) -> rows.map { dex.review(it) } to total }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    fun act(diecastId: Long, action: LinkAction, itemId: Long? = null, fixYear: Boolean = false, message: String) {
+    fun act(diecastId: Long, action: LinkAction, itemId: Long? = null, fixYear: Boolean = false, message: (Texts) -> String) {
         viewModelScope.launch {
             dex.link(diecastId, action, itemId, fixYear)
-            messages.show(message)
+            messages.show(message(texts))
         }
     }
 
@@ -83,7 +86,7 @@ class DexMatchesViewModel(private val dex: DexRepository, private val messages: 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                DexMatchesViewModel(app.container.dex, app.container.messages)
+                DexMatchesViewModel(app.container.dex, app.container.messages, app.container.texts)
             }
         }
     }
@@ -102,9 +105,9 @@ fun DexMatchesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Heading("Cocokkan Dex") },
+                title = { Heading(stringResource(R.string.dex_matches_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Kembali") }
+                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back)) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
@@ -123,7 +126,7 @@ fun DexMatchesScreen(
         ) {
             item {
                 Text(
-                    "Cek entri Dex untuk setiap diecast. Yang dicocokkan otomatis cukup dikonfirmasi; tahun yang keliru bisa langsung diperbaiki.",
+                    stringResource(R.string.dex_matches_intro),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Garage.MutedForeground,
                 )
@@ -132,7 +135,7 @@ fun DexMatchesScreen(
                 item {
                     Column(Modifier.fillMaxWidth().padding(vertical = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(painterResource(R.drawable.ic_check_circle), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(40.dp))
-                        SubHeading("Semua sudah dicek")
+                        SubHeading(stringResource(R.string.dex_matches_done))
                     }
                 }
             }
@@ -142,7 +145,7 @@ fun DexMatchesScreen(
             if (total > items.size) {
                 item {
                     Text(
-                        "${total - items.size} diecast berikutnya muncul setelah yang di atas selesai dicek.",
+                        pluralStringResource(R.plurals.dex_matches_more, total - items.size, total - items.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                         textAlign = TextAlign.Center,
@@ -170,8 +173,8 @@ private fun ReviewCard(item: ReviewItem, viewModel: DexMatchesViewModel, onOpenD
                 Text(diecast.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 Text(listOfNotNull(diecast.brand, diecast.series).joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                 Text(
-                    (listOfNotNull(diecast.collectionNumber, diecast.year?.toString()).joinToString(" · ").ifEmpty { "Tanpa nomor" }) +
-                        " · " + diecast.status.label,
+                    (listOfNotNull(diecast.collectionNumber, diecast.year?.toString()).joinToString(" · ").ifEmpty { stringResource(R.string.dex_no_number) }) +
+                        " · " + stringResource(diecast.status.label),
                     style = MaterialTheme.typography.bodySmall,
                     color = Garage.MutedForeground,
                 )
@@ -182,60 +185,60 @@ private fun ReviewCard(item: ReviewItem, viewModel: DexMatchesViewModel, onOpenD
             linked != null && item.link.match == CatalogMatch.Auto -> {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(painterResource(R.drawable.ic_auto_fix_high), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(16.dp))
-                    Text("Dicocokkan otomatis", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                    Text(stringResource(R.string.dex_matched_auto), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                 }
                 DexEntryCard(linked) { onOpenCatalog(linked.row.item.catalogId) }
                 val fix = linked.yearFix
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (fix != null) {
                         Button(
-                            onClick = { viewModel.act(id, LinkAction.Confirm, fixYear = true, message = "Benar, tahun diubah ke $fix.") },
+                            onClick = { viewModel.act(id, LinkAction.Confirm, fixYear = true, message = { it(R.string.dex_msg_year_fixed, fix) }) },
                             shape = MaterialTheme.shapes.medium,
-                        ) { IconLabel(R.drawable.ic_check, "Benar & ubah tahun ke $fix") }
+                        ) { IconLabel(R.drawable.ic_check, stringResource(R.string.dex_correct_fix_year, fix)) }
                         OutlinedButton(
-                            onClick = { viewModel.act(id, LinkAction.Confirm, message = "Dikonfirmasi.") },
+                            onClick = { viewModel.act(id, LinkAction.Confirm, message = { it(R.string.dex_msg_confirmed) }) },
                             shape = MaterialTheme.shapes.medium,
-                        ) { Text("Benar, tahun tetap") }
+                        ) { Text(stringResource(R.string.dex_correct_keep_year)) }
                     } else {
                         Button(
-                            onClick = { viewModel.act(id, LinkAction.Confirm, message = "Dikonfirmasi.") },
+                            onClick = { viewModel.act(id, LinkAction.Confirm, message = { it(R.string.dex_msg_confirmed) }) },
                             shape = MaterialTheme.shapes.medium,
-                        ) { IconLabel(R.drawable.ic_check, "Benar") }
+                        ) { IconLabel(R.drawable.ic_check, stringResource(R.string.dex_correct)) }
                     }
-                    TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = "Dilepas dari Dex.") }) {
-                        IconLabel(R.drawable.ic_block, "Bukan ini")
+                    TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = { it(R.string.dex_msg_unlinked) }) }) {
+                        IconLabel(R.drawable.ic_block, stringResource(R.string.dex_not_this))
                     }
                 }
                 if (fix != null) {
                     Text(
-                        "Di koleksi tercatat ${diecast.year ?: "tanpa tahun"}, tapi rilis ini dari $fix. Tahun di kartu biasanya tahun hak cipta model, bukan tahun rilis.",
+                        stringResource(R.string.dex_year_mismatch, diecast.year?.toString() ?: stringResource(R.string.dex_no_year), fix),
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                     )
                 }
             }
             item.link.suggestions.isNotEmpty() -> {
-                Text("Mungkin salah satu ini:", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                Text(stringResource(R.string.dex_maybe), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                 item.link.suggestions.forEach { suggestion ->
                     DexEntryCard(suggestion) { onOpenCatalog(suggestion.row.item.catalogId) }
                     Button(
                         onClick = {
                             viewModel.act(
                                 id, LinkAction.Link, suggestion.row.item.id, fixYear = suggestion.yearFix != null,
-                                message = suggestion.yearFix?.let { "Ditautkan, tahun diubah ke $it." } ?: "Ditautkan.",
+                                message = { texts -> suggestion.yearFix?.let { texts(R.string.dex_msg_linked_year, it) } ?: texts(R.string.dex_msg_linked) },
                             )
                         },
                         shape = MaterialTheme.shapes.medium,
-                    ) { IconLabel(R.drawable.ic_check, suggestion.yearFix?.let { "Ini dia (tahun $it)" } ?: "Ini dia") }
+                    ) { IconLabel(R.drawable.ic_check, suggestion.yearFix?.let { stringResource(R.string.dex_this_is_it_year, it) } ?: stringResource(R.string.dex_this_is_it)) }
                 }
-                TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = "Ditandai tidak ada di Dex.") }) {
-                    IconLabel(R.drawable.ic_block, "Tidak ada di sini")
+                TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = { it(R.string.dex_marked_absent) }) }) {
+                    IconLabel(R.drawable.ic_block, stringResource(R.string.dex_not_here))
                 }
             }
             else -> Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Tidak ditemukan di Dex yang sudah disinkron.", style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, modifier = Modifier.weight(1f))
-                TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = "Ditandai tidak ada di Dex.") }) {
-                    IconLabel(R.drawable.ic_block, "Lewati")
+                Text(stringResource(R.string.dex_not_found_synced), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, modifier = Modifier.weight(1f))
+                TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = { it(R.string.dex_marked_absent) }) }) {
+                    IconLabel(R.drawable.ic_block, stringResource(R.string.skip))
                 }
             }
         }

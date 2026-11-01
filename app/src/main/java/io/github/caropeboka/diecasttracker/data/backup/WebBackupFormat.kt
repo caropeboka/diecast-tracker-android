@@ -1,5 +1,7 @@
 package io.github.caropeboka.diecasttracker.data.backup
 
+import androidx.annotation.StringRes
+import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.CatalogMatch
 import io.github.caropeboka.diecasttracker.data.Condition
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
@@ -15,6 +17,7 @@ import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
 import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
@@ -58,7 +61,7 @@ class BackupException(message: String) : Exception(message)
 object WebBackupFormat {
     const val FORMAT = "diecast-tracker-backup"
     const val MANIFEST = "diecasts.json"
-    const val NOT_A_BACKUP = "Ini bukan file backup Diecast Tracker."
+    @StringRes val NOT_A_BACKUP = R.string.backup_not_a_backup
     const val MAX_PHOTO_BYTES = 15L * 1024 * 1024
 
     private val PRETTY = Json { prettyPrint = true }
@@ -235,12 +238,12 @@ object WebBackupFormat {
     /** [entity] has no diecast yet; [photo] is a zip entry name. */
     data class Sighting(val entity: SightingEntity, val photo: String?)
 
-    fun parseManifest(text: String): Manifest {
+    fun parseManifest(text: String, texts: Texts): Manifest {
         val root = runCatching { Json.parseToJsonElement(text) }.getOrNull() as? JsonObject
         val records = root?.get("diecasts") as? JsonArray
 
         if ((root?.get("format") as? JsonPrimitive)?.contentOrNull != FORMAT || records == null) {
-            throw BackupException(NOT_A_BACKUP)
+            throw BackupException(texts(NOT_A_BACKUP))
         }
 
         val exportedOn = (root["exported_at"] as? JsonPrimitive)?.contentOrNull?.let {
@@ -255,35 +258,35 @@ object WebBackupFormat {
     }
 
     /** [index] is zero-based; messages count from one like the web app. */
-    fun parseRecord(index: Int, element: JsonElement, today: LocalDate): Record {
-        val fields = Fields(element as? JsonObject ?: JsonObject(emptyMap()))
+    fun parseRecord(index: Int, element: JsonElement, today: LocalDate, texts: Texts): Record {
+        val fields = Fields(element as? JsonObject ?: JsonObject(emptyMap()), texts)
 
-        val name = fields.text("name", "Nama", 255, required = true)
+        val name = fields.text("name", R.string.field_name, 255, required = true)
         val diecast = DiecastEntity(
             name = name.orEmpty(),
-            brand = fields.text("brand", "Merek", 100),
-            make = fields.text("make", "Pabrikan", 100),
-            series = fields.text("series", "Seri", 255),
-            collectionNumber = fields.text("collection_number", "Nomor koleksi", 100),
-            year = fields.integer("year", "Tahun", MIN_YEAR, today.year + 1),
-            scale = fields.text("scale", "Skala", 20),
-            color = fields.text("color", "Warna", 100),
-            rarity = fields.choice("rarity", "Kelangkaan", Rarity::fromKey, required = true) ?: Rarity.Regular,
-            packaging = fields.choice("packaging", "Kemasan", Packaging::fromKey, required = true) ?: Packaging.Carded,
-            condition = fields.choice("condition", "Kondisi", Condition::fromKey),
-            status = fields.choice("status", "Status", DiecastStatus::fromKey, required = true) ?: DiecastStatus.Owned,
-            quantity = fields.integer("quantity", "Jumlah", 1, 9999, required = true) ?: 1,
-            purchasePrice = fields.money("purchase_price", "Harga beli"),
-            marketValue = fields.money("market_value", "Harga pasaran"),
-            targetPrice = fields.money("target_price", "Target harga"),
-            purchaseDate = fields.date("purchase_date", "Tanggal beli"),
-            purchasePlace = fields.text("purchase_place", "Tempat beli", 255),
-            storageLocation = fields.text("storage_location", "Lokasi simpan", 255),
-            notes = fields.text("notes", "Catatan", 5000),
-            aiScanned = fields.boolean("ai_scanned", "ai_scanned"),
+            brand = fields.text("brand", R.string.field_brand, 100),
+            make = fields.text("make", R.string.field_make, 100),
+            series = fields.text("series", R.string.field_series, 255),
+            collectionNumber = fields.text("collection_number", R.string.field_collection_number, 100),
+            year = fields.integer("year", R.string.field_year, MIN_YEAR, today.year + 1),
+            scale = fields.text("scale", R.string.field_scale, 20),
+            color = fields.text("color", R.string.field_color, 100),
+            rarity = fields.choice("rarity", R.string.field_rarity, Rarity::fromKey, required = true) ?: Rarity.Regular,
+            packaging = fields.choice("packaging", R.string.field_packaging, Packaging::fromKey, required = true) ?: Packaging.Carded,
+            condition = fields.choice("condition", R.string.field_condition, Condition::fromKey),
+            status = fields.choice("status", R.string.field_status, DiecastStatus::fromKey, required = true) ?: DiecastStatus.Owned,
+            quantity = fields.integer("quantity", R.string.field_quantity, 1, 9999, required = true) ?: 1,
+            purchasePrice = fields.money("purchase_price", R.string.field_purchase_price),
+            marketValue = fields.money("market_value", R.string.field_market_value),
+            targetPrice = fields.money("target_price", R.string.field_target_price),
+            purchaseDate = fields.date("purchase_date", R.string.field_purchase_date),
+            purchasePlace = fields.text("purchase_place", R.string.field_purchase_place, 255),
+            storageLocation = fields.text("storage_location", R.string.field_storage_location, 255),
+            notes = fields.text("notes", R.string.field_notes, 5000),
+            aiScanned = fields.boolean("ai_scanned", R.string.field_ai_scanned),
             catalogMatch = fields.extra("dex_match")?.let(CatalogMatch::fromKey),
         ).let { record ->
-            val (latitude, longitude) = fields.coordinates("purchase_latitude", "purchase_longitude", "Koordinat tempat beli")
+            val (latitude, longitude) = fields.coordinates("purchase_latitude", "purchase_longitude", R.string.field_purchase_coordinates)
             val valued = record.marketValue != null
             record.copy(
                 purchaseLatitude = latitude,
@@ -294,13 +297,13 @@ object WebBackupFormat {
         }
         val tags = fields.tags()
 
-        fields.error?.let { return Record.Invalid("Item ${index + 1} (${name ?: "?"}): $it") }
+        fields.error?.let { return Record.Invalid(texts(R.string.backup_item_invalid, index + 1, name ?: "?", it)) }
 
         val photos = (fields.json["photos"] as? JsonArray).orEmpty()
             .mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
 
         val sightings = (fields.json["sightings"] as? JsonArray).orEmpty()
-            .mapNotNull { parseSighting(it, today) }
+            .mapNotNull { parseSighting(it, today, texts) }
 
         return Record.Valid(
             diecast,
@@ -316,19 +319,19 @@ object WebBackupFormat {
     }
 
     /** Invalid sightings are left out, like the web's restore does. */
-    private fun parseSighting(element: JsonElement, today: LocalDate): Sighting? {
-        val fields = Fields(element as? JsonObject ?: return null)
+    private fun parseSighting(element: JsonElement, today: LocalDate, texts: Texts): Sighting? {
+        val fields = Fields(element as? JsonObject ?: return null, texts)
 
-        val seenOn = fields.date("seen_on", "Tanggal", required = true, notAfter = today)
-        val (latitude, longitude) = fields.coordinates("latitude", "longitude", "Koordinat")
+        val seenOn = fields.date("seen_on", R.string.field_date, required = true, notAfter = today)
+        val (latitude, longitude) = fields.coordinates("latitude", "longitude", R.string.field_coordinates)
         val entity = SightingEntity(
             diecastId = 0,
-            place = fields.text("place", "Tempat", 255),
+            place = fields.text("place", R.string.field_place, 255),
             latitude = latitude,
             longitude = longitude,
             seenOn = seenOn ?: today,
-            price = fields.money("price", "Harga"),
-            notes = fields.text("notes", "Catatan", 500),
+            price = fields.money("price", R.string.field_price),
+            notes = fields.text("notes", R.string.field_notes, 500),
             createdAt = fields.extra("created_at")?.let(::parseTimestamp) ?: 0,
         )
 
@@ -338,7 +341,7 @@ object WebBackupFormat {
     }
 
     /** Reads typed values out of one JSON object and keeps the first validation error. */
-    private class Fields(val json: JsonObject) {
+    private class Fields(val json: JsonObject, private val texts: Texts) {
         var error: String? = null
             private set
 
@@ -347,11 +350,11 @@ object WebBackupFormat {
         }
 
         /** The value as text, or null when missing, null or blank. Objects/arrays/booleans are an error. */
-        private fun raw(key: String, label: String): String? {
+        private fun raw(key: String, @StringRes label: Int): String? {
             val value = json[key]
             if (value == null || value is JsonNull) return null
             if (value !is JsonPrimitive || (!value.isString && value.content in setOf("true", "false"))) {
-                fail("$label tidak valid.")
+                fail(texts(R.string.valid_invalid, texts(label)))
                 return null
             }
             return value.content.trim().ifEmpty { null }
@@ -360,48 +363,48 @@ object WebBackupFormat {
         /** A key only phone backups have: a value that doesn't fit is left out instead of failing the record. */
         fun extra(key: String): String? = (json[key] as? JsonPrimitive)?.contentOrNull?.trim()?.ifEmpty { null }
 
-        fun text(key: String, label: String, max: Int, required: Boolean = false): String? {
+        fun text(key: String, @StringRes label: Int, max: Int, required: Boolean = false): String? {
             val value = raw(key, label)
             when {
-                value == null -> if (required) fail("$label wajib diisi.")
-                value.length > max -> fail("$label maksimal $max karakter.")
+                value == null -> if (required) fail(texts(R.string.valid_required, texts(label)))
+                value.length > max -> fail(texts(R.string.valid_max_chars, texts(label), max))
                 else -> return value
             }
             return null
         }
 
-        fun integer(key: String, label: String, min: Int, max: Int, required: Boolean = false): Int? {
+        fun integer(key: String, @StringRes label: Int, min: Int, max: Int, required: Boolean = false): Int? {
             val value = raw(key, label)
             if (value == null) {
-                if (required) fail("$label wajib diisi.")
+                if (required) fail(texts(R.string.valid_required, texts(label)))
                 return null
             }
             val number = value.toIntOrNull()
             when {
-                number == null -> fail("$label harus bilangan bulat.")
-                number < min || number > max -> fail("$label harus antara $min dan $max.")
+                number == null -> fail(texts(R.string.valid_integer, texts(label)))
+                number < min || number > max -> fail(texts(R.string.valid_between, texts(label), min.toString(), max.toString()))
                 else -> return number
             }
             return null
         }
 
         /** Rupiah, rounded to whole numbers ("35000.00" → 35000). */
-        fun money(key: String, label: String): Long? {
+        fun money(key: String, @StringRes label: Int): Long? {
             val value = raw(key, label) ?: return null
             val number = value.toBigDecimalOrNull()
             when {
-                number == null -> fail("$label harus berupa angka.")
+                number == null -> fail(texts(R.string.valid_number, texts(label)))
                 number < BigDecimal.ZERO || number > BigDecimal.valueOf(MAX_MONEY) ->
-                    fail("$label harus antara 0 dan ${groupThousands(MAX_MONEY)}.")
+                    fail(texts(R.string.valid_between, texts(label), "0", groupThousands(MAX_MONEY)))
                 else -> return number.setScale(0, RoundingMode.HALF_UP).toLong()
             }
             return null
         }
 
-        fun date(key: String, label: String, required: Boolean = false, notAfter: LocalDate? = null): LocalDate? {
+        fun date(key: String, @StringRes label: Int, required: Boolean = false, notAfter: LocalDate? = null): LocalDate? {
             val value = raw(key, label)
             if (value == null) {
-                if (required) fail("$label wajib diisi.")
+                if (required) fail(texts(R.string.valid_required, texts(label)))
                 return null
             }
             val date = DATE.matchAt(value, 0)?.let {
@@ -412,41 +415,41 @@ object WebBackupFormat {
                 }
             }
             when {
-                date == null -> fail("$label bukan tanggal yang valid.")
-                notAfter != null && date > notAfter -> fail("$label tidak boleh setelah hari ini.")
+                date == null -> fail(texts(R.string.valid_date, texts(label)))
+                notAfter != null && date > notAfter -> fail(texts(R.string.valid_not_future, texts(label)))
                 else -> return date
             }
             return null
         }
 
-        fun <T> choice(key: String, label: String, parse: (String) -> T?, required: Boolean = false): T? {
+        fun <T> choice(key: String, @StringRes label: Int, parse: (String) -> T?, required: Boolean = false): T? {
             val value = raw(key, label)
             if (value == null) {
-                if (required) fail("$label wajib diisi.")
+                if (required) fail(texts(R.string.valid_required, texts(label)))
                 return null
             }
-            return parse(value) ?: null.also { fail("$label tidak dikenal: \"$value\".") }
+            return parse(value) ?: null.also { fail(texts(R.string.valid_unknown, texts(label), value)) }
         }
 
-        fun boolean(key: String, label: String): Boolean {
+        fun boolean(key: String, @StringRes label: Int): Boolean {
             val value = json[key]
             if (value == null || value is JsonNull) return false
             return when ((value as? JsonPrimitive)?.content) {
                 "true", "1" -> true
                 "false", "0" -> false
-                else -> false.also { fail("$label harus true atau false.") }
+                else -> false.also { fail(texts(R.string.valid_boolean, texts(label))) }
             }
         }
 
         /** Both or neither, within range. */
-        fun coordinates(latitudeKey: String, longitudeKey: String, label: String): Pair<Double?, Double?> {
+        fun coordinates(latitudeKey: String, longitudeKey: String, @StringRes label: Int): Pair<Double?, Double?> {
             val latitude = raw(latitudeKey, label)?.let { it.toDoubleOrNull() ?: Double.NaN }
             val longitude = raw(longitudeKey, label)?.let { it.toDoubleOrNull() ?: Double.NaN }
             when {
                 latitude == null && longitude == null -> {}
-                latitude == null || longitude == null -> fail("$label tidak lengkap.")
-                latitude.isNaN() || longitude.isNaN() -> fail("$label harus berupa angka.")
-                latitude !in -90.0..90.0 || longitude !in -180.0..180.0 -> fail("$label di luar jangkauan.")
+                latitude == null || longitude == null -> fail(texts(R.string.valid_incomplete, texts(label)))
+                latitude.isNaN() || longitude.isNaN() -> fail(texts(R.string.valid_number, texts(label)))
+                latitude !in -90.0..90.0 || longitude !in -180.0..180.0 -> fail(texts(R.string.valid_out_of_range, texts(label)))
                 else -> return latitude to longitude
             }
             return null to null
@@ -456,16 +459,16 @@ object WebBackupFormat {
             val value = json["tags"]
             if (value == null || value is JsonNull) return emptyList()
             if (value !is JsonArray) {
-                fail("Tag harus berupa daftar.")
+                fail(texts(R.string.valid_tags_list))
                 return emptyList()
             }
-            if (value.size > MAX_TAGS) fail("Tag maksimal $MAX_TAGS.")
+            if (value.size > MAX_TAGS) fail(texts(R.string.valid_tags_max, MAX_TAGS))
 
             return value.mapNotNull { tag ->
                 val name = (tag as? JsonPrimitive)?.takeIf { it.isString }?.content
                 when {
-                    name == null -> null.also { fail("Tag harus berupa teks.") }
-                    name.length > MAX_TAG_LENGTH -> null.also { fail("Tag maksimal $MAX_TAG_LENGTH karakter.") }
+                    name == null -> null.also { fail(texts(R.string.valid_tags_text)) }
+                    name.length > MAX_TAG_LENGTH -> null.also { fail(texts(R.string.valid_tag_length, MAX_TAG_LENGTH)) }
                     else -> name
                 }
             }
