@@ -8,14 +8,30 @@ behaviour and logic**. It keeps working on the laptop until the Android app catc
 rather than re-inventing; its feature tests (`tests/Feature/*`) describe the expected behaviour and contain
 real-world fixtures.
 
-## Status (2026-10-22)
+## Status (2026-11-01)
 
-Phases 1–4 and 5a–5d are committed and pushed to `github.com/caropeboka/diecast-tracker-android` (`main`). Phase 5
-order, agreed with the user: 5a backup/export → 5b dashboard → 5c market value from screenshots → 5d bulk scan →
-**5e in-store check**. **5e is done**, version 0.5.4, tried on the emulator; not yet committed (the user runs all git
-commands themselves; give them the commands and the commit messages). With it, every planned phase is delivered. Next:
-discuss with the user (e.g. installing on the phone, Claude as a second AI provider). Covered by tests only, as there
-is no real Gemini key on the emulator: the scan's Dex suggestion, the checklist screenshots read by the AI (including
+Every planned phase (1–4, 5a–5e) is committed and pushed to `github.com/caropeboka/diecast-tracker-android`
+(`main`) as version 0.5.4. Phase 5 order, agreed with the user: 5a backup/export → 5b dashboard → 5c market value from
+screenshots → 5d bulk scan → 5e in-store check. The user runs all git commands themselves; give them the commands and
+the commit messages.
+
+**On the phone since 2026-10-31:** release build signed with the user's own key, installed with `adb install` over
+USB, the web's backup restored (5 diecasts with photos), a real Gemini key set; the first real scan (a blister card)
+read every field right. The user's feedback from the phone became 0.6.0–0.6.7 (see "After the phases"): AI progress
+as a log of steps, photos first and the AI on request, the centre button and a new bottom bar, "Foto studio", a new
+launcher icon, screen transitions. Then the **3D garage** (see "3D garage"): G0 (0.6.7–0.6.8) and G1 free placement
+(**0.7.0**, Room v7), then 0.7.1 (a map-like camera) and 0.7.2 (diecasts move instead of jumping, the garage and
+the dashboard's diecasts grow into their pages, the ＋ menu as a FAB menu) and 0.7.3 (every screen opened by a tap
+grows out of what was tapped, a new "Cek di toko" page, decorations on the black shelf: Room v8; on the phone with the
+two figures placed). **0.8.0**: more free AI providers besides Gemini with automatic switching (see "AI providers");
+covered by tests, not yet tried with real Groq/Mistral/OpenRouter keys. The phone got 0.7.0
+and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57); the work since 0.5.4 is
+not committed yet. Next: the user adds the other providers' keys and tries a scan with Gemini's quota used up (or
+Gemini switched off); the user tries the garage on the phone (placing,
+smoothness, "Hemat" not crashing, pulling a diecast out, tap accuracy); then G2 (realism: materials, shadows, room,
+"where is diecast X?") and G3 (shelf settings), and maybe the Garasi tab opening the 3D garage with the dashboard
+behind a "Statistik" button (planned, not done: the garage opens from "Rak 3D" on the dashboard). Covered by tests
+only before the phone: the scan's Dex suggestion, the checklist screenshots read by the AI (including
 its review sheet), a price check's successful reading, a bulk scan photo the AI read successfully (its review card,
 "Simpan" and "Simpan semua"), and a store check photo the AI read successfully (its verdict and matches; logging it
 with the check's photo). The verdict cards, +1, "Dapat", "Catat temuan", the typed search, the camera, a failed check
@@ -25,10 +41,9 @@ Phase 1 delivered: collection grid/list (search incl. tags, filters status/brand
 sort remembered in DataStore), add/edit/delete with up to 8 photos (camera via FileProvider + photo picker, first =
 cover), tags, the four statuses, read-only sightings list, web backup import (merge/replace, one transaction).
 
-Phase 2 delivered: AI scan with **Gemini only** (the user's choice; Claude can be added later). The collection's
-Scan button opens the camera straight away (`DiecastEditRoute(scan = true)`; without a key it leads to the AI settings);
-the first photo(s) of a new diecast are scanned automatically; "Isi otomatis / Baca ulang dengan AI" reads up to 4
-photos. AI-filled fields get ✦ and a brand border until edited; confidence note; duplicate warning like the web
+Phase 2 delivered: AI scan with **Gemini only** (the user's choice; Claude can be added later). The Scan button
+opens the camera straight away (`DiecastEditRoute(scan = true)`; without a key it leads to the AI settings); since
+0.6.0 the AI reads only on "Pindai dengan AI" (up to 4 photos), see "After the phases". AI-filled fields get ✦ and a brand border until edited; confidence note; duplicate warning like the web
 (tap opens the existing diecast). AI settings screen: key shown as `••••1234`, test key → live model list, remove key.
 The success path was verified with tests only — the emulator run used a fake key (error path).
 
@@ -83,10 +98,11 @@ brand, number, series, rarity, price), Simpan / Lengkap (the full form, prefille
 Isi manual; shared fields (save as Dimiliki/Wishlist/Ditemui, date, place with the map, storage, tags); "Simpan semua
 yang yakin". Room schema v5 (`scan_items`, with migration).
 
-Phase 5e delivered: "Cek di toko" — from the launcher shortcut (long-press the app icon), a "Cek" button above
-Tambah/Scan in Koleksi, or the ⋮ menu; the camera opens straight away when the AI is on. The AI reads the photo at once
+Phase 5e delivered: "Cek di toko" — from the launcher shortcut (long-press the app icon), the bottom bar's centre
+button (a "Cek" button in Koleksi before 0.6.0), or the ⋮ menu; the camera opens straight away when the AI is on. The AI reads the photo at once
 and the collection is searched: Sudah punya / Ada di wishlist / Pernah kamu temui / Belum punya / Tidak terbaca (with
-"Coba lagi"), each with its icon and colour, the store field (map picker), and the last 10 checks (older ones dimmed).
+"Coba lagi"), each with its icon and colour, the store field (map picker), and the last 10 checks (older ones folded
+since 0.7.3, see "After the phases").
 Matches get +1 (owned) or "Dapat" (wishlist/spotted → owned today, "Beli di" = this store) and 👁 "Catat temuan" with
 "Harga di rak"; a new one can be logged as a "Ditemui" diecast (then "Jadi beli — Dapat"), added through the form
 ("Tambah ke koleksi" / "Tambah sebagai item terpisah", "Wishlist") with the photo and the reading. "Atau ketik namanya
@@ -97,15 +113,22 @@ Matches get +1 (owned) or "Dapat" (wishlist/spotted → owned today, "Beli di" =
 
 - Toolchain: Gradle 9.8.1 (wrapper), AGP 9.4.1 with built-in Kotlin, Kotlin 2.4.21, KSP 2.3.12, Compose BOM
   2026.09.00, Room 2.8.5, Coil 3, Navigation Compose 2.10 (type-safe routes), OkHttp 5.5, MapLibre Android 13.6.1,
-  Play Services Location 21.3, WorkManager 2.11. compileSdk 37, targetSdk 36, minSdk 29. Versions live in
-  `gradle/libs.versions.toml`.
+  Play Services Location 21.3, WorkManager 2.11, ML Kit subject segmentation 16.0.0-beta1 (Play services),
+  SceneView 4.57.0 (Filament). compileSdk 37, targetSdk 36, minSdk 29. Versions live in `gradle/libs.versions.toml`.
 - `./gradlew :app:testDebugUnitTest` — JVM + Robolectric tests (Room in memory, native graphics). The test JVM needs
   `--add-exports java.base/jdk.internal.access` on JBR 25; already set in `app/build.gradle.kts`.
-- `./gradlew :app:lintDebug`, `:app:assembleDebug`, `:app:assembleRelease` (R8, ~17 MB). MapLibre's native code is
+- `./gradlew :app:lintDebug`, `:app:assembleDebug`, `:app:assembleRelease` (R8, ~30 MB; Filament added ~10 MB). MapLibre's native code is
   ~13 MB per ABI: release ships **arm64 only** (the phone), debug adds x86_64 for the emulator — so test a release
   build on the emulator only by temporarily adding x86_64 to `abiFilters`. Release is signed with
   `signing.properties` (git-ignored) if present, otherwise with this laptop's debug key
   (`~/.android/debug.keystore`) — changing the key later means uninstalling the app on the phone (data loss).
+  The phone's app is signed with the user's own key: `C:/Users/user/keystores/diecast-tracker.jks` (PKCS12, alias
+  `diecast-tracker`, RSA 4096, until 2126; password only in `signing.properties`; the user keeps a backup of both).
+  Never build a release for the phone without `signing.properties`, and never replace the keystore.
+- Updating the phone: bump `versionCode`/`versionName`, `:app:assembleRelease`, then
+  `adb install -r app/build/outputs/apk/release/app-release.apk` (keeps the data). Use `adb`, not a copied APK: since
+  2026-09-30 certified devices in Indonesia only install apps from verified developers, and `adb` is exempt (a copied
+  APK would need Android's "advanced flow": developer options, a restart, a 24-hour wait).
 - Room schemas are exported to `app/schemas`; every schema change needs a real migration (no destructive fallback).
 - Test fixture `app/src/test/resources/web-backup-v1.zip` is made by the web app's own `CollectionBackup`:
   `php -d extension=zip tools/make-web-backup-fixture.php` (in-memory SQLite, does not touch the web's data).
@@ -269,27 +292,238 @@ Matches get +1 (owned) or "Dapat" (wishlist/spotted → owned today, "Beli di" =
   the request (only without saved state) through a channel that `DiecastTrackerRoot` turns into `CheckRoute`.
 - Android unit test names (backticks) can't contain `:` — use a dash. `StoreCheckTest` ports the web's check tests.
 
+## After the phases (0.6.0–0.7.3, from the user's feedback on the phone)
+
+- **AI progress as a log of steps** (the user: a spinner alone doesn't say whether it's stuck; like Claude Code's
+  activity line). `GeminiClient.extract(…, onEvent)` reports `AiEvent`s: `ListingModels` (fallback list not cached),
+  `Sending` (model, bytes, fallback index), `Uploading` (the body is a `ProgressBody` written and flushed in 32 KB
+  pieces), `Waiting` (all sent), `Missed` (model + short Indonesian reason; `retrying` for the chosen model's quick
+  retry), `Answered`. Events also come from OkHttp's threads. `ui/components/AiProgressLog` turns them into
+  `AiProgress` steps in a `MutableStateFlow` (✓ done, ⚠ missed, the running one with its seconds and, while
+  uploading, a real fraction) and `AiProgressView` shows the last 5 with a bar and a hint ("Biasanya 10–30 detik.").
+  Callers add their own steps before and after ("Menyiapkan 2 foto", "Mencocokkan dengan koleksi"). Used by the form's
+  scan (on the photo), the price check, the store check (and its retry) and the AI checklist; the bulk scan runs in
+  the background and keeps its card text.
+- **Photos first, the AI on request** (the user: shoot every side, then scan, for more to go on). A new diecast's
+  camera reopens after each shot until Back or 8 photos (`onCameraResult`, like the bulk scan); nothing is read
+  automatically any more. The form shows `ShotGuide` (Blister / Box / Loose chips that set the packaging field, and the
+  sides ticked off by photo count: depan + belakang, or depan, samping, atas, bawah) and a big "Pindai dengan AI (n
+  foto)" (only the first 4 are sent: `MAX_SCAN_PHOTOS`); after a scan it is "Pindai ulang dengan AI".
+- **One centre button in the bottom bar** (Koleksi · Garasi · ＋ · Peta · Dex, the user's idea): Cek di toko, Isi
+  manual, Scan dengan AI (last, nearest the thumb). The Koleksi FABs are gone. `CreateActions` comes from
+  `DiecastTrackerRoot` through `LocalCreateActions`, so every tab's `MainNavigationBar` has it. Since 0.7.2 a FAB menu
+  instead of a bottom sheet (the user found the sheet clumsy and chose Material's FAB menu): `CreateMenuOverlay`
+  is drawn by the root over every screen and its bar; the button reports its centre (`CreateMenu.anchor`, root
+  coordinates), the screen dims, a brand × (the ＋ turned 45°) sits on the button, three pills of one width rise
+  above it, staggered, Scan dengan AI nearest. Back, the scrim or × close it; a choice counts once (`menu.open` is
+  checked), which replaced the bar's `dropUnlessResumed`.
+- Release builds: lint and R8 once failed together while memory was short; running the build again passed.
+- **Foto studio** (0.6.1–0.6.4; the user showed a clean studio shot of a card as the goal). On the form's big photo:
+  the photo shown becomes a new cover on white at 4:5 (the original stays; with 8 photos it asks to delete one
+  first), all on the phone (`data/studio`). Loose: ML Kit subject segmentation (`MlKitCutter`, model fetched once by
+  Play services, also ahead through the manifest's `com.google.mlkit.vision.DEPENDENCIES`) and `StudioComposer`
+  (edges firmed, specks dropped, never enlarged, no rotation so wheels don't float). Carded/Box open `CardCropDialog`
+  (`ui/edit/CardCrop.kt`) instead, as the segmenter takes a card's printed picture for the subject: step 1 drag four
+  corners (a guess from `guessCorners`, a loupe under the finger), step 2 `CardCutout` squares it up, rounds a card's
+  corners (boxes stay sharp), finds the hang hole itself, and taps erase or restore background (Urungkan; it refuses a
+  tap that would spread over the card's print). "Mobil loose? Potong otomatis" switches to the segmenter. Progress
+  goes through `AiProgressLog` ("Diproses di HP"). Studio copies are listed in the form's saved state
+  (`studioPhotos`): they don't tick off a side in `ShotGuide`, and the AI gets the real sides first. The AI choice
+  (generative "Nano Banana" editing) was left out: it may redraw printed details. **R8 gotcha:** ML Kit makes its
+  `ComponentRegistrar`s by reflection; full mode dropped their constructors (release only: "Attempt to read from
+  field …"), hence the keep rule in `proguard-rules.pro`. `StudioPhotoTest` covers the composer and cutout.
+- **Bottom bar like myBCA's** (0.6.5, the user's screenshot): dark bar with rounded top corners and a thin border, a
+  big orange ＋ circle half above it in a bar-coloured ring ("Tambah" under it; the raised part is tappable too), the
+  active tab an orange icon and a bold white label, no pill. It covers a little of the content behind it, like myBCA.
+- **Launcher icon** (0.6.6): a five-spoke wheel on an orange gradient (`ic_launcher_background/foreground`), plus a
+  monochrome layer for themed icons. The "Cek di toko" shortcut icon is unchanged.
+- **Screen transitions** (0.6.6–0.6.7; the user: the old 0.7 s fades felt like a PowerPoint slideshow), in
+  `ui/ScreenTransitions.kt`: tabs cross-fade in place (220 ms, the bar stays put); deeper screens move like Android's
+  own (a tenth of the width with a quick fade, emphasized easing), back mirrors it; a diecast opened from Koleksi
+  grows out of its card and shrinks back (shared bounds: `sharedDiecastCard` / `sharedDiecastPage`, grid and list);
+  the back gesture scrubs a shrink and cancels if the finger slides back. The form's loading spinner shows only after
+  400 ms, so opening a diecast doesn't flash it. Since 0.7.2 (the user: from Garasi it was still "PPT basic") the
+  same from the dashboard (`CARDS` in `ScreenTransitions`): a diecast can show in several of its panels at once but
+  only one element per key may be on a screen, so `Opener` (`DashboardParts.kt`) remembers which one was tapped
+  (place + id, saveable) and only that one carries `sharedDiecastCard`. The 3D garage grows out of the dashboard's
+  "Rak 3D" pill (`sharedGarage`) and the diecast in hand into its page (see "3D garage"). Since 0.7.3 (the user:
+  Back from the ＋ menu's screens was still "PPT basic") **every screen opened by a tap grows out of what was tapped**
+  and shrinks back into it, a container transform (`ui/ScreenReveal.kt`): `noteTaps` on the root notes every finger
+  going down (Initial pass, nothing consumed); `revealSource()` marks an element with its colour and where to shrink
+  back to (the ＋ menu's pills shrink into the ＋ button, Koleksi's ⋮ into itself); `trackReveals`, a destination
+  listener (it runs inside `navigate()`, before the transition is chosen), links a pushed entry to the screen under it
+  when a tap came within 10 s — the marked element, else a 56 dp blob at the finger — in `Reveals.links`, dropped when
+  the entry is destroyed. `RevealedScreen` (around every `screen<…>` in `Navigation`) wraps the new screen in
+  `sharedBounds("reveal-<entry id>")`, the screen under it holds an invisible `StandIn` with the same key at the spot,
+  plus a 0.32 scrim; 380 ms (`CONTAINER`). Tabs and the card/garage transforms keep theirs; a screen opened without a
+  tap (the launcher shortcut) still slides. A pop lands on an entry that has been on top before (lint rejects
+  `currentBackStack`: a restricted API).
+- **Cek di toko, redesigned** (0.7.3; the user asked whether the page looked bad: it read like a form, the camera
+  wasn't under the thumb, the empty state was blank, rainbow cards stacked up, too many buttons of equal weight). The
+  store is a one-line bar ("Di toko mana? Ketuk untuk isi" opens the map field); before any check a big `CameraHero`;
+  after one, "Foto diecast lain" in a bottom bar (`CameraBar`). The newest check is a full `ResultCard` (a band and a
+  border in the verdict's colour from the theme: owned TH green, wishlist Exclusive pink, spotted Chase violet, new
+  brand orange, unreadable loss red; the photo; one main action as a full-width button, the others outlined); older
+  ones fold into a line (`FoldedResult`, tap to unfold; which are open is saveable).
+
+## AI providers (0.8.0)
+
+The user wanted more free AIs than Gemini, with an automatic switch when Gemini's free quota runs out. Researched
+(2026-11): Groq (free, fast, vision model `qwen/qwen3.8-27b`, 3 images, ~1K requests/day), Mistral (free "Experiment"
+plan, phone verification, data may be used for training; vision in Small/Medium/Large 3, Ministral 3), OpenRouter
+(free models: 50/day, 1000/day after a one-time $10; the `openrouter/free` router), NVIDIA NIM (trial) and Cloudflare
+Workers AI (10k neurons/day) through the custom slot; Cerebras was left out (no free tier since 2026-07, text only).
+The user chose Groq, Mistral, OpenRouter and a free "OpenAI-compatible" slot, switching on **quota, busy or timeout**
+(also on a refused key), never when the AI answered but couldn't read the photo.
+
+- `data/ai/AiVision` is what every caller uses (scanner, price check, checklist reader; the store check and the bulk
+  scan through the scanner): the providers ready to use (`AiSetup.chain`: switched on, model set, a key — the custom
+  one needs a URL instead) in the user's order; on any `AiException` the same request goes to the next one, with
+  `AiEvent.Switching`/`Provider` for the log. All failing: one provider rethrows its own error; several give
+  "Semua AI yang diatur gagal:" with every reason, as `AiOfflineException` only when all were offline, as
+  `AiRetryLaterException` when any only needs time (so the bulk scan waits), else a plain `AiException`.
+- **Rests:** an `AiRetryLaterException` carrying `restUntil` (quota) sets that provider aside (`ProviderRests`, stored
+  as `<id>_rest_until` in the `ai` DataStore): resting ones go last, not out (`AiEvent.Resting` in the log when
+  others are ready), and a success clears the rest. Gemini: every 429 body says "PerDay" → next midnight
+  America/Los_Angeles, else the longest `retryDelay`, else 60 s. OpenAI-style: `retry-after` (s), OpenRouter's
+  `x-ratelimit-reset` (epoch ms), Groq's "try again in 1m26.4s", "per day/daily/RPD" → next UTC midnight, else 60 s.
+- `OpenAiClient`: chat completions with the photos as `image_url` data URLs before the text, the JSON Schema in the
+  system prompt and `response_format: json_object` (asked again without it on a 400 that names `response_format`);
+  the answer's JSON is found past `<think>` blocks and code fences (`jsonObjectIn`). Per-provider limits in
+  `AiProvider` (Groq: `maxImages` 3, `maxRequestBytes` 4 MB with base64's third and 64 KB of prompt counted): extra
+  photos are left off the end (`AiEvent.Trimmed`). OpenRouter's in-200 `error` becomes its code; `X-Title` is sent.
+  Model lists for "Tes key": OpenRouter `openrouter/free` + ids ending `:free` with "image" in
+  `architecture.input_modalities`; Mistral `capabilities.vision`; the others everything but audio/guard/embedding.
+  `AiHttp.kt` holds what both clients share (`fetch`, `ProgressBody`, `withTimeout`).
+- Settings (`AiSettings`, the same `ai` DataStore, still out of cloud backup): `<id>_api_key`, `<id>_model`,
+  `<id>_on`, `provider_order`, `custom_base_url`, `custom_name`; Gemini keeps its old key names, so the saved key
+  stayed. The screen: one card per provider in order (number, status "Aktif · ••••1234" / "Belum diatur" /
+  "Dimatikan" / "Kuota habis sampai …", ↑/↓, tap to open: a note about its free tier, "Pakai …" switch, key, Tes key,
+  "Buat key di … ↗", model; the custom one also a name and a base URL with the NVIDIA and Cloudflare examples). A
+  provider that isn't used may stay half filled; one in use needs a model (and the custom one a valid URL).
+- Who read it: `ScanFields.readBy` (the label, only when it wasn't Gemini) shows in the form ("Field bertanda ✦ diisi
+  oleh Groq.") and as a pill on the bulk scan's cards. `AiProgressLog` names the provider in every step ("Mengirim
+  ke Groq …", "Pindah ke Groq", "Gemini dilewati dulu: kuotanya habis sampai besok 15.00").
+- Tests: `FakeGemini` also answers the OpenAI-style hosts (target = host + path, replies in turn, response headers,
+  `bearers`); `FakeGemini.vision()` builds the app's `AiVision` for the callers' tests. `AiVisionTest` covers the
+  switch, the rests, the request shape, the JSON-mode retry, the model lists and the custom server.
+
+## 3D garage (G0 0.6.7–0.6.8, G1 0.7.0)
+
+The user's real furniture from their photos, in 3D, with the owned diecasts on it: left the black carved corner shelf
+(they call it "laci hitam"; three quarter-round tiers), in the middle **two** laser-cut MDF blister boards (4 lanes
+each, ~12 cards per lane), right the white case (6 × 10 compartments). Opens from "Rak 3D" on the Garasi dashboard
+(`GarageRoute`). Stages agreed: G0 technical trial, G1 shelves + placement, G2 realism, G3 shelf settings.
+
+- Rendering: SceneView (Compose) on Filament; furniture built in code (`ui/garage/Meshes.kt`: lathe, extruded
+  outlines with holes, planes), no model files. `BlisterBoard.kt` (outline traced from the photo, scorched edges,
+  keyholes, T-rails with a groove, the logo), `CornerShelf.kt` (tiers, turned posts, carved galleries, crest),
+  `LooseCase.kt`. Diecasts are pictures: a card is its studio photo with the white cut away, a loose car its photo with
+  the backdrop flooded away (`GarageViewModel.cutOut`), a box a block in its border colour with the photo in front.
+  Sizes follow the scale (`scaleRatio`). Camera: `Focus` (Semua · Laci · Papan · Rak putih) glides, tapping furniture
+  in the overview focuses it, tapping the chosen chip again brings the camera back. Gestures are our own
+  `ShelfCamera` (0.7.1; the user couldn't look at a board's sides or bottom: SceneView's manipulator always zooms to
+  the screen's centre and its two-finger pan only starts when the fingers keep their distance): one finger orbits
+  (yaw/pitch limited), two fingers zoom towards their midpoint and pan along at the same time (like a map), a double
+  tap zooms in on the spot (a two-finger tap out); the camera stays in front of the walls and its target on the
+  furniture. SceneView's detector hands over y from the bottom of the view. A tapped diecast comes out of its place
+  (up the board's groove, off the tier, out of the compartment) and floats up in front of where the camera was when
+  it was tapped; tap again to put it back.
+- Motion (0.7.2; the user: placing made it just appear, "Ke nampan" had no animation). `Stage` in `GarageScreen`
+  compares each new `Layout` with the last one **while composing** (so nothing is drawn a frame in the wrong place)
+  and remembers where every diecast was last drawn: one that was in the tray comes out of it (from just under the
+  tray button, small, via its place's clear pose into its place; several at once 70 ms apart, as with "Taruh semua
+  otomatis"); one carried by hand (`byHand`: the moved one and a swap partner) travels via the clear pose; neighbours
+  pushed along glide straight; one gone from the shelves but still owned flies into the tray (a `Ghost`, drawn
+  without a tap name) and the tray button bumps when it lands. `landing`/`releasing` keep a diecast lifted or in hand
+  until the database change shows up (`LaunchedEffect(scene)` clears them). `Sight.ahead`/`onScreen` convert between
+  pixels and the scene.
+- Leaving and coming back: the garage composition is thrown away while another screen is on top, and the 3D view
+  starts blank. So the view is a **TextureView** (`SurfaceType.TextureSurface`; a SurfaceView ignores the alpha and
+  scale of the transitions), on "Detail" its picture is kept in `GarageViewModel.snapshot` and covers the view on the
+  way back until it has drawn 3 frames with the scene loaded (1.5 s at most; the wall's colour when there's no
+  picture, e.g. coming from the dashboard), then fades. The one in hand, the camera when it was pulled out and when
+  the page opened, and its card's rectangle on the screen (`heldCard`, its four corners projected) are saveable, so
+  the page shrinks back into a transparent box with `sharedDiecastCard` exactly over the diecast still in hand.
+  Picking a focus (`look`) drops the kept camera.
+- The Hot Wheels logo (`assets/brand/hot_wheels_logo.png`, from Wikipedia) is **git-ignored** (Mattel's trademark,
+  public repo); without it the board draws a hand-made flame, so a clone still builds.
+- Placement (G1, the user's choices): free placement on all three — any compartment of the case, a lane of the boards
+  (a card goes on top of the ones there and they stack from the bottom), any tier and spot along it on the black
+  shelf. Tap an empty spot → a sheet of the diecasts that fit ("Taruh di sini"); tap a diecast → Pindahkan (then tap
+  the target; an occupied compartment swaps) / Ke nampan / Detail. Unplaced owned diecasts wait in the tray
+  ("Nampan · n", "Belum ditaruh", "Taruh semua otomatis"). What fits: cards on the boards only; loose cars and boxes of
+  1:64 or smaller in the case; every non-card on the black shelf. Placing writes "Lokasi simpan" ("Papan 2 · jalur 1",
+  "Laci hitam · susun tengah", "Rak putih · baris 3 kolom 2"); taking it off clears it only if it still says that.
+  Not owned any more (saved as another status) → off the shelf; deleting cascades.
+- Data: Room **v7** `shelf_slots` (diecast id PK + FK cascade, shelf key, spot, position; index shelf + spot).
+  spot = lane 0–7 across both boards from the left / tier 0–2 lowest first / compartment row × 6 + column, rows from
+  the top; position = order in a lane, or the angle along a tier in tenths of a degree (0 = back wall, 900 = left
+  wall). `data/shelf`: `ShelfLayout` (sizes, fit rules, labels), `ShelfPlanner` (pure: place, swap, lane full at 12),
+  `ShelfRepository` (one transaction; `ShelfDao.shelve/unshelve` keep the storage location in step). The UI's pure
+  `layOut` (`ui/garage/Placement.kt`) turns slots into poses: lanes by position then id, a tier's spots pushed apart
+  along the arc between the posts (`tierSpots`), and anything that no longer fits (too full, packaging changed) shown
+  in the tray again; `arrange` is "Taruh semua otomatis" (cards to the emptiest lane, loose cars into the case from
+  the top, small boxes from its bottom-left as in the photo, the rest round the tiers middle-first) and stores the
+  packed angles. Taps: `motionEventToRay` (nullable) intersected with each piece's plane (`laneAt`, `cellAt`,
+  `tierAt`). Phone backups carry `"shelf_slot"` per record (the web ignores it); a restore keeps it only if it still fits
+  and its compartment is free (a full lane skips it). `ShelfTest`, `GarageGeometryTest`, `MigrationTest`, `BackupExporterTest` cover it.
+- **Decorations ("Hiasan", 0.7.3; the user's two figures from their video, the rabbit dusty).** Black shelf only: an
+  empty spot there offers "Hiasan baru di sini" (camera or gallery) above the diecasts that fit. `DecorMaker`
+  (`data/decor`) cuts the subject out with the studio's ML Kit segmenter (`StudioComposer.isolate`: traced like a
+  studio photo, cropped to the subject, null when there is none) and `Dusting.clean` makes a cleaned copy (specks
+  replaced by a 5×5 median/MAD test, levels by luminance, a little saturation; only opaque pixels count).
+  `DecorDraftSheet` shows both on a checkerboard ("Seperti difoto" / "Dibersihkan", the default), a name and the real
+  height in cm (1–60, comma or point), "Taruh di laci". The photo is deleted once cut and never sent anywhere. Drawn
+  as a billboard (`DecorParts.Decoration`) that turns to the camera every frame (`eye`, from `onFrame`), sized by its
+  height, pushed apart with the diecasts along the tier (`layOut(…, decor)` → `tierSpots`; one without room isn't
+  drawn). Tap → Pindahkan (then an empty spot on the black shelf) / Ubah (name, height) / Hapus. Data: Room **v8**
+  `decorations` (name, photo, height_mm, tier, position in tenths of a degree like the slots, created_at); cut-outs
+  as PNG in `files/decor` (`DecorStore`, unused ones pruned at start-up). Phone backups carry `decor.json` and
+  `decor/` (`DecorBackup`, only when there are any; "replace" swaps them). `DecorTest` and `MigrationTest` cover it.
+- Render quality switch at the top right ("Normal" / "Polos" without post-processing / "Hemat" without shadows, AO,
+  bloom), kept from G0 until the phone shows which works ("Normal" does, on the phone's Mali-G57 with OpenGL ES 3.2;
+  Filament runs at feature level 1 there). **The emulator (SwiftShader) can't show "Normal"** (all
+  white; "fxaa failed to link") **and aborts compiling "Hemat"**: test on it in "Polos"; colours look darker than on
+  the phone. With shadow casters in the scene it paints plain-coloured receivers red, so nothing casts shadows yet.
+- Filament/SceneView gotchas: SceneView's materials read UV0, so every vertex needs one (`Meshes.plane` puts the
+  texture the right way up); transparent cut-outs need reflectance 0 (otherwise the see-through part shows as a pale
+  pane); the default main light points straight down and left the upright boards dark, so it comes from the front,
+  above. kotlin-math's vector operators are inlined from JVM 21 bytecode, which this module's JVM 17 target can't
+  take: ray and pose maths is plain arithmetic.
+- A screen's `Scaffold` needs `snackbarHost = { SnackbarHost(LocalSnackbar.current) }` or `container.messages` never
+  show on it (the garage had none at first).
+- Some files are CRLF (`WebBackupFormat.kt`, `BackupImporter.kt`): multi-line `perl`/`sed` substitutions silently do
+  nothing on them; use the Edit tool.
+- Emulator: right after boot the app's window (or the whole app, dashboard too) can stay black: force-stop and
+  launch it again. The emulator with the garage used ~6 GB; it was restarted twice for low memory. Inspect its
+  database with `adb exec-out run-as io.github.caropeboka.diecasttracker cat databases/diecast-tracker.db` (plus
+  `-wal`, `-shm`) and Node's built-in `node:sqlite`.
+
 ## Decisions (made with the user)
 
 | Topic | Decision |
 | --- | --- |
 | Language / UI | Kotlin, Jetpack Compose, Material 3 with the "Garage" dark theme (below). UI text in **Bahasa Indonesia**, money in **Rupiah** (`id-ID`, no decimals). |
 | Data | Room (SQLite) on the device. Photos in app-private storage. |
-| Network | OkHttp + kotlinx.serialization (Gemini, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
+| Network | OkHttp + kotlinx.serialization (Gemini, OpenAI-style AI providers, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
 | Location / map | Fused Location Provider; **MapLibre** with **OpenFreeMap**'s dark style (OpenStreetMap data, no API key). osmdroid was dropped: archived Nov 2024. Nominatim for place names. |
-| Navigation | Bottom bar: Koleksi · Garasi (dashboard) · Peta · Dex; the app opens on Koleksi. Other screens open from the ⋮ menu. |
+| Navigation | Bottom bar: Koleksi · Garasi (dashboard) · ＋ · Peta · Dex; the app opens on Koleksi. The centre ＋ opens Cek di toko / Isi manual / Scan dengan AI (since 0.6.0, replacing the Koleksi FABs) as a FAB menu rising above it (since 0.7.2, replacing a bottom sheet). Other screens open from the ⋮ menu. A screen opened by a tap grows out of what was tapped (0.7.3). |
+| AI scan flow (0.6.0) | Photos first (camera back-to-back for a new diecast, a guide of the sides to shoot), the AI reads only on "Pindai dengan AI". While any AI request runs, its steps are shown as a log (not just a spinner). |
+| Foto studio (0.6.1) | On the phone only (ML Kit segmentation; corners by hand for cards and boxes), free and offline after the first download; the original photo stays. No generative AI editing (it can change printed details). |
+| 3D garage (0.6.7+) | SceneView/Filament, furniture modelled in code after the user's photos (black corner shelf, two MDF blister boards, white 6 × 10 case). Owned diecasts only, one place each whatever the quantity. Free placement with a tray of unplaced ones; the place writes "Lokasi simpan". The trademarked logo stays out of git. Decorations (the user's figures) on the black shelf, cut out on the phone and optionally cleaned (0.7.3). |
 | Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. Own dexes: the AI's checklist rows are reviewed before they're added; entries can be edited (both unlike the web). |
 | Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
-| Settings | DataStore (Gemini/Claude API key, model). |
-| AI provider | Gemini only for now (phase 2); Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
+| Settings | DataStore (every AI provider's key, model, on/off and order; the custom server's URL and name). |
+| AI provider | Gemini, Groq, Mistral, OpenRouter and one OpenAI-compatible server (0.8.0; Gemini only before), tried in the user's order: on quota, busy, timeout or a refused key the same request goes to the next; one out of quota rests until it is back. Cerebras left out (no free tier). Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
 | Existing data | Import the web app's **backup zip** (see below). |
-| In-store check (phase 5e) | Opened from a launcher shortcut, a "Cek" button in Koleksi and the ⋮ menu; the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). |
+| In-store check (phase 5e) | Opened from a launcher shortcut, the bottom bar's centre button and the ⋮ menu; the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). |
 | Bulk scan (phase 5d) | Reads in the background with WorkManager (not only while the screen is open, unlike the web). Camera is back-to-back. Entry: ⋮ menu in Koleksi, banners in Koleksi and Garasi. Saved items leave the queue (no "saved" history). |
 | Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. |
 | Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |
-| Devices | Phone: Android 16 (API 36), USB debugging not set up yet. Emulator AVD `Medium_Phone_API_37.0` (API 37, WHPX acceleration works). |
+| Devices | Phone: Infinix NOTE 50 Pro (X6855), Android 16 (API 36), arm64; USB debugging on, the laptop is allowed. Emulator AVD `Medium_Phone_API_37.0` (API 37, WHPX acceleration works). |
 
 ## Phases (each ends with a usable APK)
 
