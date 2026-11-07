@@ -46,13 +46,16 @@ data class PriceListing(
     val sold: Int? = null,
     val rating: Double? = null,
     @SerialName("is_ad") val isAd: Boolean = false,
-    /** tokopedia, shopee, bukalapak, facebook or other. */
+    /** tokopedia, shopee, bukalapak, lazada, facebook, ebay or other. */
     val marketplace: String = "other",
     val match: ListingMatch = ListingMatch.Unclear,
     /** The AI's few words on [match]. */
     val reason: String? = null,
     val status: ListingStatus = ListingStatus.Excluded,
     @SerialName("excluded_reason") val excludedReason: String? = null,
+    /** The currency it was priced in when not Rupiah ([price] is converted), and that price. */
+    val currency: String? = null,
+    @SerialName("original_price") val originalPrice: Double? = null,
 )
 
 /** Over the counted listings only. [spread]: the middle half's width against the median. */

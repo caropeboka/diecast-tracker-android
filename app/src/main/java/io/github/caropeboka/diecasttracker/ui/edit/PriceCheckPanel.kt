@@ -11,6 +11,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,16 +23,20 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -71,8 +77,12 @@ import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
 import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.price.ListingStatus
 import io.github.caropeboka.diecasttracker.data.price.MAX_PRICE_SCREENSHOTS
+import io.github.caropeboka.diecasttracker.data.price.Marketplace
+import io.github.caropeboka.diecasttracker.data.price.OwnPriceFinder
+import io.github.caropeboka.diecasttracker.data.price.OwnPrices
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceChecker
+import io.github.caropeboka.diecasttracker.data.price.PriceEstimate
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.ui.components.AiProgress
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
@@ -90,14 +100,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
 import java.time.Instant
 import java.time.ZoneId
+import java.util.Locale
+import kotlinx.serialization.json.Json
 
 /** A saved diecast's market price checks: search, screenshots, the AI's reading, and the price to use. */
 class PriceCheckViewModel(
     private val saved: SavedStateHandle,
     private val checker: PriceChecker,
+    private val ownPrices: OwnPriceFinder,
     private val photos: PhotoStore,
     private val messages: Messages,
     private val texts: Texts,
@@ -129,6 +141,97 @@ class PriceCheckViewModel(
         private set
     var applyingId by mutableStateOf<Long?>(null)
         private set
+
+    /** Other keywords the AI suggested. */
+    val keywords: StateFlow<List<String>> = saved.getStateFlow(KEYWORDS, emptyList())
+    var findingKeywords by mutableStateOf(false)
+        private set
+
+    /** The AI's rough estimate from the web, kept while the form is open. */
+    var estimate by mutableStateOf(saved.get<String>(ESTIMATE)?.let { runCatching { Json.decodeFromString<PriceEstimate>(it) }.getOrNull() })
+        private set
+    var estimating by mutableStateOf(false)
+        private set
+    var estimateError by mutableStateOf<String?>(null)
+        private set
+    private val estimateLog = AiProgressLog(texts, R.string.ai_hint_quick)
+    val estimateProgress: StateFlow<AiProgress?> = estimateLog.state
+
+    /** Prices from the collector's own records; null until read. */
+    var own by mutableStateOf<OwnPrices?>(null)
+        private set
+
+    fun loadOwn(diecast: DiecastEntity) {
+        viewModelScope.launch { own = ownPrices.find(diecast) }
+    }
+
+    fun suggestKeywords(diecast: DiecastEntity) {
+        if (findingKeywords) return
+        findingKeywords = true
+        error = null
+        viewModelScope.launch {
+            try {
+                val found = checker.keywords(diecast)
+                saved[KEYWORDS] = ArrayList(found)
+                if (found.isEmpty()) error = texts(R.string.price_no_keywords)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                error = e.message ?: e::class.simpleName
+            } finally {
+                findingKeywords = false
+            }
+        }
+    }
+
+    fun estimate(diecast: DiecastEntity) {
+        if (estimating) return
+        estimating = true
+        estimateError = null
+        estimateLog.start(texts(R.string.price_estimating))
+        viewModelScope.launch {
+            try {
+                val found = checker.estimate(diecast, estimateLog::onEvent)
+                estimate = found
+                saved[ESTIMATE] = Json.encodeToString(found)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: AiException) {
+                estimateError = e.message
+            } catch (e: Exception) {
+                estimateError = texts(R.string.failed_because, e.message ?: e::class.simpleName.orEmpty())
+            } finally {
+                estimating = false
+                estimateLog.stop()
+            }
+        }
+    }
+
+    fun closeEstimate() {
+        estimate = null
+        estimateError = null
+        saved[ESTIMATE] = null
+    }
+
+    /** The estimate's typical price becomes the market value right away, marked as the AI's. */
+    fun applyEstimate(diecast: DiecastEntity, onApplied: (DiecastEntity) -> Unit) {
+        val value = estimate?.typical ?: return
+        if (applyingId != null) return
+        applyingId = ESTIMATE_ID
+        viewModelScope.launch {
+            try {
+                val updated = checker.applyEstimate(diecast.id, value)
+                onApplied(updated)
+                messages.show(texts(R.string.price_applied, formatMoney(updated.marketValue)))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                messages.show(texts(R.string.price_apply_failed, e.message ?: e::class.simpleName.orEmpty()))
+            } finally {
+                applyingId = null
+            }
+        }
+    }
 
     fun setOpen(value: Boolean) {
         saved[OPEN] = value
@@ -208,23 +311,31 @@ class PriceCheckViewModel(
         private const val OPEN = "price_open"
         private const val QUERY = "price_query"
         private const val PICKED = "price_picked"
+        private const val KEYWORDS = "price_keywords"
+        private const val ESTIMATE = "price_estimate"
+
+        /** [applyingId] while the estimate is being used. */
+        const val ESTIMATE_ID = -1L
 
         fun factory(diecastId: Long): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
-                with(app.container) { PriceCheckViewModel(createSavedStateHandle(), priceChecker, photos, messages, texts, diecastId) }
+                with(app.container) { PriceCheckViewModel(createSavedStateHandle(), priceChecker, ownPrices, photos, messages, texts, diecastId) }
             }
         }
     }
 }
 
 /**
- * "Cek harga pasaran" (web: `price-check-panel.tsx`): search the diecast on Tokopedia/Shopee, screenshot the results,
- * and the AI reads every listing; the app works out the median. Only for saved diecasts.
+ * "Cek harga pasaran" (web: `price-check-panel.tsx`): search the diecast on Tokopedia, Shopee, eBay…, screenshot the
+ * results, and the AI reads every listing; the app works out the median. For a diecast no marketplace lists, the AI's
+ * rough estimate from the web and the prices in the collector's own records. Only for saved diecasts. [records]
+ * changes when the sightings do, so their shelf prices are read again.
  */
 @Composable
-fun PriceCheckPanel(diecast: DiecastEntity, onApplied: (DiecastEntity) -> Unit, onAiSettings: () -> Unit) {
+fun PriceCheckPanel(diecast: DiecastEntity, records: Any?, onApplied: (DiecastEntity) -> Unit, onAiSettings: () -> Unit) {
     val viewModel: PriceCheckViewModel = viewModel(key = "price-check-${diecast.id}", factory = PriceCheckViewModel.factory(diecast.id))
+    LaunchedEffect(diecast, records) { viewModel.loadOwn(diecast) }
     val checks by viewModel.checks.collectAsStateWithLifecycle()
     val enabled by viewModel.enabled.collectAsStateWithLifecycle()
     val open by viewModel.open.collectAsStateWithLifecycle()
@@ -266,21 +377,132 @@ fun PriceCheckPanel(diecast: DiecastEntity, onApplied: (DiecastEntity) -> Unit, 
                 }
             }
         }
+
+        if (enabled && !open) EstimateBlock(viewModel, diecast, onApplied)
+        viewModel.own?.takeIf { it.prices.isNotEmpty() }?.let { OwnPricesBlock(it) }
     }
 }
+
+/** The AI's rough estimate from the web: a button, its steps, then the range with what it found and where. */
+@Composable
+private fun EstimateBlock(viewModel: PriceCheckViewModel, diecast: DiecastEntity, onApplied: (DiecastEntity) -> Unit) {
+    val progress by viewModel.estimateProgress.collectAsStateWithLifecycle()
+    val estimate = viewModel.estimate
+    val uris = LocalUriHandler.current
+    val steps = progress
+
+    when {
+        steps != null -> AiProgressView(steps)
+        estimate == null -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            OutlinedButton(onClick = { viewModel.estimate(diecast) }, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+                IconLabel(R.drawable.ic_sparkles, stringResource(R.string.price_estimate))
+            }
+            Text(stringResource(R.string.price_estimate_hint), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+        }
+        else -> Surface(shape = MaterialTheme.shapes.medium, color = Garage.Card, border = BorderStroke(1.dp, Garage.Brand2.copy(alpha = 0.5f))) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Pill(stringResource(R.string.price_estimate_rough), Garage.Brand2)
+                        Text(stringResource(R.string.price_estimate_title), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                    }
+                    IconButton(onClick = viewModel::closeEstimate) {
+                        Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.close), tint = Garage.MutedForeground)
+                    }
+                }
+                val typical = estimate.typical
+                if (typical != null) {
+                    Text(formatMoney(typical), style = MaterialTheme.typography.headlineSmall)
+                    if (estimate.low != estimate.high) {
+                        Text(stringResource(R.string.price_estimate_range, formatMoney(estimate.low), formatMoney(estimate.high)), style = MaterialTheme.typography.bodyMedium)
+                    }
+                } else {
+                    Text(stringResource(R.string.price_estimate_none), style = MaterialTheme.typography.bodyMedium)
+                }
+                if (estimate.text.isNotEmpty()) Text(chatText(estimate.text), style = MaterialTheme.typography.bodySmall)
+                estimate.sources.take(5).forEach { source ->
+                    Text(
+                        "↗ ${source.title}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Garage.Brand,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth().clickable { runCatching { uris.openUri(source.url) } }.padding(vertical = 2.dp),
+                    )
+                }
+                Text(
+                    stringResource(if (estimate.searched) R.string.price_estimate_by_search else R.string.price_estimate_by_memory, estimate.by),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Garage.MutedForeground,
+                )
+                if (typical != null) {
+                    OutlinedButton(
+                        onClick = { viewModel.applyEstimate(diecast, onApplied) },
+                        enabled = viewModel.applyingId == null,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(stringResource(R.string.price_use, formatMoney(typical)), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                }
+                TextButton(onClick = { viewModel.estimate(diecast) }, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.price_estimate_again)) }
+            }
+        }
+    }
+    viewModel.estimateError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.Loss) }
+}
+
+/** Purchase and shelf prices from the collector's own records, for this diecast and its look-alikes. */
+@Composable
+private fun OwnPricesBlock(own: OwnPrices) {
+    var all by rememberSaveable { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.price_own), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.price_own_hint), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+        own.median?.let { median ->
+            Text(pluralStringResource(R.plurals.price_own_median, own.prices.size, formatMoney(median), own.prices.size), style = MaterialTheme.typography.bodyMedium)
+        }
+        (if (all) own.prices else own.prices.take(OWN_SHOWN)).forEach { price ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painterResource(if (price.bought) R.drawable.ic_shopping_bag else R.drawable.ic_visibility),
+                    contentDescription = null,
+                    tint = Garage.MutedForeground,
+                    modifier = Modifier.size(16.dp),
+                )
+                Column(Modifier.weight(1f)) {
+                    val meta = listOfNotNull(
+                        stringResource(if (price.bought) R.string.price_own_bought else R.string.price_own_shelf),
+                        price.place?.takeIf { it.isNotBlank() },
+                        price.date?.let { formatDate(it) },
+                    ).joinToString(" · ")
+                    Text(meta, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    price.other?.let { Text(stringResource(R.string.price_own_other, it), style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                }
+                Text(formatMoney(price.price), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+            }
+        }
+        if (own.prices.size > OWN_SHOWN) {
+            TextButton(onClick = { all = !all }, contentPadding = PaddingValues(0.dp)) {
+                Text(if (all) stringResource(R.string.price_own_fewer) else pluralStringResource(R.plurals.price_own_all, own.prices.size, own.prices.size))
+            }
+        }
+    }
+}
+
+private const val OWN_SHOWN = 5
 
 @Composable
 private fun Hint(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val picked by viewModel.picked.collectAsStateWithLifecycle()
+    val keywords by viewModel.keywords.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
     val text = query ?: PriceChecker.searchQuery(diecast)
-    val encoded = URLEncoder.encode(text, "UTF-8")
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_PRICE_SCREENSHOTS), viewModel::addScreenshots)
 
     fun open(url: String) = runCatching { uriHandler.openUri(url) }
@@ -295,17 +517,31 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
             colors = fieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(
-                onClick = { open("https://www.tokopedia.com/search?st=product&q=$encoded") },
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.weight(1f),
-            ) { IconLabel(R.drawable.ic_open_in_new, "Tokopedia") }
-            OutlinedButton(
-                onClick = { open("https://shopee.co.id/search?keyword=$encoded") },
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.weight(1f),
-            ) { IconLabel(R.drawable.ic_open_in_new, "Shopee") }
+        // Rare ones hide behind another name: the obvious variants at once, more from the AI on request.
+        Text(stringResource(R.string.price_other_keywords), style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            (PriceChecker.keywordVariants(diecast) + keywords).distinctBy { it.lowercase() }.filter { it != text }.forEach { keyword ->
+                SuggestionChip(onClick = { viewModel.setQuery(keyword) }, label = { Text(keyword, maxLines = 1, overflow = TextOverflow.Ellipsis) })
+            }
+            AssistChip(
+                onClick = { viewModel.suggestKeywords(diecast) },
+                enabled = !viewModel.findingKeywords,
+                label = { Text(stringResource(R.string.price_ai_keywords)) },
+                leadingIcon = {
+                    if (viewModel.findingKeywords) {
+                        CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(painterResource(R.drawable.ic_sparkles), contentDescription = null, Modifier.size(16.dp))
+                    }
+                },
+            )
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Marketplace.entries.forEach { market ->
+                OutlinedButton(onClick = { open(market.search(text)) }, shape = MaterialTheme.shapes.medium, contentPadding = PaddingValues(horizontal = 12.dp)) {
+                    IconLabel(R.drawable.ic_open_in_new, market.labelRes?.let { stringResource(it) } ?: market.label)
+                }
+            }
         }
         Text(
             stringResource(R.string.price_tip_screens),
@@ -372,6 +608,14 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
         }
     }
 }
+
+private val MARKETPLACE_NAMES = mapOf(
+    "shopee" to "Shopee",
+    "bukalapak" to "Bukalapak",
+    "lazada" to "Lazada",
+    "facebook" to "Facebook",
+    "ebay" to "eBay",
+)
 
 private fun PriceAccuracy.color() = when (this) {
     PriceAccuracy.High -> Garage.Gain
@@ -509,7 +753,8 @@ private fun ListingRow(listing: PriceListing) {
         listing.location,
         listing.sold?.takeIf { it > 0 }?.let { stringResource(R.string.price_sold, it) },
         stringResource(R.string.price_ad).takeIf { listing.isAd },
-        listing.marketplace.takeIf { it != "tokopedia" },
+        listing.marketplace.takeIf { it != "tokopedia" }?.let { MARKETPLACE_NAMES[it] ?: it },
+        listing.currency?.let { currency -> listing.originalPrice?.let { "$currency " + String.format(Locale.ROOT, "%,.2f", it) } },
     ).joinToString(" · ")
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

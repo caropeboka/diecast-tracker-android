@@ -96,7 +96,8 @@ class PriceCheckTest {
         val body = fake.bodies.last()
         assertTrue(body.contains("- Name: '68 Dodge Dart"))
         assertTrue(body.contains("- Collection number: 6/10"))
-        assertTrue(body.contains("price_idr"))
+        // Priced in the currency shown (eBay), converted here.
+        assertTrue(body.contains("\"currency\"") && body.contains("\"price\""))
     }
 
     @Test

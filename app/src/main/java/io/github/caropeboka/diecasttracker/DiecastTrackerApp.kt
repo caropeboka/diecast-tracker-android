@@ -8,6 +8,7 @@ import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.AiSettings
 import io.github.caropeboka.diecasttracker.data.ai.AiVision
+import io.github.caropeboka.diecasttracker.data.ai.DiecastChat
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
 import io.github.caropeboka.diecasttracker.data.ai.OpenAiClient
@@ -30,6 +31,7 @@ import io.github.caropeboka.diecasttracker.data.money.RateSource
 import io.github.caropeboka.diecasttracker.data.places.DeviceLocation
 import io.github.caropeboka.diecasttracker.data.places.Nominatim
 import io.github.caropeboka.diecasttracker.data.places.PlaceLookup
+import io.github.caropeboka.diecasttracker.data.price.OwnPriceFinder
 import io.github.caropeboka.diecasttracker.data.price.PriceChecker
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.data.scan.ScanWork
@@ -72,6 +74,7 @@ class AppContainer(context: Context) {
     val openAi = OpenAiClient(http, texts)
     val vision = AiVision(aiSettings.setup, gemini, openAi, aiSettings, texts)
     val scanner = DiecastScanner(vision, photos, texts)
+    val chat = DiecastChat(vision, photos, texts)
     val matcher = CollectionMatcher(repository)
 
     private val userAgent = "DiecastTracker-Android/${versionName(context)} (personal diecast collection tracker)"
@@ -84,8 +87,13 @@ class AppContainer(context: Context) {
     val dexSync = DexSync(database, wiki, dexMatcher, texts, context.filesDir)
     val dex = DexRepository(database, dexMatcher)
     val dexCustom = DexCustom(database, dexMatcher, photos, texts, context.filesDir)
-    val checklist = ChecklistReader(vision)
-    val priceChecker = PriceChecker(vision, database, texts)
+    val checklist = ChecklistReader(vision, texts)
+    // Rates for listings priced abroad (eBay), even when prices are shown in Rupiah.
+    val priceChecker = PriceChecker(vision, database, texts, rates = {
+        refreshRates(needed = true)
+        prefs.rates.first()
+    })
+    val ownPrices = OwnPriceFinder(database, matcher)
     val scanQueue = ScanQueue(database, photos, scanner, texts)
     val storeCheck = StoreCheck(database, photos, scanner, matcher, repository, texts)
     private val cutter = MlKitCutter(context)
@@ -94,10 +102,14 @@ class AppContainer(context: Context) {
     val decorations = DecorRepository(database, decorStore)
     val decorMaker = DecorMaker(texts, cutter)
 
-    /** Fetches the exchange rates when prices are shown in another currency and the last ones are over 12 hours old. */
-    suspend fun refreshRates(force: Boolean = false): Boolean {
+    /**
+     * Fetches the exchange rates when prices are shown in another currency (or they are [needed] anyway) and the last
+     * ones are over 12 hours old.
+     */
+    suspend fun refreshRates(force: Boolean = false, needed: Boolean = false): Boolean {
         val last = prefs.rates.first()
-        if (!force && (prefs.currency.first() == Currency.IDR || last != null && System.currentTimeMillis() - last.fetchedAt < RATES_TTL_MS)) return true
+        val unused = !needed && prefs.currency.first() == Currency.IDR
+        if (!force && (unused || last != null && System.currentTimeMillis() - last.fetchedAt < RATES_TTL_MS)) return true
         val fresh = rateSource.fetch() ?: return false
         prefs.setRates(fresh)
         return true
@@ -135,7 +147,10 @@ class DiecastTrackerApp : Application() {
             container.repository.housekeeping()
             container.decorations.housekeeping()
             container.backupExporter.housekeeping()
-            container.database.places().pruneCache(before = System.currentTimeMillis() - Nominatim.REVERSE_TTL_MS)
+            container.database.places().pruneCache(
+                before = System.currentTimeMillis() - Nominatim.REVERSE_TTL_MS,
+                regionsBefore = System.currentTimeMillis() - Nominatim.REGION_TTL_MS,
+            )
             // Thumbnails left from an earlier sync: carry on when the network allows.
             if (container.dex.countMissingImages() > 0) {
                 DexWork.downloadImages(this@DiecastTrackerApp, container.prefs.dexCellular.first())

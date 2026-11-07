@@ -120,7 +120,6 @@
     <string name="price_check">查询价格</string>
     <string name="price_recheck">重新查询</string>
     <string name="price_needs_ai">价格查询使用 AI 读取电商截图。请先在 AI 设置中填写 API 密钥。</string>
-    <string name="price_intro">在 Tokopedia/Shopee 搜索这辆合金车并截图，AI 会读取所有商品并计算市场价。</string>
     <string name="price_hide_older">隐藏之前的查询</string>
     <plurals name="price_show_older">
         <item quantity="other">查看之前的 %d 次查询</item>
@@ -193,4 +192,34 @@
     <string name="dex_year_note">表单中的年份是 %1$s，但这一版发行于 %2$s（卡片上的年份通常是模型的版权年份）。</string>
     <string name="dex_year_empty">空</string>
     <string name="dex_use_year">使用 %1$d</string>
+    <string name="price_intro">在 Tokopedia、Shopee、eBay 等平台搜索这辆合金车并截图，AI 会读取所有商品并计算市场价。哪里都没有卖？可以让 AI 从网上粗略估价，或看看你自己记录的价格。</string>
+    <string name="price_ebay_sold">eBay 已售</string>
+    <string name="price_tip_abroad">国外价格（eBay）按今日汇率换算，不含运费和进口费用。</string>
+    <string name="price_no_rate">没有 %1$s 的汇率</string>
+    <string name="price_other_keywords">其他关键词——点一下即可使用</string>
+    <string name="price_ai_keywords">AI 建议</string>
+    <string name="price_no_keywords">AI 没有其他关键词。</string>
+    <string name="price_estimate">网上粗略估价（AI）</string>
+    <string name="price_estimate_hint">无需截图：AI 自己查找（Gemini 会联网搜索）。仅供粗略参考。</string>
+    <string name="price_estimating">正在询问价格</string>
+    <string name="price_estimate_rough">粗略</string>
+    <string name="price_estimate_title">AI 网上估价</string>
+    <string name="price_estimate_range">介于 %1$s 和 %2$s 之间</string>
+    <string name="price_estimate_none">AI 没有找到可参考的价格。</string>
+    <string name="price_estimate_by_search">%1$s · 已联网搜索</string>
+    <string name="price_estimate_by_memory">%1$s · 凭记忆回答，未联网搜索——更粗略</string>
+    <string name="price_estimate_again">重新估价</string>
+    <string name="price_own">来自你的记录</string>
+    <string name="price_own_hint">你记录的买入价和货架价，包括这辆车和收藏中相似的车。</string>
+    <plurals name="price_own_median">
+        <item quantity="other">中位数 %1$s，共 %2$d 个价格</item>
+    </plurals>
+    <string name="price_own_bought">买入</string>
+    <string name="price_own_shelf">货架价</string>
+    <string name="price_own_other">对应 %1$s</string>
+    <plurals name="price_own_all">
+        <item quantity="other">显示全部 %d 个</item>
+    </plurals>
+    <string name="price_own_fewer">收起</string>
+    <string name="edit_value_from_estimate">来自 AI 的网上粗略估价</string>
 </resources>

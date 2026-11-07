@@ -123,7 +123,6 @@
     <string name="price_check">Check price</string>
     <string name="price_recheck">Check again</string>
     <string name="price_needs_ai">The price check uses the AI to read marketplace screenshots. Add an API key in the AI settings first.</string>
-    <string name="price_intro">Search for this diecast on Tokopedia/Shopee, take screenshots of the results, and the AI reads every listing and works out its market price.</string>
     <string name="price_hide_older">Hide earlier checks</string>
     <plurals name="price_show_older">
         <item quantity="one">Show %d earlier check</item>
@@ -198,4 +197,36 @@
     <string name="dex_year_note">The form says %1$s, but this release is from %2$s (the year on a card is usually the model\'s copyright year).</string>
     <string name="dex_year_empty">empty</string>
     <string name="dex_use_year">Use %1$d</string>
+    <string name="price_intro">Search for this diecast on Tokopedia, Shopee, eBay and more, take screenshots of the results, and the AI reads every listing and works out its market price. Not listed anywhere? Ask the AI for a rough estimate from the web, or look at the prices in your own records.</string>
+    <string name="price_ebay_sold">eBay sold</string>
+    <string name="price_tip_abroad">Prices from abroad (eBay) are converted at today\'s rate and leave out shipping and import costs.</string>
+    <string name="price_no_rate">no exchange rate for %1$s</string>
+    <string name="price_other_keywords">Other keywords — tap one to use it</string>
+    <string name="price_ai_keywords">More from the AI</string>
+    <string name="price_no_keywords">The AI had no other keywords.</string>
+    <string name="price_estimate">Rough estimate from the web (AI)</string>
+    <string name="price_estimate_hint">No screenshots: the AI looks it up itself (Gemini searches the web). Only a rough guide.</string>
+    <string name="price_estimating">Asking about its price</string>
+    <string name="price_estimate_rough">Rough</string>
+    <string name="price_estimate_title">AI estimate from the web</string>
+    <string name="price_estimate_range">Between %1$s and %2$s</string>
+    <string name="price_estimate_none">The AI found no price to go on.</string>
+    <string name="price_estimate_by_search">%1$s · searched the web</string>
+    <string name="price_estimate_by_memory">%1$s · from memory, without a web search — even rougher</string>
+    <string name="price_estimate_again">Estimate again</string>
+    <string name="price_own">From your records</string>
+    <string name="price_own_hint">Purchase and shelf prices you noted, for this diecast and look-alikes in your collection.</string>
+    <plurals name="price_own_median">
+        <item quantity="one">Median %1$s, from %2$d price</item>
+        <item quantity="other">Median %1$s, from %2$d prices</item>
+    </plurals>
+    <string name="price_own_bought">Bought</string>
+    <string name="price_own_shelf">On a shelf</string>
+    <string name="price_own_other">for %1$s</string>
+    <plurals name="price_own_all">
+        <item quantity="one">Show all %d</item>
+        <item quantity="other">Show all %d</item>
+    </plurals>
+    <string name="price_own_fewer">Show fewer</string>
+    <string name="edit_value_from_estimate">From the AI\'s rough estimate from the web</string>
 </resources>

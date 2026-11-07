@@ -120,7 +120,6 @@
     <string name="price_check">Cek harga</string>
     <string name="price_recheck">Cek ulang</string>
     <string name="price_needs_ai">Cek harga memakai AI untuk membaca screenshot marketplace. Isi API key dulu di Pengaturan AI.</string>
-    <string name="price_intro">Cari diecast ini di Tokopedia/Shopee, screenshot hasilnya, lalu AI akan membaca semua listing dan menghitung harga pasarannya.</string>
     <string name="price_hide_older">Sembunyikan cek sebelumnya</string>
     <plurals name="price_show_older">
         <item quantity="other">Lihat %d cek sebelumnya</item>
@@ -193,4 +192,34 @@
     <string name="dex_year_note">Tahun di form %1$s, tapi rilis ini dari %2$s (tahun di kartu biasanya tahun hak cipta model).</string>
     <string name="dex_year_empty">kosong</string>
     <string name="dex_use_year">Pakai %1$d</string>
+    <string name="price_intro">Cari diecast ini di Tokopedia, Shopee, eBay dan lainnya, screenshot hasilnya, lalu AI akan membaca semua listing dan menghitung harga pasarannya. Tidak dijual di mana-mana? Minta perkiraan kasar AI dari web, atau lihat harga di catatanmu sendiri.</string>
+    <string name="price_ebay_sold">eBay terjual</string>
+    <string name="price_tip_abroad">Harga luar negeri (eBay) dikonversi dengan kurs hari ini, belum termasuk ongkir dan biaya impor.</string>
+    <string name="price_no_rate">tidak ada kurs untuk %1$s</string>
+    <string name="price_other_keywords">Kata kunci lain — ketuk untuk memakainya</string>
+    <string name="price_ai_keywords">Saran AI</string>
+    <string name="price_no_keywords">AI tidak punya kata kunci lain.</string>
+    <string name="price_estimate">Perkiraan kasar dari web (AI)</string>
+    <string name="price_estimate_hint">Tanpa screenshot: AI mencarinya sendiri (Gemini mencari di web). Hanya gambaran kasar.</string>
+    <string name="price_estimating">Menanyakan harganya</string>
+    <string name="price_estimate_rough">Kasar</string>
+    <string name="price_estimate_title">Perkiraan AI dari web</string>
+    <string name="price_estimate_range">Antara %1$s dan %2$s</string>
+    <string name="price_estimate_none">AI tidak menemukan harga yang bisa dipegang.</string>
+    <string name="price_estimate_by_search">%1$s · mencari di web</string>
+    <string name="price_estimate_by_memory">%1$s · dari ingatannya, tanpa mencari di web — makin kasar</string>
+    <string name="price_estimate_again">Perkirakan ulang</string>
+    <string name="price_own">Dari catatanmu</string>
+    <string name="price_own_hint">Harga beli dan harga di rak yang kamu catat, untuk diecast ini dan yang mirip di koleksimu.</string>
+    <plurals name="price_own_median">
+        <item quantity="other">Median %1$s dari %2$d harga</item>
+    </plurals>
+    <string name="price_own_bought">Dibeli</string>
+    <string name="price_own_shelf">Di rak</string>
+    <string name="price_own_other">untuk %1$s</string>
+    <plurals name="price_own_all">
+        <item quantity="other">Lihat semua (%d)</item>
+    </plurals>
+    <string name="price_own_fewer">Tampilkan lebih sedikit</string>
+    <string name="edit_value_from_estimate">Dari perkiraan kasar AI di web</string>
 </resources>

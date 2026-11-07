@@ -83,6 +83,8 @@ import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.SCALES
 import io.github.caropeboka.diecasttracker.data.ValueSource
 import io.github.caropeboka.diecasttracker.data.ai.MAX_SCAN_PHOTOS
+import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
+import io.github.caropeboka.diecasttracker.data.dex.LinkAction
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.DateInput
@@ -96,6 +98,7 @@ import io.github.caropeboka.diecasttracker.ui.components.SuggestInput
 import io.github.caropeboka.diecasttracker.ui.components.TagInput
 import io.github.caropeboka.diecasttracker.ui.components.TextInput
 import io.github.caropeboka.diecasttracker.ui.components.icon
+import io.github.caropeboka.diecasttracker.ui.dex.DexPickerSheet
 import io.github.caropeboka.diecasttracker.ui.places.LocationField
 import io.github.caropeboka.diecasttracker.ui.sharedDiecastPage
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
@@ -124,7 +127,7 @@ private val STATUS_HINTS = mapOf(
 fun DiecastEditScreen(
     onClose: () -> Unit,
     onOpen: (Long) -> Unit,
-    onOpenCatalog: (Long) -> Unit,
+    onOpenEntry: (CatalogItemEntity) -> Unit,
     onAiSettings: () -> Unit,
     viewModel: DiecastEditViewModel = viewModel(factory = DiecastEditViewModel.Factory),
 ) {
@@ -133,6 +136,7 @@ fun DiecastEditScreen(
     val scroll = rememberScrollState()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var askAi by rememberSaveable { mutableStateOf(false) }
 
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture(), viewModel::onCameraResult)
     val openCamera = {
@@ -168,6 +172,9 @@ fun DiecastEditScreen(
                     }
                 },
                 actions = {
+                    if (scanEnabled && !viewModel.loading) {
+                        TextButton(onClick = { askAi = true }) { IconLabel(R.drawable.ic_sparkles, stringResource(R.string.ask_ai)) }
+                    }
                     if (!viewModel.isNew && viewModel.existing != null) {
                         IconButton(onClick = { confirmDelete = true }) {
                             Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.edit_delete), tint = Garage.Loss)
@@ -207,17 +214,27 @@ fun DiecastEditScreen(
         ) {
             StatusToggle(viewModel.form.status, viewModel::changeStatus)
             PhotoSection(viewModel, scanEnabled, openCamera, onOpen)
-            DexSection(viewModel, onOpenCatalog)
+            DexSection(viewModel, onOpenEntry)
             IdentitySection(viewModel, suggestions)
             OwnershipSection(viewModel, suggestions)
             viewModel.existing?.let { existing ->
                 SightingsCard(viewModel.sightings, viewModel::openSighting, viewModel::deleteSighting)
-                PriceCheckPanel(existing, viewModel::marketValueApplied, onAiSettings)
+                PriceCheckPanel(existing, viewModel.sightings, viewModel::marketValueApplied, onAiSettings)
             }
         }
     }
 
     SightingSheet(viewModel, suggestions.places)
+
+    if (askAi) {
+        AskAiSheet(
+            key = if (viewModel.isNew) "new" else viewModel.diecastId.toString(),
+            form = viewModel.form,
+            context = viewModel::chatContext,
+            onApply = viewModel::applySuggestion,
+            onDismiss = { askAi = false },
+        )
+    }
 
     if (confirmDiscard) {
         AlertDialog(
@@ -555,8 +572,22 @@ private fun ShotGuide(packaging: Packaging, photoCount: Int, onPackaging: (Packa
 }
 
 @Composable
-private fun DexSection(viewModel: DiecastEditViewModel, onOpenCatalog: (Long) -> Unit) {
+private fun DexSection(viewModel: DiecastEditViewModel, onOpenEntry: (CatalogItemEntity) -> Unit) {
     val year = viewModel.form.year
+    var searching by rememberSaveable { mutableStateOf(false) }
+    if (searching) {
+        val form = viewModel.form
+        DexPickerSheet(
+            start = form.name,
+            brand = form.brand.ifBlank { null },
+            year = form.year.trim().toIntOrNull(),
+            onPick = { ref ->
+                searching = false
+                if (viewModel.isNew) viewModel.chooseDex(ref) else viewModel.linkDex(LinkAction.Link, ref.row.item.id)
+            },
+            onDismiss = { searching = false },
+        )
+    }
     if (viewModel.isNew) {
         DexCreatePanel(
             chosen = viewModel.dexChosen?.takeIf { it.row.item.id == viewModel.form.catalogItemId },
@@ -564,11 +595,12 @@ private fun DexSection(viewModel: DiecastEditViewModel, onOpenCatalog: (Long) ->
             year = year,
             onChoose = viewModel::chooseDex,
             onYear = viewModel::useDexYear,
-            onOpenCatalog = onOpenCatalog,
+            onSearch = { searching = true },
+            onOpenEntry = onOpenEntry,
         )
     } else {
         val state = viewModel.dexLink ?: return
-        DexEditPanel(state, year, viewModel.dexBusy, viewModel::linkDex, viewModel::useDexYear, onOpenCatalog)
+        DexEditPanel(state, year, viewModel.dexBusy, viewModel::linkDex, viewModel::useDexYear, onSearch = { searching = true }, onOpenEntry = onOpenEntry)
     }
 }
 
@@ -700,8 +732,12 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
                     placeholder = stringResource(R.string.optional), error = errors[Field.MarketValue],
                 )
                 val existing = viewModel.existing
-                if (existing?.marketValueSource == ValueSource.PriceCheck && form.marketValue == existing.marketValue?.toString()) {
-                    Text(stringResource(R.string.edit_value_from_check), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                if (existing?.marketValueSource != null && existing.marketValueSource != ValueSource.Manual && form.marketValue == existing.marketValue?.toString()) {
+                    Text(
+                        stringResource(if (existing.marketValueSource == ValueSource.AiEstimate) R.string.edit_value_from_estimate else R.string.edit_value_from_check),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Garage.MutedForeground,
+                    )
                 }
                 DateInput(
                     form.purchaseDate?.toLocalDateOrNull(),

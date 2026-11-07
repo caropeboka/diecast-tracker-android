@@ -23,7 +23,7 @@ import java.time.ZoneOffset
 class RateSource(
     private val http: OkHttpClient,
     private val clock: () -> Long = System::currentTimeMillis,
-    private val frankfurter: String = "https://api.frankfurter.dev/v1/latest?base=USD&symbols=IDR,CNY",
+    private val frankfurter: String = "https://api.frankfurter.dev/v1/latest?base=USD&symbols=IDR,CNY," + OTHERS.joinToString(","),
     private val openEr: String = "https://open.er-api.com/v6/latest/USD",
 ) {
     /** Null when neither answered. */
@@ -43,11 +43,13 @@ class RateSource(
         return rates(rates, date, "ExchangeRate-API")
     }
 
-    /** Both list their rates per US dollar: Rupiah per dollar, and per yuan through the dollar. */
+    /** Both list their rates per US dollar: Rupiah per dollar, and per yuan (and the others) through the dollar. */
     private fun rates(rates: JsonObject, date: String, source: String): ExchangeRates? {
-        val idr = (rates["IDR"] as? JsonPrimitive)?.doubleOrNull?.takeIf { it > 0 } ?: return null
-        val cny = (rates["CNY"] as? JsonPrimitive)?.doubleOrNull?.takeIf { it > 0 } ?: return null
-        return ExchangeRates(usd = idr, cny = idr / cny, date = date, source = source, fetchedAt = clock())
+        fun perDollar(code: String) = (rates[code] as? JsonPrimitive)?.doubleOrNull?.takeIf { it > 0 }
+        val idr = perDollar("IDR") ?: return null
+        val cny = perDollar("CNY") ?: return null
+        val others = OTHERS.mapNotNull { code -> perDollar(code)?.let { code to idr / it } }.toMap()
+        return ExchangeRates(usd = idr, cny = idr / cny, date = date, source = source, fetchedAt = clock(), others = others)
     }
 
     private suspend fun get(url: String): JsonObject? = try {
@@ -62,5 +64,8 @@ class RateSource(
 
     private companion object {
         const val TIMEOUT_S = 15L
+
+        /** What eBay sellers mostly price in, besides dollars. */
+        val OTHERS = listOf("EUR", "GBP", "JPY", "AUD", "CAD", "SGD", "MYR", "HKD")
     }
 }

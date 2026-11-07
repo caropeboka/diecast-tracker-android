@@ -24,14 +24,28 @@ enum class Currency(val key: String, val code: String, val symbol: String, val d
     }
 }
 
-/** How much one US dollar and one yuan cost in Rupiah, and from when. */
+/**
+ * How much one US dollar and one yuan cost in Rupiah, and from when; [others]: a few more currencies a price check may
+ * meet abroad (eBay), by ISO code.
+ */
 @Serializable
-data class ExchangeRates(val usd: Double, val cny: Double, val date: String, val source: String, val fetchedAt: Long) {
+data class ExchangeRates(
+    val usd: Double,
+    val cny: Double,
+    val date: String,
+    val source: String,
+    val fetchedAt: Long,
+    val others: Map<String, Double> = emptyMap(),
+) {
     fun idrPer(currency: Currency): Double? = when (currency) {
         Currency.IDR -> 1.0
         Currency.USD -> usd.takeIf { it > 0 }
         Currency.CNY -> cny.takeIf { it > 0 }
     }
+
+    /** By ISO code ("USD", "EUR"); null when unknown. */
+    fun idrPer(code: String): Double? = Currency.entries.find { it.code == code.uppercase() }?.let(::idrPer)
+        ?: others[code.uppercase()]?.takeIf { it > 0 }
 }
 
 /** How dates are written; [Language] the way the app's language writes them ("18 Okt 2026", "2026年10月18日"). */
