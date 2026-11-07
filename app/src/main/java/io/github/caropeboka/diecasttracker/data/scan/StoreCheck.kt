@@ -64,12 +64,18 @@ class StoreCheck(
      * Reads [photoName] (a pending photo) right away: the collector is waiting at the shelf. The AI's problems become
      * a failed check with the reason, never an exception.
      */
-    suspend fun check(photoName: String, onEvent: (AiEvent) -> Unit = {}): ScanItemEntity {
+    suspend fun check(photoName: String, onEvent: (AiEvent) -> Unit = {}): ScanItemEntity = read(queue(photoName), onEvent)
+
+    /**
+     * A check waiting its turn: shot along the shelf, one after another, and read one by one with [retry] (each photo
+     * is its own request). Pending until then.
+     */
+    suspend fun queue(photoName: String): ScanItemEntity {
         val item = ScanItemEntity(photoFile = photoName, source = ScanSource.Check, createdAt = clock())
-        return read(item.copy(id = dao.insert(item)), onEvent)
+        return item.copy(id = dao.insert(item))
     }
 
-    /** Another go at a check that failed (no signal at the shelf, a busy AI). Null when it is gone. */
+    /** Reads a queued check, or has another go at one that failed (no signal at the shelf, a busy AI). Null when it is gone. */
     suspend fun retry(id: Long, onEvent: (AiEvent) -> Unit = {}): ScanItemEntity? = dao.get(id)?.let { read(it, onEvent) }
 
     private suspend fun read(item: ScanItemEntity, onEvent: (AiEvent) -> Unit): ScanItemEntity {

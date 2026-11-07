@@ -163,6 +163,24 @@ class StoreCheckTest {
     }
 
     @Test
+    fun `photos shot in a row wait their turn, each read on its own`() = runBlocking {
+        val first = check.queue(env.pendingPhoto())
+        val second = check.queue(env.pendingPhoto())
+        assertEquals(listOf(ScanItemStatus.Pending, ScanItemStatus.Pending), listOf(first.status, second.status))
+        assertTrue(check.isOpen(first.id))
+        // Not the bulk scan's, so its worker leaves them alone.
+        assertNull(queue.next())
+        assertTrue(fake.calls.isEmpty())
+
+        fake.otherwise(200, FakeGemini.answer("""{"name": "Toyota AE86"}"""))
+        assertEquals("Toyota AE86", check.retry(first.id)!!.fields!!.name)
+        fake.otherwise(200, FakeGemini.answer("""{"name": "Honda S2000"}"""))
+        assertEquals("Honda S2000", check.retry(second.id)!!.fields!!.name)
+        // One request each (the model list aside).
+        assertEquals(2, fake.calls.count { it != "models" })
+    }
+
+    @Test
     fun `typed instead of photographed — every status, owned first, spotted ones too`() = runBlocking {
         val spotted = diecast("Nissan Skyline R32", status = DiecastStatus.Spotted)
         val owned = diecast("Nissan Skyline R34")

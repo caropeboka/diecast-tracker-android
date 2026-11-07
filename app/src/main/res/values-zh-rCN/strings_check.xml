@@ -4,9 +4,7 @@
     <string name="check_earlier">之前的查询</string>
     <string name="check_needs_ai">拍照查询需要 AI 扫描。请在 AI 设置中填写 API 密钥——打字搜索仍可使用。</string>
     <string name="open_ai_settings">打开 AI 设置 →</string>
-    <string name="checking">正在查询…</string>
     <string name="check_hero">拍下货架上的合金车</string>
-    <string name="check_hero_text">立刻知道是已拥有、在心愿单中，还是还没有。</string>
     <string name="check_another">再拍一辆</string>
     <string name="check_change_store">更改商店</string>
     <string name="check_store">商店</string>
@@ -41,8 +39,17 @@
     <string name="check_searching">正在搜索你的收藏</string>
     <string name="check_type_more">请至少输入 2 个字。</string>
     <string name="check_photo_gone">这张照片已不存在。</string>
-    <string name="check_still_unread">仍然无法识别。</string>
     <string name="check_now_own">%1$s：现在拥有 %2$d 件</string>
     <string name="check_moved_to_collection">%1$s 已移入收藏 🎉</string>
     <string name="failed_because">失败（%1$s）。</string>
+    <string name="check_hero_text">立刻知道是已拥有、在心愿单中，还是还没有。可以连拍多辆：每拍一张相机都会再次打开，直到你按返回。</string>
+    <string name="check_queue_title">AI 逐张识别</string>
+    <plurals name="check_queue_left">
+        <item quantity="other">还剩 %d 张</item>
+    </plurals>
+    <string name="check_queue_reading">正在识别第 %1$d 张，共 %2$d 张</string>
+    <string name="check_queue_keep_shooting">可以继续拍——每张识别完，结果就会显示在下方。</string>
+    <plurals name="check_retry_failed">
+        <item quantity="other">重试 %d 张失败的</item>
+    </plurals>
 </resources>

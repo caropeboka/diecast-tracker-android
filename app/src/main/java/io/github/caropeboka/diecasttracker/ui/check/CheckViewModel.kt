@@ -35,6 +35,7 @@ import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,9 +79,14 @@ data class CheckResult(
     val createdId: Long? = null,
     /** Saved through the form, which took the photo. */
     val saved: Boolean = false,
+    /** Shot, waiting its turn to be read (or read again). */
+    val pending: Boolean = false,
 ) {
     /** Nothing left to do with it but the one-tap actions on its matches. */
     val done get() = loggedAt != null || saved
+
+    /** Read and failed, and can be tried again. */
+    val retryable get() = failed && !pending && checkId != 0L && !done
 
     val name: String? get() = fields?.name ?: query
 }
@@ -124,12 +130,15 @@ class CheckViewModel(
 
     var place by mutableStateOf(saved.get<String>(PLACE)?.let { runCatching { Json.decodeFromString<PlaceValue>(it) }.getOrNull() } ?: PlaceValue())
         private set
-    var checking by mutableStateOf(false)
+
+    /** The queued check being read now. */
+    var reading by mutableStateOf<Long?>(null)
         private set
+    private var reader: Job? = null
 
     private val log = AiProgressLog(texts, R.string.ai_hint_quick)
 
-    /** What the running check (or retry) is doing, step by step. */
+    /** What the photo being read is going through, step by step. */
     val progress: StateFlow<AiProgress?> = log.state
     var busy by mutableStateOf(emptySet<Long>())
         private set
@@ -149,6 +158,8 @@ class CheckViewModel(
             saved[CAMERA_OPENED] = true
             viewModelScope.launch { if (scanner.isEnabled()) _events.send(CheckEvent.OpenCamera) }
         }
+        // Photos still waiting when the process was killed behind the camera.
+        if (_results.value.any { it.pending }) readQueue()
     }
 
     fun changePlace(value: PlaceValue) {
@@ -183,6 +194,10 @@ class CheckViewModel(
         return uri
     }
 
+    /**
+     * A photo taken: it joins the queue and the camera opens again for the next diecast along the shelf, until the
+     * collector backs out. The AI reads the queue meanwhile, one photo at a time.
+     */
     fun onCameraResult(success: Boolean) {
         val file = saved.get<String>(CAMERA)?.let(::File) ?: return
         saved[CAMERA] = null
@@ -190,23 +205,53 @@ class CheckViewModel(
             file.delete()
             return
         }
-        checking = true
-        log.start(texts(R.string.studio_preparing))
+        _events.trySend(CheckEvent.OpenCamera)
         viewModelScope.launch {
             try {
                 val photo = withContext(Dispatchers.IO) { photos.addFromCamera(file) }
-                val item = store.check(photo, log::onEvent)
-                log.step(texts(R.string.check_searching))
-                add(result(item))
+                val item = store.queue(photo)
+                add(CheckResult(key = item.id, checkId = item.id, photo = photo, pending = true))
+                readQueue()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: PhotoException) {
                 messages.show(e.message.orEmpty())
             } catch (e: Exception) {
                 messages.show(texts(R.string.edit_photo_failed, e.message ?: e::class.simpleName.orEmpty()))
+            }
+        }
+    }
+
+    /** Reads the waiting photos oldest first, one request each; a finished one comes to the top, open. */
+    private fun readQueue() {
+        if (reader?.isActive == true) return
+        reader = viewModelScope.launch {
+            var read = 0
+            try {
+                while (true) {
+                    val next = _results.value.lastOrNull { it.pending } ?: break
+                    reading = next.key
+                    log.start(texts(R.string.check_queue_reading, read + 1, read + _results.value.count { it.pending }))
+                    val done = try {
+                        val item = store.retry(next.checkId, log::onEvent)
+                        if (item == null) {
+                            next.copy(failed = true, error = texts(R.string.check_photo_gone))
+                        } else {
+                            log.step(texts(R.string.check_searching))
+                            result(item).copy(price = next.price)
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        next.copy(failed = true, error = texts(R.string.failed_because, e.message ?: e::class.simpleName.orEmpty()))
+                    } finally {
+                        log.stop()
+                    }
+                    finish(next.key, done.copy(pending = false))
+                    read++
+                }
             } finally {
-                checking = false
-                log.stop()
+                reading = null
             }
         }
     }
@@ -231,21 +276,15 @@ class CheckViewModel(
         }
     }
 
-    fun retry(result: CheckResult) = act(result.key) {
-        log.start(texts(R.string.studio_preparing))
-        try {
-            val item = store.retry(result.checkId, log::onEvent)
-            if (item == null) {
-                messages.show(texts(R.string.check_photo_gone))
-            } else {
-                log.step(texts(R.string.check_searching))
-                val read = result(item)
-                change(result.key) { it.copy(fields = read.fields, failed = read.failed, error = read.error, matchIds = read.matchIds) }
-                if (read.failed) messages.show(read.error ?: texts(R.string.check_still_unread))
-            }
-        } finally {
-            log.stop()
-        }
+    /** Back in the queue: read again when its turn comes. */
+    fun retry(result: CheckResult) = retry { it.key == result.key }
+
+    /** Every failed one back in the queue (no signal along the shelf, say). */
+    fun retryFailed() = retry { true }
+
+    private fun retry(which: (CheckResult) -> Boolean) {
+        change({ it.retryable && which(it) }) { it.copy(pending = true, failed = false, error = null) }
+        readQueue()
     }
 
     private suspend fun result(item: ScanItemEntity): CheckResult {
@@ -310,13 +349,22 @@ class CheckViewModel(
         }
     }
 
+    /** On top; the oldest drop off, but never one still waiting to be read. */
     private fun add(result: CheckResult) {
-        _results.update { (listOf(result) + it).take(MAX_RESULTS) }
+        _results.update { all -> (listOf(result) + all).filterIndexed { index, it -> index < MAX_RESULTS || it.pending } }
         persist()
     }
 
-    private fun change(key: Long, change: (CheckResult) -> CheckResult) {
-        _results.update { all -> all.map { if (it.key == key) change(it) else it } }
+    /** [result] replaces the one with its key and comes to the top. */
+    private fun finish(key: Long, result: CheckResult) {
+        _results.update { all -> if (all.none { it.key == key }) all else listOf(result) + all.filter { it.key != key } }
+        persist()
+    }
+
+    private fun change(key: Long, change: (CheckResult) -> CheckResult) = change({ it.key == key }, change)
+
+    private fun change(which: (CheckResult) -> Boolean, change: (CheckResult) -> CheckResult) {
+        _results.update { all -> all.map { if (which(it)) change(it) else it } }
         persist()
     }
 
@@ -325,8 +373,8 @@ class CheckViewModel(
     }
 
     companion object {
-        /** Older checks drop off the screen (web: 10). */
-        const val MAX_RESULTS = 10
+        /** Older checks drop off the screen (web: 10; a row of photos along a shelf runs longer). */
+        const val MAX_RESULTS = 30
 
         private const val RESULTS = "results"
         private const val PLACE = "place"

@@ -4,9 +4,7 @@
     <string name="check_earlier">Cek sebelumnya</string>
     <string name="check_needs_ai">Cek dengan foto butuh scan AI. Isi API key di Pengaturan AI — mencari dengan mengetik tetap bisa.</string>
     <string name="open_ai_settings">Buka Pengaturan AI →</string>
-    <string name="checking">Mengecek…</string>
     <string name="check_hero">Foto diecast di rak</string>
-    <string name="check_hero_text">Langsung ketahuan sudah punya, ada di wishlist, atau belum.</string>
     <string name="check_another">Foto diecast lain</string>
     <string name="check_change_store">Ubah toko</string>
     <string name="check_store">Toko</string>
@@ -41,8 +39,17 @@
     <string name="check_searching">Mencari di koleksimu</string>
     <string name="check_type_more">Ketik minimal 2 huruf.</string>
     <string name="check_photo_gone">Foto ini sudah tidak ada.</string>
-    <string name="check_still_unread">Masih belum terbaca.</string>
     <string name="check_now_own">%1$s: sekarang punya %2$d×</string>
     <string name="check_moved_to_collection">%1$s dipindah ke koleksi 🎉</string>
     <string name="failed_because">Gagal (%1$s).</string>
+    <string name="check_hero_text">Langsung ketahuan sudah punya, ada di wishlist, atau belum. Bisa beberapa sekaligus: kamera terbuka lagi setelah tiap foto sampai kamu tekan Kembali.</string>
+    <string name="check_queue_title">Dibaca AI satu per satu</string>
+    <plurals name="check_queue_left">
+        <item quantity="other">%d foto lagi</item>
+    </plurals>
+    <string name="check_queue_reading">Membaca foto %1$d dari %2$d</string>
+    <string name="check_queue_keep_shooting">Boleh terus memotret — hasilnya muncul di bawah begitu terbaca.</string>
+    <plurals name="check_retry_failed">
+        <item quantity="other">Coba lagi %d yang gagal</item>
+    </plurals>
 </resources>

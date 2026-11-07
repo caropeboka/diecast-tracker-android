@@ -9,6 +9,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -54,12 +56,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -80,6 +84,7 @@ import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.data.scan.Verdict
+import io.github.caropeboka.diecasttracker.ui.components.AiProgress
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.Badge
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
@@ -148,9 +153,13 @@ fun CheckScreen(
         snackbarHost = { SnackbarHost(LocalSnackbar.current) },
         // Checking one after another along the shelf: the camera stays under the thumb.
         bottomBar = {
-            if (enabled == true && results.isNotEmpty()) CameraBar(viewModel.checking, openCamera)
+            if (enabled == true && results.isNotEmpty()) CameraBar(openCamera)
         },
     ) { padding ->
+        // Waiting for the AI in the order they were shot; the rest as read, the latest on top.
+        val queued = results.filter { it.pending }.asReversed()
+        val shown = results.filterNot { it.pending }
+        val failed = shown.count { it.retryable }
         // Older checks fold into a line each; the newest is always open.
         var unfolded by rememberSaveable { mutableStateOf(emptyList<Long>()) }
         LazyColumn(
@@ -165,15 +174,20 @@ fun CheckScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when {
                         enabled == false -> AiOff(onAiSettings)
-                        results.isEmpty() -> CameraHero(viewModel.checking, enabled == true, openCamera)
+                        results.isEmpty() -> CameraHero(enabled == true, openCamera)
                     }
-                    progress?.let { AiProgressView(it) }
+                    if (queued.isNotEmpty()) QueuePanel(queued, viewModel.reading, progress)
+                    if (failed > 1) {
+                        OutlinedButton(onClick = viewModel::retryFailed, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+                            IconLabel(R.drawable.ic_sync, pluralStringResource(R.plurals.check_retry_failed, failed, failed))
+                        }
+                    }
                 }
             }
             item(key = "search") {
                 SearchBox(viewModel.query, viewModel::changeQuery, viewModel::search)
             }
-            itemsIndexed(results, key = { _, result -> result.key }) { index, result ->
+            itemsIndexed(shown, key = { _, result -> result.key }) { index, result ->
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (index == 1) SubHeading(stringResource(R.string.check_earlier), Modifier.padding(top = 8.dp))
                     if (index == 0 || result.key in unfolded) {
@@ -215,7 +229,7 @@ private fun AiOff(onAiSettings: () -> Unit) {
 
 /** Before the first check: the one big thing to do at the shelf. */
 @Composable
-private fun CameraHero(checking: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun CameraHero(enabled: Boolean, onClick: () -> Unit) {
     val shape = MaterialTheme.shapes.large
     Column(
         Modifier
@@ -223,19 +237,15 @@ private fun CameraHero(checking: Boolean, enabled: Boolean, onClick: () -> Unit)
             .clip(shape)
             .background(Brush.verticalGradient(listOf(Garage.Brand.copy(alpha = 0.16f), Garage.Card)))
             .border(1.dp, Garage.Brand.copy(alpha = 0.4f), shape)
-            .clickable(enabled = enabled && !checking, role = Role.Button, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(Modifier.size(72.dp).clip(CircleShape).background(Garage.Brand), contentAlignment = Alignment.Center) {
-            if (checking) {
-                CircularProgressIndicator(Modifier.size(32.dp), color = Garage.OnBrand, strokeWidth = 3.dp)
-            } else {
-                Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, tint = Garage.OnBrand, modifier = Modifier.size(34.dp))
-            }
+            Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, tint = Garage.OnBrand, modifier = Modifier.size(34.dp))
         }
-        Text(stringResource(if (checking) R.string.checking else R.string.check_hero), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.check_hero), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Text(
             stringResource(R.string.check_hero_text),
             style = MaterialTheme.typography.bodyMedium,
@@ -245,14 +255,13 @@ private fun CameraHero(checking: Boolean, enabled: Boolean, onClick: () -> Unit)
     }
 }
 
-/** After the first check: the camera at the bottom, for the next one along the shelf. */
+/** After the first check: the camera at the bottom, for the next one along the shelf (also while the AI reads). */
 @Composable
-private fun CameraBar(checking: Boolean, onClick: () -> Unit) {
+private fun CameraBar(onClick: () -> Unit) {
     Column(Modifier.fillMaxWidth().background(Garage.Background)) {
         HorizontalDivider(color = Garage.Border)
         Button(
             onClick = onClick,
-            enabled = !checking,
             shape = MaterialTheme.shapes.large,
             modifier = Modifier
                 .navigationBarsPadding()
@@ -260,14 +269,55 @@ private fun CameraBar(checking: Boolean, onClick: () -> Unit) {
                 .fillMaxWidth()
                 .height(56.dp),
         ) {
-            if (checking) {
-                CircularProgressIndicator(Modifier.size(22.dp), color = LocalContentColor.current, strokeWidth = 3.dp)
-            } else {
-                Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, Modifier.size(24.dp))
-            }
+            Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, Modifier.size(24.dp))
             Spacer(Modifier.size(12.dp))
-            Text(stringResource(if (checking) R.string.checking else R.string.check_another), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.check_another), style = MaterialTheme.typography.titleMedium)
         }
+    }
+}
+
+/** Photos shot along the shelf, waiting for the AI: read one at a time, the one being read first. */
+@Composable
+private fun QueuePanel(queued: List<CheckResult>, reading: Long?, progress: AiProgress?) {
+    val shape = MaterialTheme.shapes.large
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Garage.Card)
+            .border(1.dp, Garage.Brand.copy(alpha = 0.4f), shape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(painterResource(R.drawable.ic_sparkles), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(22.dp))
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.check_queue_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    pluralStringResource(R.plurals.check_queue_left, queued.size, queued.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Garage.MutedForeground,
+                )
+            }
+        }
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            queued.forEach { item ->
+                val now = item.key == reading
+                val thumb = RoundedCornerShape(6.dp)
+                Box(
+                    Modifier
+                        .size(56.dp)
+                        .clip(thumb)
+                        .then(if (now) Modifier.border(2.dp, Garage.Brand, thumb) else Modifier),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CheckPhoto(item, Modifier.matchParentSize().alpha(if (now) 1f else 0.5f), 22.dp)
+                    if (now) CircularProgressIndicator(Modifier.size(24.dp), color = Garage.Brand, strokeWidth = 3.dp)
+                }
+            }
+        }
+        progress?.let { AiProgressView(it, framed = false) }
+        Text(stringResource(R.string.check_queue_keep_shooting), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
     }
 }
 
@@ -524,7 +574,7 @@ private fun ResultCard(
                         }
                     }
                     MainAction.Retry -> Button(onClick = { viewModel.retry(result) }, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = wide) {
-                        IconLabel(R.drawable.ic_sync, stringResource(if (busy) R.string.checking else R.string.retry))
+                        IconLabel(R.drawable.ic_sync, stringResource(R.string.retry))
                     }
                     null -> Unit
                 }

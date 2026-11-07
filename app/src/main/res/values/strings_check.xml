@@ -4,9 +4,7 @@
     <string name="check_earlier">Earlier checks</string>
     <string name="check_needs_ai">A check by photo needs the AI scan. Add an API key in the AI settings — searching by typing still works.</string>
     <string name="open_ai_settings">Open the AI settings →</string>
-    <string name="checking">Checking…</string>
     <string name="check_hero">Photograph the diecast on the shelf</string>
-    <string name="check_hero_text">See at once whether you own it, want it, or not yet.</string>
     <string name="check_another">Photograph another diecast</string>
     <string name="check_change_store">Change store</string>
     <string name="check_store">Store</string>
@@ -41,8 +39,19 @@
     <string name="check_searching">Searching your collection</string>
     <string name="check_type_more">Type at least 2 letters.</string>
     <string name="check_photo_gone">This photo isn\'t there any more.</string>
-    <string name="check_still_unread">Still couldn\'t read it.</string>
     <string name="check_now_own">%1$s: you now own %2$d×</string>
     <string name="check_moved_to_collection">%1$s moved to the collection 🎉</string>
     <string name="failed_because">Failed (%1$s).</string>
+    <string name="check_hero_text">See whether you own it, want it, or not yet. Shoot several in a row: the camera opens again after each photo until you go back.</string>
+    <string name="check_queue_title">The AI reads them one by one</string>
+    <plurals name="check_queue_left">
+        <item quantity="one">%d photo to go</item>
+        <item quantity="other">%d photos to go</item>
+    </plurals>
+    <string name="check_queue_reading">Reading photo %1$d of %2$d</string>
+    <string name="check_queue_keep_shooting">Keep shooting if you like — each result shows below once it\'s read.</string>
+    <plurals name="check_retry_failed">
+        <item quantity="one">Try the %d failed one again</item>
+        <item quantity="other">Try the %d failed ones again</item>
+    </plurals>
 </resources>
