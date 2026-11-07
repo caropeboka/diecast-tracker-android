@@ -73,6 +73,47 @@ class GarageGeometryTest {
     }
 
     @Test
+    fun `a big one stands behind the small ones, so the front edge still takes them all`() {
+        val big = OnTier(0.267f, 0.12f, 45f)
+        val small = listOf(20f, 35f, 50f, 65f).map { OnTier(0.075f, 0.034f, it) }
+        // Along the front edge alone there's no room for all five.
+        assertTrue(tierSpots(1, small + big).any { it == null })
+
+        val spots = tierLayout(1, small + big, listOf(false, false, false, false, true), emptyList())
+        assertTrue(spots.diecasts.all { it != null })
+        val back = spots.diecasts.last()!!
+        assertTrue(back.back)
+        assertEquals(45f, back.facing)
+        spots.diecasts.take(4).forEachIndexed { i, spot ->
+            assertTrue(!spot!!.back)
+            assertEquals(small[i].angle, spot.angle, 0.01f)
+            assertTrue(spot.radius - small[i].depth / 2 > back.radius + big.depth / 2)
+        }
+
+        // A full back row sends what's left to the front edge, while it has room.
+        val two = tierLayout(0, listOf(big, OnTier(0.2f, 0.09f, 30f)), listOf(true, true), emptyList())
+        assertEquals(1, two.diecasts.count { it?.back == true })
+        assertEquals(1, two.diecasts.count { it?.back == false })
+    }
+
+    @Test
+    fun `cards stand on the black shelf too, at the back`() {
+        val rows = listOf(
+            row(1, Packaging.Carded, slot = ShelfSlotEntity(1, Shelf.Corner, 1, 450)),
+            row(2, Packaging.Loose, "1:18", slot = ShelfSlotEntity(2, Shelf.Corner, 1, 300)),
+            row(3, Packaging.Loose, slot = ShelfSlotEntity(3, Shelf.Corner, 1, 600)),
+        )
+        val layout = layOut(rows, rows.associate { it.id to item(it) })
+        assertTrue(layout.overflow.isEmpty())
+        assertEquals(setOf(1L, 2L, 3L), layout.placed.map { it.item.id }.toSet())
+        // Facing down the diagonal, the card tipped back; the small car faces out from where it was put.
+        val card = layout.placed.first { it.item.id == 1L }
+        assertEquals(45f, card.rest.yaw, 0.01f)
+        assertTrue(card.rest.pitch < 0)
+        assertEquals(30f, layout.placed.first { it.item.id == 3L }.rest.yaw, 0.01f)
+    }
+
+    @Test
     fun `cards stack in the order they were put, and what no longer fits goes back to the tray`() {
         val rows = listOf(
             row(1, Packaging.Carded, slot = ShelfSlotEntity(1, Shelf.Boards, 2, 5)),

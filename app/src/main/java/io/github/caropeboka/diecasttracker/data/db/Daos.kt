@@ -36,6 +36,9 @@ interface DiecastDao {
     @Query("SELECT * FROM diecasts WHERE id = :id")
     suspend fun get(id: Long): DiecastEntity?
 
+    @Query("SELECT * FROM diecasts WHERE id IN (:ids)")
+    suspend fun getAll(ids: List<Long>): List<DiecastEntity>
+
     /** Every diecast as the dashboard adds it up (see [io.github.caropeboka.diecasttracker.data.dashboard.Dashboard]). */
     @Query(
         """
@@ -55,7 +58,8 @@ interface DiecastDao {
         """
         SELECT d.id, d.name, d.packaging, d.scale,
             (SELECT p.file_name FROM diecast_photos p WHERE p.diecast_id = d.id ORDER BY p.position, p.id LIMIT 1) AS cover_file,
-            s.shelf, s.spot, s.position
+            s.shelf, s.spot, s.position,
+            d.brand, d.series, d.year, d.collection_number, d.rarity, d.quantity, d.purchase_price, d.market_value
         FROM diecasts d LEFT JOIN shelf_slots s ON s.diecast_id = d.id WHERE d.status = 'owned' ORDER BY d.id
         """,
     )
@@ -163,6 +167,10 @@ interface SightingDao {
     @Query("SELECT * FROM sightings WHERE diecast_id = :diecastId ORDER BY seen_on DESC, id DESC")
     fun observeFor(diecastId: Long): Flow<List<SightingEntity>>
 
+    /** The ones with a shelf price, newest first. */
+    @Query("SELECT * FROM sightings WHERE diecast_id IN (:ids) AND price > 0 ORDER BY seen_on DESC, id DESC")
+    suspend fun pricedFor(ids: List<Long>): List<SightingEntity>
+
     @Query("SELECT photo_file FROM sightings WHERE diecast_id = :diecastId AND photo_file IS NOT NULL")
     suspend fun photoFiles(diecastId: Long): List<String>
 
@@ -199,6 +207,13 @@ interface PriceCheckDao {
             "updated_at = :at WHERE id = :diecastId",
     )
     suspend fun setMarketValue(diecastId: Long, value: Long, at: Long)
+
+    /** The diecast's market value now comes from the AI's rough estimate. */
+    @Query(
+        "UPDATE diecasts SET market_value = :value, market_value_source = 'ai_estimate', market_value_updated_at = :at, " +
+            "updated_at = :at WHERE id = :diecastId",
+    )
+    suspend fun setEstimatedValue(diecastId: Long, value: Long, at: Long)
 }
 
 /** The bulk scan queue (web: `BulkScanController`). */
@@ -343,8 +358,9 @@ interface PlaceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun cache(entry: PlaceCacheEntity)
 
-    @Query("DELETE FROM place_cache WHERE fetched_at < :before")
-    suspend fun pruneCache(before: Long)
+    /** Regions (`osm-region:` keys) are kept until [regionsBefore], everything else until [before]. */
+    @Query("DELETE FROM place_cache WHERE fetched_at < CASE WHEN `key` LIKE 'osm-region:%' THEN :regionsBefore ELSE :before END")
+    suspend fun pruneCache(before: Long, regionsBefore: Long)
 }
 
 /** The Dex: catalogs, their items, and which diecast is which item (web: the `Services/Dex` classes). */
@@ -361,8 +377,9 @@ interface DexDao {
     @Query("SELECT * FROM catalogs WHERE id = :id")
     fun observeCatalog(id: Long): Flow<CatalogEntity?>
 
-    @Query("SELECT * FROM catalogs WHERE source = :source AND year = :year")
-    suspend fun catalogFor(source: String, year: Int): CatalogEntity?
+    /** [year] null: a wiki with one list. */
+    @Query("SELECT * FROM catalogs WHERE source = :source AND year IS :year")
+    suspend fun catalogFor(source: String, year: Int?): CatalogEntity?
 
     @Query("SELECT * FROM catalogs ORDER BY id")
     suspend fun allCatalogs(): List<CatalogEntity>

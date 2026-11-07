@@ -310,7 +310,10 @@ data class DashboardRow(
     @ColumnInfo(name = "has_tags") val hasTags: Boolean,
 )
 
-/** An owned diecast as the 3D garage shows it: where it stands, its scale for the size of a box. */
+/**
+ * An owned diecast as the 3D garage shows it: where it stands, its scale for the size of a box, and what its card
+ * says when it is picked up.
+ */
 data class ShelfRow(
     val id: Long,
     val name: String,
@@ -320,6 +323,14 @@ data class ShelfRow(
     @ColumnInfo(name = "shelf") val shelfKey: String?,
     val spot: Int?,
     val position: Int?,
+    val brand: String? = null,
+    val series: String? = null,
+    val year: Int? = null,
+    @ColumnInfo(name = "collection_number") val collectionNumber: String? = null,
+    val rarity: Rarity = Rarity.Regular,
+    val quantity: Int = 1,
+    @ColumnInfo(name = "purchase_price") val purchasePrice: Long? = null,
+    @ColumnInfo(name = "market_value") val marketValue: Long? = null,
 ) {
     /** Null while it waits in the tray. */
     val slot: ShelfSlotEntity? get() = Shelf.fromKey(shelfKey)?.let { ShelfSlotEntity(id, it, spot ?: 0, position ?: 0) }

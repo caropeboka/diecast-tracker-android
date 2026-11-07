@@ -243,7 +243,8 @@ class GarageViewModel(
             val scene = scene.value ?: return@launch
             val waiting = scene.tray
             val waitingIds = waiting.map { it.id }.toSet()
-            val items = items(scene.rows.filter { it.slot != null && it.id !in waitingIds } + waiting.filter { it.packaging != Packaging.Carded })
+            // Cards too: with the lanes full they stand on the black shelf.
+            val items = items(scene.rows.filter { it.slot != null && it.id !in waitingIds } + waiting)
             val moves = withContext(Dispatchers.Default) { arrange(scene.rows, waiting, items, scene.decor) }
             shelves.apply(moves)
             val left = waiting.size - moves.size
@@ -313,7 +314,7 @@ class GarageViewModel(
 
 @StringRes
 private fun doesNotFit(row: ShelfRow, shelf: Shelf) = when {
-    row.packaging == Packaging.Carded -> R.string.garage_cards_on_boards
+    row.packaging == Packaging.Carded -> R.string.garage_case_no_cards
     shelf == Shelf.Boards -> R.string.garage_boards_cards_only
     shelf == Shelf.Case -> R.string.garage_case_small_only
     else -> R.string.garage_does_not_fit

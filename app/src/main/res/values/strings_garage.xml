@@ -26,9 +26,7 @@
     </plurals>
     <string name="garage_lane_full">That lane is full: %1$d cards.</string>
     <string name="garage_to_tray_done">%1$s went into the tray.</string>
-    <string name="garage_cards_on_boards">Cards (blister) only go on the boards.</string>
     <string name="garage_boards_cards_only">The boards are for cards (blister) only.</string>
-    <string name="garage_case_small_only">The white case only takes 1:64 or smaller.</string>
     <string name="garage_does_not_fit">It doesn\'t fit there.</string>
     <string name="garage_quality_normal">Normal</string>
     <string name="garage_quality_plain">Plain</string>
@@ -72,4 +70,6 @@
     <string name="decor_height_hint">So it\'s the right size next to the diecasts.</string>
     <string name="decor_edit">Edit decoration</string>
     <string name="decor_delete_text">The decoration leaves the garage. Your diecast collection doesn\'t change.</string>
+    <string name="garage_case_no_cards">Cards (blister) go on the boards or the black shelf.</string>
+    <string name="garage_case_small_only">The white case only takes 1:60 or smaller.</string>
 </resources>

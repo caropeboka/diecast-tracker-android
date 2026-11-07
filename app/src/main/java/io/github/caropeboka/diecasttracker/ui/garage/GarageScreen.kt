@@ -93,11 +93,13 @@ import io.github.caropeboka.diecasttracker.data.shelf.ShelfLayout
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
+import io.github.caropeboka.diecasttracker.ui.components.RarityBadge
 import io.github.caropeboka.diecasttracker.ui.components.SubHeading
 import io.github.caropeboka.diecasttracker.ui.components.rememberTexts
 import io.github.caropeboka.diecasttracker.ui.sharedDiecastCard
 import io.github.caropeboka.diecasttracker.ui.sharedGarage
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
+import io.github.caropeboka.diecasttracker.util.formatMoney
 import io.github.sceneview.RenderQuality
 import io.github.sceneview.SceneScope
 import io.github.sceneview.SceneView
@@ -726,7 +728,7 @@ fun GarageScreen(
                             TextButton(onClick = { carrying = null }) { Text(stringResource(R.string.cancel)) }
                         }
                     }
-                    holding != null -> Bar(holding, holding.slot?.let { ShelfLayout.label(texts, it) } ?: stringResource(R.string.garage_in_tray)) {
+                    holding != null -> HeldCard(holding, holding.slot?.let { ShelfLayout.label(texts, it) } ?: stringResource(R.string.garage_in_tray), onOpen = { open(holding.id) }) {
                         TextButton(
                             onClick = {
                                 carrying = holding.id
@@ -902,6 +904,58 @@ private fun Bar(row: ShelfRow, text: String, actions: @Composable () -> Unit) {
             Column(Modifier.padding(start = 10.dp).weight(1f)) {
                 Text(row.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(text, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+            }
+        }
+        Row(Modifier.align(Alignment.End)) { actions() }
+    }
+}
+
+/**
+ * The diecast in hand: what its card says (brand, series, year, number, rarity, value) and where it stands. A tap on
+ * the card opens its page, like "Detail".
+ */
+@Composable
+private fun HeldCard(row: ShelfRow, place: String, onOpen: () -> Unit, actions: @Composable () -> Unit) {
+    val shape = MaterialTheme.shapes.medium
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Garage.Card.copy(alpha = 0.96f))
+            .border(1.dp, Garage.Border, shape)
+            .clickable(onClickLabel = stringResource(R.string.garage_details), onClick = onOpen)
+            .padding(start = 12.dp, top = 12.dp, end = 4.dp, bottom = 2.dp),
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            DiecastPhoto(row.coverFile, contentDescription = null, modifier = Modifier.size(64.dp).clip(MaterialTheme.shapes.small), placeholderSize = 28.dp)
+            Column(Modifier.padding(start = 12.dp, end = 8.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(row.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                val identity = listOfNotNull(row.brand, row.series, row.year?.toString()).joinToString(" · ")
+                if (identity.isNotEmpty()) {
+                    Text(identity, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                Text(
+                    listOfNotNull(
+                        row.collectionNumber?.let { "#$it" },
+                        row.scale,
+                        stringResource(row.packaging.label),
+                        row.quantity.takeIf { it > 1 }?.let { "×$it" },
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Garage.MutedForeground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                RarityBadge(row.rarity, Modifier.padding(top = 2.dp))
+                val value = listOfNotNull(
+                    row.marketValue?.let { stringResource(R.string.field_market_value) + " " + formatMoney(it) },
+                    row.purchasePrice?.let { stringResource(R.string.field_purchase_price) + " " + formatMoney(it) },
+                ).joinToString(" · ")
+                if (value.isNotEmpty()) Text(value, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(painterResource(R.drawable.ic_place), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(14.dp))
+                    Text(place, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                }
             }
         }
         Row(Modifier.align(Alignment.End)) { actions() }

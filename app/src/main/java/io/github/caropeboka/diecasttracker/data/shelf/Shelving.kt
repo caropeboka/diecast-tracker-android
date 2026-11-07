@@ -10,7 +10,7 @@ enum class Shelf(val key: String) {
     /** The two MDF boards: eight lanes the cards slide down, stacking from the bottom. */
     Boards("boards"),
 
-    /** The black corner shelf: three tiers, boxes and loose cars anywhere along them. */
+    /** The black corner shelf: three tiers, anything anywhere along them. */
     Corner("corner"),
 
     /** The white case: compartments for loose cars and small boxes. */
@@ -33,6 +33,9 @@ object ShelfLayout {
     const val CASE_COLUMNS = 6
     const val CASE_ROWS = 10
 
+    /** The largest scale a compartment takes: 1:60 (Tomica), 1:62 (Majorette) and 1:64 still fit. */
+    const val CASE_LARGEST = 60
+
     private val TIER_NAMES = listOf(R.string.shelf_tier_bottom, R.string.shelf_tier_middle, R.string.shelf_tier_top)
 
     /** Lanes, tiers (lowest first) or compartments (row by row from the top left). */
@@ -42,11 +45,11 @@ object ShelfLayout {
         Shelf.Case -> CASE_COLUMNS * CASE_ROWS
     }
 
-    /** Cards hang on the boards; a compartment takes a loose car or a box up to 1:64, the black shelf any of them. */
+    /** Cards hang on the boards; a compartment takes a loose car or a box up to 1:60; the black shelf takes anything. */
     fun fits(shelf: Shelf, packaging: Packaging, scale: String?): Boolean = when (shelf) {
         Shelf.Boards -> packaging == Packaging.Carded
-        Shelf.Case -> packaging != Packaging.Carded && scaleRatio(scale) >= 64
-        Shelf.Corner -> packaging != Packaging.Carded
+        Shelf.Case -> packaging != Packaging.Carded && scaleRatio(scale) >= CASE_LARGEST
+        Shelf.Corner -> true
     }
 
     /** Its "Lokasi simpan": "Board 2 · lane 1", "Black shelf · middle tier", "White case · row 3 column 2". */

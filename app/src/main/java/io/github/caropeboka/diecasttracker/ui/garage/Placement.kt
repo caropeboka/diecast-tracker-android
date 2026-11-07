@@ -21,6 +21,13 @@ import kotlin.math.sin
 private const val CARD_W = 0.108f
 private const val CARD_H = 0.165f
 
+/** A card standing on the black shelf: as deep as its blister, tipped back against nothing much. */
+private const val CARD_D = 0.03f
+private const val CARD_TILT = 8f
+
+/** From this scale up (1:32, 1:24, 1:18…) a diecast stands in the black shelf's back row, like the cards. */
+private const val BIG_SCALE = 40f
+
 /** How much of each card shows below the one above it, which hangs in front of it: the car's blister. */
 private const val STEP = 0.044f
 private const val BOTTOM = LEDGE_TOP + 0.001f
@@ -92,12 +99,13 @@ internal fun layOut(rows: List<ShelfRow>, items: Map<Long, ShelfItem>, decor: Li
         val figures = decor.filter { it.tier == tier }
         if (standing.isEmpty() && figures.isEmpty()) continue
         val sizes = standing.map { cornerSize(it.item) }
-        val spots = tierSpots(
+        val spots = tierLayout(
             tier,
-            standing.mapIndexed { i, it -> OnTier(sizes[i].x, sizes[i].z, it.slot.position / 10f) } +
-                figures.map { OnTier(it.size.x, it.size.z, it.position / 10f) },
+            standing.mapIndexed { i, it -> OnTier(sizes[i].x, sizes[i].z, it.slot.position / 10f) },
+            standing.map { atBack(it.item) },
+            figures.map { OnTier(it.size.x, it.size.z, it.position / 10f) },
         )
-        spots.take(standing.size).forEachIndexed { i, spot ->
+        spots.diecasts.forEachIndexed { i, spot ->
             val id = standing[i].row.id
             if (spot == null) {
                 overflow += id
@@ -107,7 +115,7 @@ internal fun layOut(rows: List<ShelfRow>, items: Map<Long, ShelfItem>, decor: Li
             }
         }
         // A decoration with no room left isn't drawn until something makes way.
-        spots.drop(standing.size).forEachIndexed { i, spot ->
+        spots.decor.forEachIndexed { i, spot ->
             if (spot != null) {
                 placedDecor += standUp(figures[i], spot)
                 decorAngles[figures[i].id] = spot.angle
@@ -201,18 +209,28 @@ private fun inCompartment(item: ShelfItem, cell: Int): Placed {
     }
 }
 
-/** On a tier of the black shelf, its front facing out; tipped forward as it comes off. */
+/** On a tier of the black shelf, its front facing out (a card tipped back a little); tipped forward as it comes off. */
 private fun onTier(item: ShelfItem, spot: ShelfSpot, size: Size): Placed {
     val angle = Math.toRadians(spot.angle.toDouble())
-    val outX = cos(angle).toFloat()
-    val outZ = sin(angle).toFloat()
-    val centre = onShelf(spot.radius * outX, TIER_TOPS[spot.tier] + size.y / 2, spot.radius * outZ)
-    val pull = size.z / 2 + 0.07f
-    val clear = Position(centre.x + outX * pull, centre.y + 0.015f, centre.z + outZ * pull)
-    return Placed(item, Pose(centre, 90f - spot.angle, 0f), Pose(clear, 90f - spot.angle, 12f), size)
+    val facing = Math.toRadians(spot.facing.toDouble())
+    val outX = cos(facing).toFloat()
+    val outZ = sin(facing).toFloat()
+    val centre = onShelf(spot.radius * cos(angle).toFloat(), TIER_TOPS[spot.tier] + size.y / 2, spot.radius * sin(angle).toFloat())
+    // From the back row up over the front one and out past the edge.
+    val pull = size.z / 2 + 0.07f + if (spot.back) SHELF_R - spot.radius else 0f
+    val clear = Position(centre.x + outX * pull, centre.y + if (spot.back) 0.06f else 0.015f, centre.z + outZ * pull)
+    val tilt = if (item.packaging == Packaging.Carded) -CARD_TILT else 0f
+    return Placed(item, Pose(centre, 90f - spot.facing, tilt), Pose(clear, 90f - spot.facing, 12f), size)
 }
 
-private fun cornerSize(item: ShelfItem) = if (item.packaging == Packaging.Boxed) boxSize(item) else looseSize(item)
+/** Cards and the big scales stand behind the rest, so the front edge stays free for the small ones. */
+private fun atBack(item: ShelfItem) = item.packaging == Packaging.Carded || scaleRatio(item.scale) < BIG_SCALE
+
+private fun cornerSize(item: ShelfItem) = when (item.packaging) {
+    Packaging.Carded -> Size(CARD_W, CARD_H, CARD_D)
+    Packaging.Boxed -> boxSize(item)
+    Packaging.Loose -> looseSize(item)
+}
 
 /**
  * As long as its scale makes the car plus packing, as tall as its photo says (boxes from 1:43 up lie long), a little

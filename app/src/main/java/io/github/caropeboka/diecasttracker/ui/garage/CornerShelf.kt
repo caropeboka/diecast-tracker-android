@@ -18,6 +18,7 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.math.tan
 import kotlin.random.Random
 
 // The user's black carved corner shelf (their "laci"), from their photo: three quarter-round tiers on turned posts,
@@ -50,8 +51,14 @@ private val CORNER = Position(LEFT_WALL_X, 0f, WALL_Z)
 /** A point on the shelf in the room. */
 internal fun onShelf(x: Float, y: Float, z: Float) = Position(CORNER.x + x, CORNER.y + y, CORNER.z + z)
 
-/** Where a box stands: on [tier], its centre [radius] out from the corner at [angle] degrees, its front facing out. */
-internal class ShelfSpot(val tier: Int, val angle: Float, val radius: Float)
+/**
+ * Where a diecast stands: on [tier], its centre [radius] out from the corner at [angle] degrees; along the front edge
+ * its front faces out from the corner, in the [back] row it faces down the corner's diagonal.
+ */
+internal class ShelfSpot(val tier: Int, val angle: Float, val radius: Float, val back: Boolean = false) {
+    /** Which way its front faces, in degrees from the back wall. */
+    val facing get() = if (back) 45f else angle
+}
 
 /** Like the photo: the middle tier first, then the bottom one, the top one (under the crest) last. */
 internal val FILL_ORDER = listOf(1, 0, 2)
@@ -90,6 +97,94 @@ internal fun tierSpots(tier: Int, items: List<OnTier>): List<ShelfSpot?> {
     }
     val spots = arrayOfNulls<ShelfSpot>(items.size)
     standing.forEach { spots[it.index] = ShelfSpot(tier, it.angle, it.radius) }
+    return spots.toList()
+}
+
+/** How far the back row's fronts may come out along the corner's diagonal, clear of most of the front row. */
+private const val BACK_FRONT = 0.34f
+
+/** Between the front row and the back one, and between the back row and the walls' carving. */
+private const val ROW_GAP = 0.008f
+private const val WALL_GAP = 0.02f
+private val SQRT2 = sqrt(2f)
+
+/** Where everything on a tier stands (see [tierLayout]): a spot per diecast and per decoration, null without room. */
+internal class TierSpots(val diecasts: List<ShelfSpot?>, val decor: List<ShelfSpot?>)
+
+/**
+ * Where everything on [tier] stands. [decor] and the diecasts not marked [back] go along the front edge
+ * ([tierSpots]); the [back] ones (cards and big scales, so a 1:18 doesn't take the whole edge) stand in a row across
+ * the corner behind them ([backRowSpots]), as far out as the front row leaves room for. What finds no room in its
+ * own row tries the other one.
+ */
+internal fun tierLayout(tier: Int, diecasts: List<OnTier>, back: List<Boolean>, decor: List<OnTier>): TierSpots {
+    fun attempt(front: Set<Int>): TierSpots {
+        val inFront = diecasts.indices.filter { it in front }
+        val frontSpots = tierSpots(tier, inFront.map { diecasts[it] } + decor)
+        val spots = arrayOfNulls<ShelfSpot>(diecasts.size)
+        inFront.forEachIndexed { i, index -> spots[index] = frontSpots[i] }
+        // The back row's fronts stop short of the nearest corner of anything in front.
+        val sizes = inFront.map { diecasts[it] } + decor
+        val limit = frontSpots.withIndex().fold(BACK_FRONT) { limit, (i, spot) ->
+            if (spot == null) return@fold limit
+            val off = Math.toRadians(spot.angle - 45.0)
+            val nearest = (spot.radius - sizes[i].depth / 2) * cos(off).toFloat() - sizes[i].width / 2 * abs(sin(off).toFloat())
+            minOf(limit, nearest - ROW_GAP)
+        }
+        val behind = diecasts.indices.filter { spots[it] == null }
+        backRowSpots(tier, behind.map { diecasts[it] }, limit).forEachIndexed { i, spot -> spots[behind[i]] = spot }
+        return TierSpots(spots.toList(), frontSpots.drop(inFront.size))
+    }
+
+    fun placed(spots: TierSpots) = spots.diecasts.count { it != null } + spots.decor.count { it != null }
+    val first = attempt(diecasts.indices.filterNot { back[it] }.toSet())
+    val left = diecasts.indices.filter { back[it] && first.diecasts[it] == null }
+    if (left.isEmpty()) return first
+    val second = attempt(diecasts.indices.filterNot { back[it] }.toSet() + left)
+    return if (placed(second) > placed(first)) second else first
+}
+
+/**
+ * Where diecasts stand in the back row of [tier]: side by side across the corner, their backs on one line square to
+ * its diagonal and their fronts no further out than [front] (from the corner, along the diagonal), each as near the
+ * angle it was put at as the others leave room for. Null for any with no room, those nearest the left wall first.
+ */
+internal fun backRowSpots(tier: Int, items: List<OnTier>, front: Float): List<ShelfSpot?> {
+    class Standing(val index: Int, val half: Float, val depth: Float, var along: Float = 0f)
+
+    val standing = items.withIndex()
+        .sortedByDescending { it.value.angle }
+        .map { (index, item) -> Standing(index, item.width / 2 + 0.006f, item.depth) }
+        .toMutableList()
+    // The line the backs stand on, and how far along it either way they may reach without touching the carving.
+    fun line() = front - (standing.maxOfOrNull { it.depth } ?: 0f)
+    fun reach() = line() - WALL_GAP * SQRT2
+    while (standing.isNotEmpty() && (line() < 0.06f || standing.sumOf { 2.0 * it.half } > 2 * reach())) standing.removeAt(0)
+    val line = line()
+    val reach = reach()
+
+    // Along the line towards the left wall; then pushed apart as on the front edge.
+    standing.forEach {
+        val centre = line + it.depth / 2
+        it.along = (centre * tan(Math.toRadians(items[it.index].angle - 45.0).coerceIn(-1.4, 1.4)).toFloat()).coerceIn(-reach, reach)
+    }
+    var cursor = reach
+    for (item in standing) {
+        item.along = minOf(item.along, cursor - item.half)
+        cursor = item.along - item.half
+    }
+    var floor = -reach
+    for (item in standing.asReversed()) {
+        item.along = maxOf(item.along, floor + item.half)
+        floor = item.along + item.half
+    }
+    val spots = arrayOfNulls<ShelfSpot>(items.size)
+    standing.forEach {
+        val centre = line + it.depth / 2
+        val x = (centre - it.along) / SQRT2
+        val z = (centre + it.along) / SQRT2
+        spots[it.index] = ShelfSpot(tier, Math.toDegrees(atan2(z, x).toDouble()).toFloat(), sqrt(x * x + z * z), back = true)
+    }
     return spots.toList()
 }
 

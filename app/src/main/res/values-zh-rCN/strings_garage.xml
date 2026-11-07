@@ -23,9 +23,7 @@
     </plurals>
     <string name="garage_lane_full">这一道已满：%1$d 张卡。</string>
     <string name="garage_to_tray_done">%1$s 已放回托盘。</string>
-    <string name="garage_cards_on_boards">吸塑卡只能挂在展板上。</string>
     <string name="garage_boards_cards_only">展板只用于吸塑卡。</string>
-    <string name="garage_case_small_only">白色收纳柜只能放 1:64 或更小的比例。</string>
     <string name="garage_does_not_fit">那里放不下。</string>
     <string name="garage_quality_normal">标准</string>
     <string name="garage_quality_plain">简洁</string>
@@ -68,4 +66,6 @@
     <string name="decor_height_hint">这样它在合金车旁的大小才合适。</string>
     <string name="decor_edit">编辑装饰</string>
     <string name="decor_delete_text">该装饰将从车库移除。你的合金车收藏不受影响。</string>
+    <string name="garage_case_no_cards">吸塑卡可以挂在展板上或放在黑色角架上。</string>
+    <string name="garage_case_small_only">白色收纳柜只能放 1:60 或更小的比例。</string>
 </resources>

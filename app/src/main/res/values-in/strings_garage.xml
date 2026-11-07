@@ -23,9 +23,7 @@
     </plurals>
     <string name="garage_lane_full">Jalur itu sudah penuh: %1$d kartu.</string>
     <string name="garage_to_tray_done">%1$s masuk nampan.</string>
-    <string name="garage_cards_on_boards">Kartu (blister) hanya bisa di papan.</string>
     <string name="garage_boards_cards_only">Papan hanya untuk kartu (blister).</string>
-    <string name="garage_case_small_only">Rak putih hanya muat skala 1:64 atau lebih kecil.</string>
     <string name="garage_does_not_fit">Tidak muat di sana.</string>
     <string name="garage_quality_normal">Normal</string>
     <string name="garage_quality_plain">Polos</string>
@@ -68,4 +66,6 @@
     <string name="decor_height_hint">Supaya ukurannya pas di samping diecast.</string>
     <string name="decor_edit">Ubah hiasan</string>
     <string name="decor_delete_text">Hiasan ini hilang dari garasi. Koleksi diecast-mu tidak berubah.</string>
+    <string name="garage_case_no_cards">Kartu (blister) tempatnya di papan atau laci hitam.</string>
+    <string name="garage_case_small_only">Rak putih hanya muat skala 1:60 atau lebih kecil.</string>
 </resources>

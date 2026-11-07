@@ -37,16 +37,20 @@ class ShelfTest {
     private fun done(move: ShelfMove) = (move as ShelfMove.Done).moves
 
     @Test
-    fun `cards hang on the boards, compartments take small cars and boxes, the black shelf any but cards`() {
+    fun `cards hang on the boards, compartments take small cars and boxes, the black shelf anything`() {
         assertTrue(ShelfLayout.fits(Shelf.Boards, Packaging.Carded, null))
         assertFalse(ShelfLayout.fits(Shelf.Boards, Packaging.Boxed, "1:64"))
         assertTrue(ShelfLayout.fits(Shelf.Case, Packaging.Loose, "1:64"))
         assertTrue(ShelfLayout.fits(Shelf.Case, Packaging.Boxed, "1:87"))
         assertFalse(ShelfLayout.fits(Shelf.Case, Packaging.Boxed, "1:43"))
+        // Tomica and Majorette.
+        assertTrue(ShelfLayout.fits(Shelf.Case, Packaging.Loose, "1:60"))
+        assertTrue(ShelfLayout.fits(Shelf.Case, Packaging.Boxed, "1:62"))
+        assertFalse(ShelfLayout.fits(Shelf.Case, Packaging.Loose, "1:50"))
         assertFalse(ShelfLayout.fits(Shelf.Case, Packaging.Carded, "1:64"))
         assertTrue(ShelfLayout.fits(Shelf.Corner, Packaging.Boxed, "1:18"))
         assertTrue(ShelfLayout.fits(Shelf.Corner, Packaging.Loose, "1:24"))
-        assertFalse(ShelfLayout.fits(Shelf.Corner, Packaging.Carded, "1:64"))
+        assertTrue(ShelfLayout.fits(Shelf.Corner, Packaging.Carded, "1:64"))
     }
 
     @Test
@@ -110,16 +114,19 @@ class ShelfTest {
     }
 
     @Test
-    fun `swapping trades places, and a card can't take a box's`() {
+    fun `swapping trades places, and a card can't take a compartment`() {
         val low = card(1, ShelfSlotEntity(1, Shelf.Boards, 3, 0))
         val high = card(2, ShelfSlotEntity(2, Shelf.Boards, 6, 4))
         val boxed = box(3, ShelfSlotEntity(3, Shelf.Corner, 0, 500))
+        val inCase = loose(4, ShelfSlotEntity(4, Shelf.Case, 0))
 
         assertEquals(
             mapOf(1L to ShelfSlotEntity(1, Shelf.Boards, 6, 4), 2L to ShelfSlotEntity(2, Shelf.Boards, 3, 0)),
             done(ShelfPlanner.swap(listOf(low, high), 1, 2)),
         )
-        assertEquals(ShelfMove.DoesNotFit, ShelfPlanner.swap(listOf(low, boxed), 1, 3))
+        assertEquals(ShelfMove.DoesNotFit, ShelfPlanner.swap(listOf(low, inCase), 1, 4))
+        // On the black shelf it may: the box can't hang on the boards, so it waits in the tray.
+        assertEquals(mapOf(1L to ShelfSlotEntity(1, Shelf.Corner, 0, 500), 3L to null), done(ShelfPlanner.swap(listOf(low, boxed), 1, 3)))
         assertEquals(mapOf(9L to ShelfSlotEntity(9, Shelf.Boards, 3, 0), 1L to null), done(ShelfPlanner.swap(listOf(low, card(9)), 9, 1)))
     }
 

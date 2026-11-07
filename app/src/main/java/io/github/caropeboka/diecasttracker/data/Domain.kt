@@ -61,7 +61,10 @@ enum class DiecastStatus(val key: String, @StringRes val label: Int, val sheetLa
 /** Where a market value came from: typed in, or taken from a marketplace price check (phase 5). */
 enum class ValueSource(val key: String) {
     Manual("manual"),
-    PriceCheck("price_check");
+    PriceCheck("price_check"),
+
+    /** The AI's rough estimate from the web. */
+    AiEstimate("ai_estimate");
 
     companion object {
         fun fromKey(key: String?): ValueSource? = entries.find { it.key == key }
@@ -79,7 +82,7 @@ enum class CatalogMatch(val key: String) {
     }
 }
 
-val SCALES = listOf("1:64", "1:43", "1:32", "1:24", "1:18", "1:87", "1:100")
+val SCALES = listOf("1:64", "1:62", "1:60", "1:43", "1:32", "1:24", "1:18", "1:87", "1:100")
 
 const val DEFAULT_SCALE = "1:64"
 
