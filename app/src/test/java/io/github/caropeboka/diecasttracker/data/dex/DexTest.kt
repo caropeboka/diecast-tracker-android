@@ -247,6 +247,26 @@ class DexTest {
         // A rejected match stays rejected after the next sync.
         sync(2026)
         assertNull(fresh(rx7).catalogItemId)
+
+        // Matching again brings the suggestions back.
+        val reset = dex.link(rx7.id, LinkAction.Reset)!!
+        assertNull(reset.catalogMatch)
+        assertEquals(item(catalog, "061").id, dex.linkState(reset).suggestions.first().row.item.id)
+    }
+
+    @Test
+    fun `any entry can be found by hand, every word counting`() = runBlocking {
+        val catalog = sync(2026).catalogId
+
+        val found = dex.search("mazda  rx", "Hot Wheels", 2023)
+        assertEquals(listOf("061"), found.map { it.row.item.number }.distinct())
+        assertEquals(2026, found.first().yearFix)
+        assertTrue(dex.search("mazda zzz", null, null).isEmpty())
+        assertTrue(dex.search("   ", null, null).isEmpty())
+        // LIKE wildcards are taken literally.
+        assertTrue(dex.search("%", null, null).isEmpty())
+        assertEquals(catalog, dex.search("061", null, 2026).first().row.item.catalogId)
+        assertNull(dex.search("061", null, 2026).first().yearFix)
     }
 
     @Test

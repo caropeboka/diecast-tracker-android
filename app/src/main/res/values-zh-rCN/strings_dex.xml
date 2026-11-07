@@ -31,10 +31,8 @@
     <string name="dex_edit">编辑图鉴</string>
     <string name="dex_remove">从图鉴中删除</string>
     <string name="dex_own">自建图鉴</string>
-    <string name="dex_own_text">适用于维基上没有清单的品牌（Mini GT、Tarmac、Inno64、Roll Speed…）。可手动填写，或从 Excel、清单截图（由 AI 读取）或你的收藏导入。</string>
     <string name="dex_own_create">创建自己的图鉴</string>
     <string name="dex_sync_title">同步图鉴</string>
-    <string name="dex_sync_text">从 Hot Wheels Wiki 或 Matchbox Wiki（CC BY-SA）按年份获取官方发行清单。重新同步同一年份会更新清单，不会解除你收藏的关联。</string>
     <string name="dex_from">从</string>
     <string name="dex_to">到</string>
     <string name="dex_sync_one">同步 %1$d</string>
@@ -159,4 +157,34 @@
     <plurals name="dex_checklist_review">
         <item quantity="other">AI 读取了 %d 个发行款。取消勾选读错的；小错误可在添加后修改。</item>
     </plurals>
+    <string name="dex_change">更换</string>
+    <string name="dex_search_dex">在图鉴中搜索</string>
+    <string name="dex_rematch">重新匹配</string>
+    <string name="dex_search_self">都不是？自己搜索</string>
+    <string name="dex_not_linked">尚未关联图鉴。</string>
+    <string name="dex_pick_title">查找正确的条目</string>
+    <string name="dex_pick_hint">按名称、系列、编号或玩具代码搜索所有已同步的清单。</string>
+    <string name="dex_pick_choose">选择</string>
+    <string name="dex_pick_none">没有找到。试试少输入几个词，或在图鉴页同步那一年。</string>
+    <string name="dex_pick_empty">输入名称、系列或编号。</string>
+    <string name="dex_sync_text">从粉丝维基（CC BY-SA）获取发行清单：按年份的 Hot Wheels 和 Matchbox、按年份的 Mini GT（含 Kaido House），以及 Tomica 普通系列。重新同步会更新清单，不会解除你收藏的关联。</string>
+    <string name="dex_sync_list">同步清单</string>
+    <string name="dex_syncing_list">正在同步清单…</string>
+    <string name="wiki_note_minigt">Mini GT Wiki 有 2018–2022 年的年度清单，包含 Kaido House。更新的清单可以在“自建图鉴”里让 AI 查找。</string>
+    <string name="wiki_note_tomica">来自 Tomica Wiki 的现售普通系列（No. 1–150），没有图片；维基仍在补充中。</string>
+    <string name="dex_own_text">适用于维基上没有清单的系列（Tarmac、Inno64、Pop Race、Maisto、2022 年以后的 Mini GT…）。可手动填写，或从 Excel、由 AI 读取的清单截图、让 AI 联网查找，或从你的收藏导入。</string>
+    <string name="dex_from_web">联网查找清单（AI）</string>
+    <string name="dex_from_web_text">AI 联网搜索（Gemini + Google 搜索），你勾选正确的条目后再添加。请尽量写清系列和年份；留空 = 本图鉴。</string>
+    <string name="dex_web_query_hint">例如 %1$s 2024，或系列名</string>
+    <string name="dex_web_search">查找</string>
+    <string name="dex_web_searching">正在网上查找清单</string>
+    <string name="dex_web_none">AI 没有找到可以确认的发行。</string>
+    <string name="dex_web_by_search">由 %1$s 在网上找到。请逐行核对：可能有误或不完整。</string>
+    <string name="dex_web_by_memory">%1$s 凭记忆回答，未联网搜索。请仔细核对每一行。</string>
+    <string name="dex_web_sources">来源</string>
+    <plurals name="dex_brand_lists">
+        <item quantity="other">%d 个列表</item>
+    </plurals>
+    <string name="dex_brand_open">查看全部</string>
+    <string name="wiki_note_tomica_premium">来自 Tomica Wiki 的 Tomica Premium，每个发售年份一个列表（2015 年起）：主线和 Unlimited，编号与包装盒一致，无图片。套装、RS、Racing 和限定款在那里没有编号：请放入自建图鉴。</string>
 </resources>

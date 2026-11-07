@@ -36,10 +36,8 @@
     <string name="dex_edit">Edit dex</string>
     <string name="dex_remove">Remove from the Dex</string>
     <string name="dex_own">Own dexes</string>
-    <string name="dex_own_text">For brands without a list on the wiki (Mini GT, Tarmac, Inno64, Roll Speed…). Fill the list by hand, from Excel, from checklist screenshots (read by the AI) or from your collection.</string>
     <string name="dex_own_create">Make your own dex</string>
     <string name="dex_sync_title">Sync catalogues</string>
-    <string name="dex_sync_text">Fetch the official release lists per year from the Hot Wheels Wiki or the Matchbox Wiki (CC BY-SA). Syncing a year again updates its list without unlinking your collection.</string>
     <string name="dex_from">From</string>
     <string name="dex_to">To</string>
     <string name="dex_sync_one">Sync %1$d</string>
@@ -172,4 +170,35 @@
         <item quantity="one">The AI read %d release. Untick what it misread; small mistakes can be fixed after adding.</item>
         <item quantity="other">The AI read %d releases. Untick what it misread; small mistakes can be fixed after adding.</item>
     </plurals>
+    <string name="dex_change">Change</string>
+    <string name="dex_search_dex">Search the Dex</string>
+    <string name="dex_rematch">Match again</string>
+    <string name="dex_search_self">Not these? Search</string>
+    <string name="dex_not_linked">Not linked to the Dex yet.</string>
+    <string name="dex_pick_title">Find the right entry</string>
+    <string name="dex_pick_hint">Searches every synced list by name, series, number or toy code.</string>
+    <string name="dex_pick_choose">Pick</string>
+    <string name="dex_pick_none">Nothing found. Try fewer words, or sync that year in the Dex tab.</string>
+    <string name="dex_pick_empty">Type a name, series or number.</string>
+    <string name="dex_sync_text">Fetch release lists from the fan wikis (CC BY-SA): Hot Wheels and Matchbox per year, Mini GT per year (Kaido House included) and Tomica\'s regular lineup. Syncing again updates a list without unlinking your collection.</string>
+    <string name="dex_sync_list">Sync the list</string>
+    <string name="dex_syncing_list">Syncing the list…</string>
+    <string name="wiki_note_minigt">The Mini GT Wiki keeps year lists from 2018 to 2022, Kaido House included. For newer ones, let the AI look a list up under Own dexes.</string>
+    <string name="wiki_note_tomica">Tomica\'s regular lineup on sale now (No. 1–150) from the Tomica Wiki, without photos; the wiki is still filling it in.</string>
+    <string name="dex_own_text">For lines without a wiki list (Tarmac, Inno64, Pop Race, Maisto, Mini GT after 2022…). Fill the list by hand, from Excel, from checklist screenshots read by the AI, by letting the AI look it up on the web, or from your collection.</string>
+    <string name="dex_from_web">Look the list up on the web (AI)</string>
+    <string name="dex_from_web_text">The AI searches the web (Gemini with Google Search) and you tick what\'s right before it\'s added. Name the line and year as precisely as you can; empty = this dex.</string>
+    <string name="dex_web_query_hint">e.g. %1$s 2024, or a series</string>
+    <string name="dex_web_search">Search</string>
+    <string name="dex_web_searching">Looking the list up on the web</string>
+    <string name="dex_web_none">The AI found no releases it could confirm.</string>
+    <string name="dex_web_by_search">Found on the web by %1$s. Check every row: it can be wrong or incomplete.</string>
+    <string name="dex_web_by_memory">%1$s answered from memory, without a web search. Check every row carefully.</string>
+    <string name="dex_web_sources">Sources</string>
+    <plurals name="dex_brand_lists">
+        <item quantity="one">%d list</item>
+        <item quantity="other">%d lists</item>
+    </plurals>
+    <string name="dex_brand_open">See all</string>
+    <string name="wiki_note_tomica_premium">Tomica Premium from the Tomica Wiki, a list per release year (2015 on): the main line and Unlimited, numbered like the boxes, without photos. Sets, RS, Racing and exclusives have no numbers there: put them in an own dex.</string>
 </resources>

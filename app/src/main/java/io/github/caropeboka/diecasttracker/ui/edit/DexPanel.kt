@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.CatalogMatch
+import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexLinkState
 import io.github.caropeboka.diecasttracker.data.dex.DexRef
 import io.github.caropeboka.diecasttracker.data.dex.LinkAction
@@ -35,8 +37,8 @@ import io.github.caropeboka.diecasttracker.ui.dex.DexEntryCard
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 
 /**
- * A saved diecast's dex entry: confirm an automatic match, pick a suggestion, or drop it. Changes are saved
- * right away; they're not part of the form (web: `DexEditPanel`).
+ * A saved diecast's dex entry: confirm an automatic match, pick a suggestion, search for another one, or drop it.
+ * Changes are saved right away; they're not part of the form (web: `DexEditPanel`).
  */
 @Composable
 fun DexEditPanel(
@@ -45,14 +47,15 @@ fun DexEditPanel(
     busy: Boolean,
     onLink: (LinkAction, Long?) -> Unit,
     onYear: (Int) -> Unit,
-    onOpenCatalog: (Long) -> Unit,
+    onSearch: () -> Unit,
+    onOpenEntry: (CatalogItemEntity) -> Unit,
 ) {
     DexBox {
         DexTitle(stringResource(R.string.tab_dex))
         val linked = state.linked
         when {
             linked != null -> {
-                DexEntryCard(linked) { onOpenCatalog(linked.row.item.catalogId) }
+                DexEntryCard(linked) { onOpenEntry(linked.row.item) }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
                     if (state.match == CatalogMatch.Auto) {
                         Note(R.drawable.ic_auto_fix_high, stringResource(R.string.dex_matched_auto), Modifier.align(Alignment.CenterVertically))
@@ -61,6 +64,9 @@ fun DexEditPanel(
                         }
                     } else {
                         Note(R.drawable.ic_check, stringResource(R.string.dex_confirmed), Modifier.align(Alignment.CenterVertically))
+                    }
+                    TextButton(onClick = onSearch, enabled = !busy, shape = MaterialTheme.shapes.medium) {
+                        IconLabel(R.drawable.ic_search, stringResource(R.string.dex_change))
                     }
                     TextButton(onClick = { onLink(LinkAction.Ignore, null) }, enabled = !busy, shape = MaterialTheme.shapes.medium) {
                         IconLabel(R.drawable.ic_block, stringResource(R.string.dex_unlink))
@@ -72,7 +78,7 @@ fun DexEditPanel(
                 Text(stringResource(R.string.dex_maybe), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                 state.suggestions.forEach { suggestion ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DexEntryCard(suggestion, Modifier.weight(1f)) { onOpenCatalog(suggestion.row.item.catalogId) }
+                        DexEntryCard(suggestion, Modifier.weight(1f)) { onOpenEntry(suggestion.row.item) }
                         Button(
                             onClick = { onLink(LinkAction.Link, suggestion.row.item.id) },
                             enabled = !busy,
@@ -80,19 +86,35 @@ fun DexEditPanel(
                         ) { IconLabel(R.drawable.ic_check, stringResource(R.string.dex_this_one)) }
                     }
                 }
+                TextButton(onClick = onSearch, enabled = !busy, shape = MaterialTheme.shapes.medium) {
+                    IconLabel(R.drawable.ic_search, stringResource(R.string.dex_search_self))
+                }
             }
-            else -> Text(
-                stringResource(if (state.match == CatalogMatch.Ignored) R.string.dex_marked_absent else R.string.dex_not_in_dex),
-                style = MaterialTheme.typography.bodySmall,
-                color = Garage.MutedForeground,
-            )
+            else -> {
+                Text(
+                    stringResource(if (state.match == CatalogMatch.Ignored) R.string.dex_marked_absent else R.string.dex_not_in_dex),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Garage.MutedForeground,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onSearch, enabled = !busy, shape = MaterialTheme.shapes.medium) {
+                        IconLabel(R.drawable.ic_search, stringResource(R.string.dex_search_dex))
+                    }
+                    // "Not in the Dex" was said by hand; the automatic suggestions can come back.
+                    if (state.match == CatalogMatch.Ignored) {
+                        TextButton(onClick = { onLink(LinkAction.Reset, null) }, enabled = !busy, shape = MaterialTheme.shapes.medium) {
+                            IconLabel(R.drawable.ic_auto_fix_high, stringResource(R.string.dex_rematch))
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 /**
- * A new diecast: the entry it will be linked to (picked in the Dex, or the scan's suggestion once accepted),
- * or the scan's suggestion (web: `DexCreatePanel`).
+ * A new diecast: the entry it will be linked to (picked in the Dex, found by a search, or the scan's suggestion once
+ * accepted), the scan's suggestion, or a search (web: `DexCreatePanel`).
  */
 @Composable
 fun DexCreatePanel(
@@ -101,7 +123,8 @@ fun DexCreatePanel(
     year: String,
     onChoose: (DexRef?) -> Unit,
     onYear: (Int) -> Unit,
-    onOpenCatalog: (Long) -> Unit,
+    onSearch: () -> Unit,
+    onOpenEntry: (CatalogItemEntity) -> Unit,
 ) {
     if (chosen != null) {
         DexBox(highlight = true) {
@@ -111,19 +134,30 @@ fun DexCreatePanel(
                     IconLabel(R.drawable.ic_close, stringResource(R.string.dex_unlink))
                 }
             }
-            DexEntryCard(chosen) { onOpenCatalog(chosen.row.item.catalogId) }
+            DexEntryCard(chosen) { onOpenEntry(chosen.row.item) }
             YearFix(chosen, year, onYear)
         }
         return
     }
 
-    suggestion ?: return
+    if (suggestion == null) {
+        DexBox {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                DexTitle(stringResource(R.string.tab_dex), Modifier.weight(1f))
+                TextButton(onClick = onSearch, shape = MaterialTheme.shapes.medium) {
+                    IconLabel(R.drawable.ic_search, stringResource(R.string.dex_search_dex))
+                }
+            }
+            Text(stringResource(R.string.dex_not_linked), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+        }
+        return
+    }
     val release = suggestion.row.catalogYear
     val yearDiffers = release != null && release.toString() != year.trim()
 
     DexBox {
         DexTitle(stringResource(R.string.dex_looks_like))
-        DexEntryCard(suggestion) { onOpenCatalog(suggestion.row.item.catalogId) }
+        DexEntryCard(suggestion) { onOpenEntry(suggestion.row.item) }
         Button(
             onClick = {
                 onChoose(suggestion)
@@ -137,6 +171,9 @@ fun DexCreatePanel(
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
+        }
+        TextButton(onClick = onSearch, shape = MaterialTheme.shapes.medium) {
+            IconLabel(R.drawable.ic_search, stringResource(R.string.dex_search_self))
         }
     }
 }

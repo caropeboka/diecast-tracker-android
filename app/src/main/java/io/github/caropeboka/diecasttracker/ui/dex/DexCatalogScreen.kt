@@ -247,7 +247,10 @@ fun DexCatalogScreen(
             EntrySheet(
                 entry = entry,
                 catalog = catalog!!,
-                onDismiss = { viewModel.open(null) },
+                onDismiss = {
+                    viewModel.open(null)
+                    if (viewModel.forEntry) onBack()
+                },
                 onAdd = { itemId, status ->
                     viewModel.open(null)
                     onAdd(itemId, status)

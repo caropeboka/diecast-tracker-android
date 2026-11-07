@@ -31,10 +31,8 @@
     <string name="dex_edit">Ubah dex</string>
     <string name="dex_remove">Hapus dari Dex</string>
     <string name="dex_own">Dex sendiri</string>
-    <string name="dex_own_text">Untuk merek yang tidak punya daftar di wiki (Mini GT, Tarmac, Inno64, Roll Speed…). Isi daftarnya manual, dari Excel, dari screenshot checklist (dibaca AI), atau dari koleksimu.</string>
     <string name="dex_own_create">Buat dex sendiri</string>
     <string name="dex_sync_title">Sinkron katalog</string>
-    <string name="dex_sync_text">Ambil daftar rilisan resmi per tahun dari Hot Wheels Wiki atau Matchbox Wiki (CC BY-SA). Sinkron ulang tahun yang sama memperbarui daftarnya tanpa melepas tautan koleksimu.</string>
     <string name="dex_from">Dari</string>
     <string name="dex_to">Sampai</string>
     <string name="dex_sync_one">Sinkron %1$d</string>
@@ -159,4 +157,34 @@
     <plurals name="dex_checklist_review">
         <item quantity="other">AI membaca %d rilisan. Hapus centang yang salah baca; yang keliru sedikit bisa diubah setelah ditambahkan.</item>
     </plurals>
+    <string name="dex_change">Ganti</string>
+    <string name="dex_search_dex">Cari di Dex</string>
+    <string name="dex_rematch">Cocokkan ulang</string>
+    <string name="dex_search_self">Bukan ini? Cari sendiri</string>
+    <string name="dex_not_linked">Belum ditautkan ke Dex.</string>
+    <string name="dex_pick_title">Cari entri yang benar</string>
+    <string name="dex_pick_hint">Mencari di semua daftar yang sudah disinkronkan: nama, seri, nomor, atau kode mainan.</string>
+    <string name="dex_pick_choose">Pilih</string>
+    <string name="dex_pick_none">Tidak ketemu. Coba lebih sedikit kata, atau sinkronkan tahunnya di tab Dex.</string>
+    <string name="dex_pick_empty">Ketik nama, seri, atau nomor.</string>
+    <string name="dex_sync_text">Ambil daftar rilisan dari wiki penggemar (CC BY-SA): Hot Wheels dan Matchbox per tahun, Mini GT per tahun (termasuk Kaido House), dan lineup reguler Tomica. Sinkron ulang memperbarui daftarnya tanpa melepas tautan koleksimu.</string>
+    <string name="dex_sync_list">Sinkron daftarnya</string>
+    <string name="dex_syncing_list">Menyinkronkan daftarnya…</string>
+    <string name="wiki_note_minigt">Mini GT Wiki punya daftar per tahun 2018–2022, termasuk Kaido House. Untuk yang lebih baru, minta AI mencarikan daftarnya di Dex sendiri.</string>
+    <string name="wiki_note_tomica">Lineup reguler Tomica yang dijual sekarang (No. 1–150) dari Tomica Wiki, tanpa foto; wikinya masih melengkapinya.</string>
+    <string name="dex_own_text">Untuk lini yang tidak punya daftar di wiki (Tarmac, Inno64, Pop Race, Maisto, Mini GT setelah 2022…). Isi daftarnya manual, dari Excel, dari screenshot checklist yang dibaca AI, minta AI mencarinya di web, atau dari koleksimu.</string>
+    <string name="dex_from_web">Cari daftarnya di web (AI)</string>
+    <string name="dex_from_web_text">AI mencarinya di web (Gemini dengan Google Search), lalu kamu centang yang benar sebelum ditambahkan. Sebut lini dan tahunnya setepat mungkin; kosong = dex ini.</string>
+    <string name="dex_web_query_hint">mis. %1$s 2024, atau nama serinya</string>
+    <string name="dex_web_search">Cari</string>
+    <string name="dex_web_searching">Mencari daftarnya di web</string>
+    <string name="dex_web_none">AI tidak menemukan rilisan yang bisa dipastikan.</string>
+    <string name="dex_web_by_search">Ditemukan di web oleh %1$s. Periksa setiap baris: bisa salah atau kurang lengkap.</string>
+    <string name="dex_web_by_memory">%1$s menjawab dari ingatannya, tanpa mencari di web. Periksa setiap baris dengan teliti.</string>
+    <string name="dex_web_sources">Sumber</string>
+    <plurals name="dex_brand_lists">
+        <item quantity="other">%d daftar</item>
+    </plurals>
+    <string name="dex_brand_open">Lihat semua</string>
+    <string name="wiki_note_tomica_premium">Tomica Premium dari Tomica Wiki, satu daftar per tahun rilis (mulai 2015): seri utama dan Unlimited, bernomor seperti di kotaknya, tanpa foto. Set, RS, Racing dan edisi eksklusif tidak bernomor di sana: masukkan ke Dex sendiri.</string>
 </resources>

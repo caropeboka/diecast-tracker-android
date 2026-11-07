@@ -46,7 +46,11 @@ enum class EntryFilter(@StringRes val label: Int) {
 
 /** One dex: its entries, by filter and search, as a grid or per series (web: `DexController::show`). */
 class DexCatalogViewModel(private val saved: SavedStateHandle, dex: DexRepository) : ViewModel() {
-    val catalogId = saved.toRoute<DexCatalogRoute>().id
+    private val route = saved.toRoute<DexCatalogRoute>()
+    val catalogId = route.id
+
+    /** Opened for one entry (a diecast's link): its sheet shows at once, and closing it leaves the dex. */
+    val forEntry = route.number != null
 
     val catalog: StateFlow<CatalogEntity?> = dex.observeCatalog(catalogId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -76,11 +80,20 @@ class DexCatalogViewModel(private val saved: SavedStateHandle, dex: DexRepositor
         saved[OPEN] = number
     }
 
+    init {
+        // Once: after that the open sheet is kept like any other.
+        if (forEntry && saved.get<Boolean>(ENTRY_SHOWN) != true) {
+            saved[ENTRY_SHOWN] = true
+            saved[OPEN] = route.number
+        }
+    }
+
     companion object {
         private const val FILTER = "filter"
         private const val QUERY = "query"
         private const val BY_SERIES = "by_series"
         private const val OPEN = "open"
+        private const val ENTRY_SHOWN = "entry_shown"
 
         fun visible(entries: List<DexEntry>, filter: EntryFilter, query: String): List<DexEntry> {
             val needle = query.trim().lowercase()

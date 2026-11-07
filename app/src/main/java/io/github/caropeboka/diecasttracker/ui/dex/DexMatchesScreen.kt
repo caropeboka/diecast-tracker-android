@@ -29,6 +29,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +52,7 @@ import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.CatalogMatch
+import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexRepository
 import io.github.caropeboka.diecasttracker.data.dex.LinkAction
 import io.github.caropeboka.diecasttracker.data.dex.ReviewItem
@@ -97,7 +101,7 @@ class DexMatchesViewModel(private val dex: DexRepository, private val messages: 
 fun DexMatchesScreen(
     onBack: () -> Unit,
     onOpenDiecast: (Long) -> Unit,
-    onOpenCatalog: (Long) -> Unit,
+    onOpenEntry: (CatalogItemEntity) -> Unit,
     viewModel: DexMatchesViewModel = viewModel(factory = DexMatchesViewModel.Factory),
 ) {
     val state by viewModel.items.collectAsStateWithLifecycle()
@@ -140,7 +144,7 @@ fun DexMatchesScreen(
                 }
             }
             items(items, key = { it.row.diecast.id }) { item ->
-                ReviewCard(item, viewModel, onOpenDiecast, onOpenCatalog)
+                ReviewCard(item, viewModel, onOpenDiecast, onOpenEntry)
             }
             if (total > items.size) {
                 item {
@@ -158,10 +162,23 @@ fun DexMatchesScreen(
 }
 
 @Composable
-private fun ReviewCard(item: ReviewItem, viewModel: DexMatchesViewModel, onOpenDiecast: (Long) -> Unit, onOpenCatalog: (Long) -> Unit) {
+private fun ReviewCard(item: ReviewItem, viewModel: DexMatchesViewModel, onOpenDiecast: (Long) -> Unit, onOpenEntry: (CatalogItemEntity) -> Unit) {
     val diecast = item.row.diecast
     val linked = item.link.linked
     val id = diecast.id
+    var searching by rememberSaveable(id) { mutableStateOf(false) }
+    if (searching) {
+        DexPickerSheet(
+            start = diecast.name,
+            brand = diecast.brand,
+            year = diecast.year,
+            onPick = { ref ->
+                searching = false
+                viewModel.act(id, LinkAction.Link, ref.row.item.id, message = { it(R.string.dex_msg_linked) })
+            },
+            onDismiss = { searching = false },
+        )
+    }
 
     SectionCard(null) {
         Row(
@@ -187,7 +204,7 @@ private fun ReviewCard(item: ReviewItem, viewModel: DexMatchesViewModel, onOpenD
                     Icon(painterResource(R.drawable.ic_auto_fix_high), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(16.dp))
                     Text(stringResource(R.string.dex_matched_auto), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                 }
-                DexEntryCard(linked) { onOpenCatalog(linked.row.item.catalogId) }
+                DexEntryCard(linked) { onOpenEntry(linked.row.item) }
                 val fix = linked.yearFix
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (fix != null) {
@@ -205,6 +222,9 @@ private fun ReviewCard(item: ReviewItem, viewModel: DexMatchesViewModel, onOpenD
                             shape = MaterialTheme.shapes.medium,
                         ) { IconLabel(R.drawable.ic_check, stringResource(R.string.dex_correct)) }
                     }
+                    TextButton(onClick = { searching = true }) {
+                        IconLabel(R.drawable.ic_search, stringResource(R.string.dex_change))
+                    }
                     TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = { it(R.string.dex_msg_unlinked) }) }) {
                         IconLabel(R.drawable.ic_block, stringResource(R.string.dex_not_this))
                     }
@@ -220,7 +240,7 @@ private fun ReviewCard(item: ReviewItem, viewModel: DexMatchesViewModel, onOpenD
             item.link.suggestions.isNotEmpty() -> {
                 Text(stringResource(R.string.dex_maybe), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
                 item.link.suggestions.forEach { suggestion ->
-                    DexEntryCard(suggestion) { onOpenCatalog(suggestion.row.item.catalogId) }
+                    DexEntryCard(suggestion) { onOpenEntry(suggestion.row.item) }
                     Button(
                         onClick = {
                             viewModel.act(
@@ -231,14 +251,24 @@ private fun ReviewCard(item: ReviewItem, viewModel: DexMatchesViewModel, onOpenD
                         shape = MaterialTheme.shapes.medium,
                     ) { IconLabel(R.drawable.ic_check, suggestion.yearFix?.let { stringResource(R.string.dex_this_is_it_year, it) } ?: stringResource(R.string.dex_this_is_it)) }
                 }
-                TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = { it(R.string.dex_marked_absent) }) }) {
-                    IconLabel(R.drawable.ic_block, stringResource(R.string.dex_not_here))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { searching = true }) {
+                        IconLabel(R.drawable.ic_search, stringResource(R.string.dex_search_self))
+                    }
+                    TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = { it(R.string.dex_marked_absent) }) }) {
+                        IconLabel(R.drawable.ic_block, stringResource(R.string.dex_not_here))
+                    }
                 }
             }
-            else -> Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.dex_not_found_synced), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, modifier = Modifier.weight(1f))
-                TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = { it(R.string.dex_marked_absent) }) }) {
-                    IconLabel(R.drawable.ic_block, stringResource(R.string.skip))
+            else -> {
+                Text(stringResource(R.string.dex_not_found_synced), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { searching = true }, shape = MaterialTheme.shapes.medium) {
+                        IconLabel(R.drawable.ic_search, stringResource(R.string.dex_search_dex))
+                    }
+                    TextButton(onClick = { viewModel.act(id, LinkAction.Ignore, message = { it(R.string.dex_marked_absent) }) }) {
+                        IconLabel(R.drawable.ic_block, stringResource(R.string.skip))
+                    }
                 }
             }
         }
