@@ -8,7 +8,7 @@ behaviour and logic**. It keeps working on the laptop until the Android app catc
 rather than re-inventing; its feature tests (`tests/Feature/*`) describe the expected behaviour and contain
 real-world fixtures.
 
-## Status (2026-11-01)
+## Status (2026-11-07)
 
 Every planned phase (1–4, 5a–5e) is committed and pushed to `github.com/caropeboka/diecast-tracker-android`
 (`main`) as version 0.5.4. Phase 5 order, agreed with the user: 5a backup/export → 5b dashboard → 5c market value from
@@ -27,10 +27,21 @@ two figures placed). **0.8.0**: more free AI providers besides Gemini with autom
 covered by tests, not yet tried with real Groq/Mistral/OpenRouter keys. **0.9.0**: English by default with
 Indonesian and Simplified Chinese, a Settings screen (language, currency with daily rates, date format) and a
 first-run tour (see "Languages, money, dates and the tour"); on the phone since 2026-11-01 (all 8 tour steps and a
-switch to Chinese and back checked; currency and date formats not yet tried there). The phone got 0.7.0
-and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57); the work since 0.5.4 is
-not committed yet. Next: the user adds the other providers' keys and tries a scan with Gemini's quota used up (or
-Gemini switched off); the user tries the garage on the phone (placing,
+switch to Chinese and back checked; currency and date formats not yet tried there). **0.9.1**: fixes from the
+user's list after 0.9.0 (see "Fixes from the phone"). **0.10.0**: the features from that list (see "From the user's
+list (0.10.0)"): the Dex back to 1989/2000, Mini GT (with Kaido House) and Tomica lists, lists looked up on the web by
+the AI, more AI providers, "Cek di toko" shooting many photos in a row, "Tanya AI" in the form, price checks beyond
+Tokopedia/Shopee, and regions on the map. 0.9.1 and 0.10.0 are built and covered by tests (250 pass, no lint errors),
+on the phone since 2026-11-07 (it starts, the 64 diecasts intact) but **its new pieces are not tried there yet**.
+**0.11.0** (the user's first look at 0.10.0, see "From the phone after 0.10.0"): every number on Garasi opens Koleksi
+filtered, the map's stats and history days open, the Dex tab per brand with a page each, Tomica Premium per year;
+covered by tests (252 pass), on the phone since 2026-11-07 (it starts, the 64 diecasts intact), not tried there yet. The collection's brands (read from the phone 2026-11-07): Hot Wheels,
+Matchbox, Tomica (Premium and the regular lineup), Bburago, Maisto, Moto Cross, Roll Speed. The
+phone got 0.7.0 and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57); the
+work since 0.9.0 is not committed yet. Next: try the new pieces on the phone (Tanya AI, the web estimate and the web list with
+the real Gemini key; the regions lookup; the store check's batch; the new wikis' sync); the user adds the other
+providers' keys and tries a scan with Gemini's quota used up (or Gemini switched off); the user tries the garage on the
+phone (placing,
 smoothness, "Hemat" not crashing, pulling a diecast out, tap accuracy); then G2 (realism: materials, shadows, room,
 "where is diecast X?") and G3 (shelf settings), and maybe the Garasi tab opening the 3D garage with the dashboard
 behind a "Statistik" button (planned, not done: the garage opens from "Rak 3D" on the dashboard). Covered by tests
@@ -57,7 +68,7 @@ places, "Lokasi saya" via GPS); the last picked place is remembered 3 hours and 
 "Peta jelajah" (type/range filters, 4 stats, markers filled = bought / ring = only seen, sized by count, place details,
 places list, timeline). Room schema v2 (`place_cache`, with migration).
 
-Phase 4a delivered: a Dex tab (Koleksi · Peta · Dex) — sync Hot Wheels Mainline (2015+) / Matchbox years from the
+Phase 4a delivered: a Dex tab (Koleksi · Peta · Dex) — sync Hot Wheels Mainline (2015+; 1989+ since 0.10.0) / Matchbox years from the
 Fandom wikis via WorkManager (progress per year, re-sync/delete per dex), auto-linking of the collection after every
 sync and on save, progress meters (seen/caught/wanted) per brand, dex and series, a dex screen (grid or per series,
 filters, search, entry sheet with variants and "Tambah ke koleksi / Ditemui / Wishlist"), "Cocokkan Dex" (confirm
@@ -375,7 +386,7 @@ The user wanted more free AIs than Gemini, with an automatic switch when Gemini'
 (2026-11): Groq (free, fast, vision model `qwen/qwen3.8-27b`, 3 images, ~1K requests/day), Mistral (free "Experiment"
 plan, phone verification, data may be used for training; vision in Small/Medium/Large 3, Ministral 3), OpenRouter
 (free models: 50/day, 1000/day after a one-time $10; the `openrouter/free` router), NVIDIA NIM (trial) and Cloudflare
-Workers AI (10k neurons/day) through the custom slot; Cerebras was left out (no free tier since 2026-07, text only).
+Workers AI (10k neurons/day) through the custom slot (their own providers since 0.10.0); Cerebras was left out (no free tier since 2026-07, text only).
 The user chose Groq, Mistral, OpenRouter and a free "OpenAI-compatible" slot, switching on **quota, busy or timeout**
 (also on a refused key), never when the AI answered but couldn't read the photo.
 
@@ -402,7 +413,7 @@ The user chose Groq, Mistral, OpenRouter and a free "OpenAI-compatible" slot, sw
   `<id>_on`, `provider_order`, `custom_base_url`, `custom_name`; Gemini keeps its old key names, so the saved key
   stayed. The screen: one card per provider in order (number, status "Aktif · ••••1234" / "Belum diatur" /
   "Dimatikan" / "Kuota habis sampai …", ↑/↓, tap to open: a note about its free tier, "Pakai …" switch, key, Tes key,
-  "Buat key di … ↗", model; the custom one also a name and a base URL with the NVIDIA and Cloudflare examples). A
+  "Buat key di … ↗", model; the custom one also a name and a base URL; Cloudflare an account id). A
   provider that isn't used may stay half filled; one in use needs a model (and the custom one a valid URL).
 - Who read it: `ScanFields.readBy` (the label, only when it wasn't Gemini) shows in the form ("Field bertanda ✦ diisi
   oleh Groq.") and as a pill on the bulk scan's cards. `AiProgressLog` names the provider in every step ("Mengirim
@@ -454,6 +465,115 @@ the tour as a spotlight on the real screens, starting with the language.
   formats, `Formats.locale = Locale.forLanguageTag("id")` (reset in `@After`); `testTexts()` / `TestEnvironment.texts`
   in `data/TestSupport.kt`. `TextsTest` covers the three languages and `everyLanguage()`.
 
+## Fixes from the phone (0.9.1)
+
+The user's list after 0.9.0, split with them into fixes (0.9.1) and features (later, see Status).
+
+- **Dex links can always be redone** (the user: a wrong match couldn't be matched again). `DexRepository.search`
+  (every word must match name, series, number, toy code or the dex's name; the diecast's brand first, newest year
+  first, 60 at most; `LIKE … ESCAPE '\'`) behind `ui/dex/DexPicker.kt` (`DexPickerSheet`). The form's Dex panel has
+  "Ganti" on a link, "Bukan ini? Cari sendiri" under suggestions, "Cari di Dex" when nothing matched, and
+  "Cocokkan ulang" (`LinkAction.Reset`: link and "not in the Dex" cleared, the suggestions come back) after "Lepas";
+  "Cocokkan Dex" has the same search. Tapping a Dex entry card there opens **that entry**
+  (`DexCatalogRoute(id, number)`: the dex with the entry's sheet open once; closing it goes back), not the year.
+- **Map** (`ExploreScreen`): markers take taps within 18 dp (`queryRenderedFeatures` on a box, nearest wins); a
+  place's details are a bottom sheet, from a marker or from the places list (also for places without a point, then
+  with a note); "Lokasi saya" (small FAB on the map) asks for permission, shows a blue dot with a halo (own GeoJSON
+  source above the markers) and centres on it.
+- **Garage**: the details card, cards on the black shelf, the two rows per tier and 1:60/1:62 in the case (see
+  "3D garage"). `SCALES` offers 1:62 and 1:60.
+
+## From the user's list (0.10.0)
+
+The features from the same list, each with the option the user picked.
+
+- **Dex before 2015** (Hot Wheels from 1989, Matchbox from 2000): `WikiSource.firstYear`. Hot Wheels 1990–1994 name
+  the column "Casting Name"/"Car name" and give a row per colour (the colour becomes the variant label); 1997–1999
+  write each row as a `{{List0000White|…}}` template followed by its `|[[Image:…]]` cell (`templateRows` turns them
+  into a table). Matchbox 2000 heads its columns "Model"/"Card" with the region after the number ("MB02 (USA)" →
+  variant "USA"). `WikiOldYearsTest`.
+- **Other brands' Dex** (researched 2026-11; the user picked the wikis plus the AI's web search). Mini GT Wiki:
+  "<year> Models" for 2018–2022 only (Code | Name | LHD/RHD | Brand | Photo; KHMG = Kaido House, MGTS = sets) →
+  `WikiSource.MiniGt` (`lastYear`; `includes` Kaido House, so `DexMatcher` looks in Mini GT's catalogs for a Kaido
+  House diecast; the make stands in for the series; exclusives come from the photo caption, `fileCaption`; KHMG/MGTS
+  sort after MGT). Tomica Wiki: "List of Main Lineup Products", No. 1–150 on sale now, ~60 % filled, no photos →
+  `WikiSource.Tomica`, a `single` list with `year` null (catalog "Tomica Regular"; `DexDao.catalogFor` uses
+  `year IS :year`; `DexWork` syncs it once whatever years it gets; the sync card hides the year pickers). Left out
+  after a look: Maisto's wiki (only 2026, mostly without toy numbers, one number over a 32-row assortment, rowspans)
+  and Tarmac Works' wiki (galleries of SKU file names; names only on each model's page). For those and any other
+  line: **"Cari daftarnya di web (AI)"** in "Isi banyak sekaligus" (`ChecklistReader.search`: `AiVision.chat` with
+  Gemini's Google Search, a paragraph plus a ```json block of rows) → the checklist's review sheet, with the AI's
+  note, a warning (searched the web or answered from memory) and the sources (`ChecklistReview.web`).
+  `WikiSource.scale` is the suggestion's scale (null for Tomica). `WikiBrandsTest`, `CustomDexTest`.
+- **AI providers split** (the user picked Cloudflare Workers AI, NVIDIA NIM, Z.ai GLM-4.6V-Flash and OVHcloud without
+  a key): own `AiProvider`s instead of examples for the custom slot. Cloudflare's URL takes the account id
+  (`ProviderSettings.account`); Z.ai wants plain base64 (`rawBase64`; the client flips between plain and data URL on an
+  image error); OVHcloud is anonymous (`needsKey = false`) and off by default (photos only go to a new service once
+  the collector switches it on). `OpenAiClient.complete` holds the shared loop (shrinking on 413, the base64 flip, a
+  retry hook for the JSON mode).
+- **Cek di toko, many photos** ("one by one"): the camera reopens after each shot; each photo becomes a pending
+  check row (`StoreCheck.queue`) and `CheckViewModel.readQueue` reads the oldest one at a time (`StoreCheck.retry`),
+  each result going on top. `QueuePanel` shows the waiting photos (the one being read framed, with its log);
+  failed ones have "Coba lagi", several "Coba lagi semua (n)". Pending results are kept beyond the last 30.
+- **Tanya AI** ("free chat + suggestions"): a top-bar button in the form when an AI is set up opens `AskAiSheet`. The
+  AI sees up to 4 photos (real sides before studio copies), the form's fields and the Dex entry (`DiecastChat`);
+  quick questions; answers in simple markdown (`chatText`); changes it suggests come as a ```suggest block
+  (`FieldSuggestion`) with "Pakai" (`DiecastForm.withSuggestion` checks years, scale and choices; the field gets ✦).
+  Gemini answers with Google Search grounding and its sources (`GeminiClient.chat`; a 400/403 naming
+  search/grounding/tool asks again without it: `SearchRefused`); other providers answer from memory
+  (`OpenAiClient.chat`, the photos only in the first user turn). The conversation is JSON in the sheet's view model's
+  saved state; a question cut off by the process dying shows as interrupted. `AiVision.chat` shares the provider
+  switching with `extract` (`firstAnswer`). `DiecastChatTest`, `DiecastFormTest`.
+- **Price check beyond Tokopedia/Shopee** (all four): other keywords (`PriceChecker.keywordVariants` at once,
+  `keywords` from the AI without photos); more places to search (`Marketplace`: Bukalapak, Lazada, Facebook, eBay
+  sold); listings in other currencies converted at today's rate (`ExchangeRates.others`: EUR, GBP, JPY, AUD, CAD, SGD,
+  MYR, HKD from Frankfurter; without a rate a listing doesn't count; a tip that shipping isn't included); a rough AI
+  estimate from the web (`PriceChecker.estimate`, a ```estimate block; "Pakai" stores it as `ValueSource.AiEstimate`,
+  `ai_estimate`); the collector's own records (`OwnPriceFinder`: purchase and shelf prices of this diecast and its
+  look-alikes from `CollectionMatcher`, with the median). `PriceAlternativesTest`.
+- **Regions on the map** (provinsi → kabupaten/kota → kecamatan → desa): Nominatim's GeocodeJSON `admin.level4..7`
+  (jsonv2's address keys mix the levels up in Indonesia: Jakarta's kota is `city_district`, Surabaya's kecamatan
+  `municipality`, Cibinong's `town`). `Nominatim.region` caches the answer in `place_cache` as
+  `osm-region:<~100 m cell>` for a year (`pruneCache(before, regionsBefore)`); an error answer (at sea) is kept as
+  `Region.NONE`, no connection isn't. `ExploreViewModel.lookUpRegions` runs while Peta is shown: cached ones at once,
+  the rest at Nominatim's pace, again after "Coba lagi". `Exploration.build(…, regions, area)` narrows the events to
+  the chosen area (stats, markers, places and history follow) and builds a `RegionChart` one level below it (bought
+  and spotted stacked on the meter ramp, "Tidak diketahui" last, points still being looked up and events without a
+  point counted). The chosen area is a chip under the filters (× clears it); the chart's breadcrumb goes back up.
+  OpenStreetMap misses levels in places (Soreang: no kecamatan or desa). `ExplorationTest`, `PlaceLookupTest`.
+
+## From the phone after 0.10.0 (0.11.0)
+
+The user's first look at 0.10.0 on the phone: numbers that couldn't be tapped, a Dex tab that lists every year, and
+the other brands in their collection. Their choices in brackets.
+
+- **Garasi → Koleksi filtered** ("Koleksi tersaring"): "Rata-rata" opens owned by value, the dearest opens that
+  diecast, "Merek" scrolls to the brand panel, "Total belanja" owned by purchase price, "Langka" owned and not regular,
+  a car manufacturer, a release-year column (a 5-year column = its span) and a scale their diecasts. Koleksi got
+  filters only links set (`CollectionFilter.make/scale/years/rare`, `CollectionLink` the same; `scale` `UNKNOWN_SCALE`
+  "?" = none given, as the dashboard labels it): each shows as a chip before the menus that clears it on a tap, and
+  "Langka (bukan regular)" is a choice in the rarity menu too. The make filter is exact (`COLLATE NOCASE`), not a
+  search. "Car makes" is "Car manufacturers" now (the car's maker, not the diecast's brand; Indonesian already said
+  "Pabrikan mobil"): `Dashboard.makes` keeps every make, the panel shows 5 and "Lihat semua (n)". Tappable bar rows
+  carry a chevron. `DashboardTest` covers the links.
+- **Peta** ("Gulir ke bagiannya"): "Tempat dijelajahi" scrolls to the places list, "Diecast" and "Hari berburu" to
+  the history, "Berburu sejak" shows the whole history and opens the first day (`BringIntoViewRequester` after
+  `animateScrollToItem`). A day in the history opens in place to what was seen or bought, where and for how much
+  (`TimelineDay.items`; a tap opens the diecast). The history keeps every day; the page shows 30 and "Lihat semua".
+  Item indices are constants in `ExploreScreen` (`MAP_ITEM`, `PLACES_ITEM`, `HISTORY_ITEM`): keep them in step.
+- **Dex per brand** ("Halaman merek"): the Dex tab shows a card per brand (meter, legend, how many lists, the newest);
+  "Lihat semua" or the card opens `DexBrandRoute(brand)` (`DexBrandScreen`: the brand's progress, then every list with
+  its ⋮ menu). The own dex sheet and the delete dialog are `CatalogDialogs`, shared by both screens.
+- **Tomica Premium** ("per tahun rilis"): `WikiSource.TomicaPremium`, one page ("Tomica Premium (toyline)") for every
+  year, a year's list is what came out that year (dates "4/2/2015", "11/2024", "1/21/23") because the numbers are used
+  again for other models. Main line "No.15" (sort = number) and Unlimited "Unlimited No.1" (sort + 1000); sets, RS,
+  Racing ("Racing No.99" is a race number), reprints and exclusives have no numbers and are left out (the note says to
+  use an own dex). "(Release Commemoration Version)" next to the plain name under one number becomes its variant
+  label. Both Tomica sources have brand "Tomica", so the sync chips show `shortName` (the line). The matcher reads a
+  number on its own ("15", as typed from a Tomica box) as the line number (`DexMatcher.numbers`). The other brands in
+  the collection (Bburago, Maisto, Moto Cross, Roll Speed) have no usable wiki list (no Bburago wiki; Maisto's "Fresh
+  Metal" page lists no releases): "Cari daftarnya di web (AI)". `WikiBrandsTest`.
+
 ## 3D garage (G0 0.6.7–0.6.8, G1 0.7.0)
 
 The user's real furniture from their photos, in 3D, with the owned diecasts on it: left the black carved corner shelf
@@ -498,8 +618,14 @@ each, ~12 cards per lane), right the white case (6 × 10 compartments). Opens fr
   (a card goes on top of the ones there and they stack from the bottom), any tier and spot along it on the black
   shelf. Tap an empty spot → a sheet of the diecasts that fit ("Taruh di sini"); tap a diecast → Pindahkan (then tap
   the target; an occupied compartment swaps) / Ke nampan / Detail. Unplaced owned diecasts wait in the tray
-  ("Nampan · n", "Belum ditaruh", "Taruh semua otomatis"). What fits: cards on the boards only; loose cars and boxes of
-  1:64 or smaller in the case; every non-card on the black shelf. Placing writes "Lokasi simpan" ("Papan 2 · jalur 1",
+  ("Nampan · n", "Belum ditaruh", "Taruh semua otomatis"). What fits: cards on the boards; loose cars and boxes of
+  1:60 or smaller in the case (`ShelfLayout.CASE_LARGEST`; 1:64 before 0.9.1); anything on the black shelf (cards too
+  since 0.9.1). Each tier has two rows (`tierLayout`, 0.9.1; the user: a 1:18 took the whole tier): decorations and
+  the rest along the front edge (`tierSpots`), cards and 1:32 or bigger (`atBack`) side by side in a straight back row
+  across the corner facing down its diagonal (`backRowSpots`, fronts short of the front row's nearest corner); what
+  has no room in its own row tries the other. The row isn't stored: the slot keeps only the angle. A picked-up
+  diecast shows a card with its details (brand, series, year, number, rarity, values; `ShelfRow` carries them; a tap
+  on it = Detail). Placing writes "Lokasi simpan" ("Papan 2 · jalur 1",
   "Laci hitam · susun tengah", "Rak putih · baris 3 kolom 2"); taking it off clears it only if it still says that.
   Not owned any more (saved as another status) → off the shelf; deleting cascades.
 - Data: Room **v7** `shelf_slots` (diecast id PK + FK cascade, shelf key, spot, position; index shelf + spot).
@@ -555,20 +681,22 @@ each, ~12 cards per lane), right the white case (6 × 10 compartments). Opens fr
 | Data | Room (SQLite) on the device. Photos in app-private storage. |
 | Network | OkHttp + kotlinx.serialization (Gemini, OpenAI-style AI providers, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
 | Location / map | Fused Location Provider; **MapLibre** with **OpenFreeMap**'s dark style (OpenStreetMap data, no API key). osmdroid was dropped: archived Nov 2024. Nominatim for place names. |
-| Navigation | Bottom bar: Koleksi · Garasi (dashboard) · ＋ · Peta · Dex; the app opens on Koleksi. The centre ＋ opens Cek di toko / Isi manual / Scan dengan AI (since 0.6.0, replacing the Koleksi FABs) as a FAB menu rising above it (since 0.7.2, replacing a bottom sheet). Other screens open from the ⋮ menu. A screen opened by a tap grows out of what was tapped (0.7.3). |
+| Navigation | Bottom bar: Koleksi · Garasi (dashboard) · ＋ · Peta · Dex; the app opens on Koleksi. The centre ＋ opens Cek di toko / Isi manual / Scan dengan AI (since 0.6.0, replacing the Koleksi FABs) as a FAB menu rising above it (since 0.7.2, replacing a bottom sheet). Other screens open from the ⋮ menu. A screen opened by a tap grows out of what was tapped (0.7.3). Every number on Garasi opens Koleksi filtered to what it counted, the filter shown as a removable chip (0.11.0). |
 | AI scan flow (0.6.0) | Photos first (camera back-to-back for a new diecast, a guide of the sides to shoot), the AI reads only on "Pindai dengan AI". While any AI request runs, its steps are shown as a log (not just a spinner). |
 | Foto studio (0.6.1) | On the phone only (ML Kit segmentation; corners by hand for cards and boxes), free and offline after the first download; the original photo stays. No generative AI editing (it can change printed details). |
 | 3D garage (0.6.7+) | SceneView/Filament, furniture modelled in code after the user's photos (black corner shelf, two MDF blister boards, white 6 × 10 case). Owned diecasts only, one place each whatever the quantity. Free placement with a tray of unplaced ones; the place writes "Lokasi simpan". The trademarked logo stays out of git. Decorations (the user's figures) on the black shelf, cut out on the phone and optionally cleaned (0.7.3). |
-| Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. Own dexes: the AI's checklist rows are reviewed before they're added; entries can be edited (both unlike the web). |
+| Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). Since 0.10.0: Hot Wheels from 1989, Matchbox from 2000, Mini GT (with Kaido House) 2018–2022 and Tomica's regular lineup from their wikis; other lines through the AI's web search into own dexes, reviewed first. Since 0.11.0: Tomica Premium per release year; the Dex tab shows a card per brand, which opens that brand's page with its lists. The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. Own dexes: the AI's checklist rows are reviewed before they're added; entries can be edited (both unlike the web). |
 | Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
 | Settings | DataStore (every AI provider's key, model, on/off and order; the custom server's URL and name). |
-| AI provider | Gemini, Groq, Mistral, OpenRouter and one OpenAI-compatible server (0.8.0; Gemini only before), tried in the user's order: on quota, busy, timeout or a refused key the same request goes to the next; one out of quota rests until it is back. Cerebras left out (no free tier). Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
+| AI provider | Gemini, Groq, Mistral, OpenRouter and one OpenAI-compatible server (0.8.0; Gemini only before), plus Cloudflare Workers AI, NVIDIA NIM, Z.ai and OVHcloud (no key, off by default) since 0.10.0, tried in the user's order: on quota, busy, timeout or a refused key the same request goes to the next; one out of quota rests until it is back. Cerebras left out (no free tier). Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
 | Existing data | Import the web app's **backup zip** (see below). |
-| In-store check (phase 5e) | Opened from a launcher shortcut, the bottom bar's centre button and the ⋮ menu; the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). |
+| In-store check (phase 5e) | Opened from a launcher shortcut, the bottom bar's centre button and the ⋮ menu; the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). Since 0.10.0 many photos in a row, read one at a time. |
 | Bulk scan (phase 5d) | Reads in the background with WorkManager (not only while the screen is open, unlike the web). Camera is back-to-back. Entry: ⋮ menu in Koleksi, banners in Koleksi and Garasi. Saved items leave the queue (no "saved" history). |
-| Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. |
+| Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. Since 0.10.0 also other keywords, Bukalapak/Lazada/Facebook/eBay sold, prices abroad at today's rate, a rough AI estimate from the web (source `ai_estimate`) and the collector's own records. |
+| Tanya AI (0.10.0) | A chat in the diecast form that sees its photos and fields; suggested changes applied with "Pakai"; Gemini searches the web and shows its sources. |
+| Map regions (0.10.0) | Provinsi → kabupaten/kota → kecamatan → desa from OpenStreetMap's admin levels per point, looked up while Peta is open and cached a year; a drill-down chart that also filters the page. |
 | Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |
 | Devices | Phone: Infinix NOTE 50 Pro (X6855), Android 16 (API 36), arm64; USB debugging on, the laptop is allowed. Emulator AVD `Medium_Phone_API_37.0` (API 37, WHPX acceleration works). |
 
