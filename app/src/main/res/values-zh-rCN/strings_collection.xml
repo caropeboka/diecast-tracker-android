@@ -33,4 +33,7 @@
     <string name="card_price_from">%1$s 起</string>
     <string name="card_spotted_times">见过 %1$d 次</string>
     <string name="collection_selected">已选择</string>
+    <string name="collection_rare">稀有（非普通）</string>
+    <string name="collection_no_scale">无比例</string>
+    <string name="collection_remove_filter">移除筛选：%1$s</string>
 </resources>

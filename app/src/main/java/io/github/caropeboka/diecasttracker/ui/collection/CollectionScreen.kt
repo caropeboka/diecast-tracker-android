@@ -52,6 +52,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -63,6 +65,7 @@ import io.github.caropeboka.diecasttracker.data.CollectionSort
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MissingField
 import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.data.UNKNOWN_SCALE
 import io.github.caropeboka.diecasttracker.ui.LocalTour
 import io.github.caropeboka.diecasttracker.ui.MainNavigationBar
 import io.github.caropeboka.diecasttracker.ui.MainTab
@@ -259,6 +262,14 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // Set from the dashboard's links, and only there: tapping one clears it.
+        filter.make?.let { LinkChip(R.drawable.ic_car, it, viewModel::clearMake) }
+        filter.scale?.let { scale ->
+            LinkChip(R.drawable.ic_straighten, if (scale == UNKNOWN_SCALE) stringResource(R.string.collection_no_scale) else scale, viewModel::clearScale)
+        }
+        filter.years?.let { years ->
+            LinkChip(R.drawable.ic_calendar, if (years.first == years.last) "${years.first}" else "${years.first}–${years.last}", viewModel::clearYears)
+        }
         MenuChip(
             label = filter.status?.let { stringResource(it.label) } ?: stringResource(R.string.collection_all_but_spotted),
             active = filter.status != null,
@@ -280,12 +291,12 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
             )
         }
         MenuChip(
-            label = filter.rarity?.let { stringResource(it.label) } ?: stringResource(R.string.collection_all_rarities),
-            active = filter.rarity != null,
-            options = listOf<Rarity?>(null) + Rarity.entries,
-            optionLabel = { it?.let { rarity -> stringResource(rarity.label) } ?: stringResource(R.string.collection_all_rarities) },
-            current = filter.rarity,
-            onSelect = viewModel::setRarity,
+            label = rarityLabel(RarityChoice(filter.rarity, filter.rare)),
+            active = filter.rarity != null || filter.rare,
+            options = listOf(RarityChoice(null), RarityChoice(null, rare = true)) + Rarity.entries.map { RarityChoice(it) },
+            optionLabel = { rarityLabel(it) },
+            current = RarityChoice(filter.rarity, filter.rare),
+            onSelect = { viewModel.setRarity(it.rarity, it.rare) },
         )
         if (state.tags.isNotEmpty()) {
             MenuChip(
@@ -308,6 +319,36 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
             onSelect = viewModel::setSort,
         )
     }
+}
+
+/** One rarity, or every one but regular ([rare]), or all ([rarity] null). */
+private data class RarityChoice(val rarity: Rarity?, val rare: Boolean = false)
+
+@Composable
+private fun rarityLabel(choice: RarityChoice) = when {
+    choice.rarity != null -> stringResource(choice.rarity.label)
+    choice.rare -> stringResource(R.string.collection_rare)
+    else -> stringResource(R.string.collection_all_rarities)
+}
+
+/** A filter set by a link from the dashboard; tapping it clears it. */
+@Composable
+private fun LinkChip(@DrawableRes icon: Int, label: String, onClear: () -> Unit) {
+    val description = stringResource(R.string.collection_remove_filter, label)
+    FilterChip(
+        selected = true,
+        onClick = onClear,
+        label = { Text(label, maxLines = 1) },
+        leadingIcon = { Icon(painterResource(icon), contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) },
+        trailingIcon = { Icon(painterResource(R.drawable.ic_close), contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        modifier = Modifier.widthIn(max = 240.dp).semantics { contentDescription = description },
+    )
 }
 
 /** A filter chip that opens a menu of choices. */

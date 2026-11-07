@@ -51,7 +51,6 @@
     <string name="dashboard_by_value">Nilai</string>
     <string name="dashboard_all_regular">Semua masih regular</string>
     <string name="dashboard_all_regular_text">Belum ada Treasure Hunt, Super TH, atau Chase. Semangat berburu! 🔥</string>
-    <string name="dashboard_makes">Pabrikan mobil</string>
     <string name="dashboard_release_years">Tahun rilis</string>
     <plurals name="dashboard_unknown_years">
         <item quantity="other">%d diecast belum ada tahun rilisnya.</item>
@@ -59,4 +58,9 @@
     <string name="dashboard_gainers">Harga paling naik</string>
     <string name="dashboard_gain">Naik %1$s</string>
     <string name="dashboard_wishlist">Wishlist (%1$d)</string>
+    <plurals name="dashboard_show_all">
+        <item quantity="other">Lihat semua (%d)</item>
+    </plurals>
+    <string name="dashboard_show_fewer">Tampilkan lebih sedikit</string>
+    <string name="dashboard_makes">Pabrikan mobil</string>
 </resources>

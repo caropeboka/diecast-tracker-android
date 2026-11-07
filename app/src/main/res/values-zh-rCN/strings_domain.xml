@@ -38,7 +38,6 @@
     <string name="missing_tags">还没有标签</string>
     <string name="field_name">名称</string>
     <string name="field_brand">品牌</string>
-    <string name="field_make">汽车厂商</string>
     <string name="field_series">系列</string>
     <string name="field_collection_number">收藏编号</string>
     <string name="field_year">年份</string>
@@ -59,4 +58,5 @@
     <string name="field_coordinates">坐标</string>
     <string name="field_place">地点</string>
     <string name="field_price">价格</string>
+    <string name="field_make">汽车厂商</string>
 </resources>

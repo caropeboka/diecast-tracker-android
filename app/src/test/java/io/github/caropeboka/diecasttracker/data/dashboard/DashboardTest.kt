@@ -8,6 +8,7 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MissingField
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.TestEnvironment
+import io.github.caropeboka.diecasttracker.data.UNKNOWN_SCALE
 import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
 import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
@@ -187,5 +188,28 @@ class DashboardTest {
         assertEquals(setOf("AE86", "Skyline", "Civic"), missing(MissingField.Tags))
         assertFalse(CollectionFilter().isFiltered)
         assertTrue(CollectionFilter(missing = MissingField.Tags).isFiltered)
+    }
+
+    @Test
+    fun `the dashboard's links narrow the collection to what they counted`() = runBlocking {
+        seed()
+        save(DiecastEntity(name = "Vespa", brand = "Maisto", scale = null, year = 1999))
+
+        suspend fun owned(filter: CollectionFilter) = repository
+            .observeCollection(filter.copy(status = DiecastStatus.Owned))
+            .first()
+            .map { it.name }
+            .toSet()
+
+        // Car manufacturers as on the dashboard, regardless of case.
+        assertEquals(setOf("'71 Datsun 510", "Skyline"), owned(CollectionFilter(make = "NISSAN")))
+        assertEquals(setOf("Civic"), owned(CollectionFilter(scale = "1:43")))
+        assertEquals(setOf("Vespa"), owned(CollectionFilter(scale = UNKNOWN_SCALE)))
+        assertEquals(setOf("'71 Datsun 510", "AE86"), owned(CollectionFilter(years = 2023..2024)))
+        assertEquals(setOf("Vespa"), owned(CollectionFilter(years = 1995..1999)))
+        assertEquals(setOf("'71 Datsun 510", "Skyline"), owned(CollectionFilter(rare = true)))
+        assertEquals(Count(UNKNOWN_SCALE, 1), dashboard().scales.last())
+        assertTrue(CollectionFilter(years = 2020..2020).isFiltered)
+        assertTrue(CollectionFilter(rare = true).isFiltered)
     }
 }

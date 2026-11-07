@@ -26,6 +26,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -89,6 +90,8 @@ internal fun BarList(rows: List<BarRow>) {
                         modifier = Modifier.weight(1f).padding(end = 8.dp),
                     )
                     Text(row.display, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    // Says the row opens something.
+                    if (row.onClick != null) Chevron()
                 }
                 Bar(row.fraction, row.color)
                 row.detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground) }
@@ -97,9 +100,23 @@ internal fun BarList(rows: List<BarRow>) {
     }
 }
 
-/** Pieces per release year as columns; empty years show as a stub on the baseline (web: `ColumnChart`). */
+/** A small "›" after something that opens a list. */
 @Composable
-internal fun ColumnChart(columns: List<YearColumn>) {
+internal fun Chevron() {
+    Icon(
+        painterResource(R.drawable.ic_expand_more),
+        contentDescription = null,
+        tint = Garage.MutedForeground,
+        modifier = Modifier.padding(start = 2.dp).size(18.dp).rotate(-90f),
+    )
+}
+
+/**
+ * Pieces per release year as columns; empty years show as a stub on the baseline (web: `ColumnChart`). [onClick]
+ * opens the diecasts of a column that has any.
+ */
+@Composable
+internal fun ColumnChart(columns: List<YearColumn>, onClick: ((YearColumn) -> Unit)? = null) {
     val max = columns.maxOf { it.total }.coerceAtLeast(1)
     val showValues = columns.size <= 14
     val labelEvery = ceil(columns.size / 10.0).toInt().coerceAtLeast(1)
@@ -114,6 +131,8 @@ internal fun ColumnChart(columns: List<YearColumn>) {
                 Modifier
                     .weight(1f)
                     .fillMaxHeight()
+                    .clip(RoundedCornerShape(3.dp))
+                    .then(if (onClick != null && column.total > 0) Modifier.clickable { onClick(column) } else Modifier)
                     .semantics(mergeDescendants = true) { contentDescription = description },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

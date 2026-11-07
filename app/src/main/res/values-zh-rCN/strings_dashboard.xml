@@ -51,7 +51,6 @@
     <string name="dashboard_by_value">价值</string>
     <string name="dashboard_all_regular">目前都是普通款</string>
     <string name="dashboard_all_regular_text">还没有寻宝、超级寻宝或 Chase。祝你淘车愉快！🔥</string>
-    <string name="dashboard_makes">汽车品牌</string>
     <string name="dashboard_release_years">发行年份</string>
     <plurals name="dashboard_unknown_years">
         <item quantity="other">%d 辆合金车还没有发行年份。</item>
@@ -59,4 +58,9 @@
     <string name="dashboard_gainers">涨幅最大</string>
     <string name="dashboard_gain">上涨 %1$s</string>
     <string name="dashboard_wishlist">心愿单（%1$d）</string>
+    <plurals name="dashboard_show_all">
+        <item quantity="other">显示全部 %d 个</item>
+    </plurals>
+    <string name="dashboard_show_fewer">收起</string>
+    <string name="dashboard_makes">汽车厂商</string>
 </resources>

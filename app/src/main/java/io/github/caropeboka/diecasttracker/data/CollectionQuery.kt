@@ -32,9 +32,13 @@ enum class MissingField(val key: String, @StringRes val label: Int, @StringRes v
     }
 }
 
+/** How the dashboard and the collection's scale filter call a diecast without a scale. */
+const val UNKNOWN_SCALE = "?"
+
 /**
  * Search, filters and sort of the collection screen (web: `DiecastController::index`).
  * Without a [status], "Ditemui" entries stay out: they are seen, not collected.
+ * [make], [scale], [years] and [rare] come from the dashboard's links; [scale] [UNKNOWN_SCALE] = none given.
  */
 data class CollectionFilter(
     val search: String = "",
@@ -44,9 +48,15 @@ data class CollectionFilter(
     val tag: String? = null,
     val missing: MissingField? = null,
     val sort: CollectionSort = CollectionSort.Newest,
+    val make: String? = null,
+    val scale: String? = null,
+    val years: IntRange? = null,
+    /** Anything but regular. */
+    val rare: Boolean = false,
 ) {
     val isFiltered get() =
-        search.isNotBlank() || brand != null || status != null || rarity != null || tag != null || missing != null
+        search.isNotBlank() || brand != null || status != null || rarity != null || tag != null || missing != null ||
+            make != null || scale != null || years != null || rare
 }
 
 object CollectionQuery {
@@ -84,6 +94,27 @@ object CollectionQuery {
         filter.rarity?.let {
             where += "d.rarity = ?"
             args += it.key
+        }
+        if (filter.rare) where += "d.rarity != '${Rarity.Regular.key}'"
+
+        filter.make?.let {
+            where += "d.make = ? COLLATE NOCASE"
+            args += it
+        }
+
+        when (val scale = filter.scale) {
+            null -> Unit
+            UNKNOWN_SCALE -> where += "d.scale IS NULL"
+            else -> {
+                where += "d.scale = ?"
+                args += scale
+            }
+        }
+
+        filter.years?.let {
+            where += "d.year BETWEEN ? AND ?"
+            args += it.first
+            args += it.last
         }
 
         filter.tag?.let {

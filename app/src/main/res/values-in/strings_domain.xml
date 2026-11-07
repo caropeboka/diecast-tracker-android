@@ -38,7 +38,6 @@
     <string name="missing_tags">Belum ada tag</string>
     <string name="field_name">Nama</string>
     <string name="field_brand">Merek</string>
-    <string name="field_make">Pabrikan</string>
     <string name="field_series">Seri</string>
     <string name="field_collection_number">Nomor koleksi</string>
     <string name="field_year">Tahun</string>
@@ -59,4 +58,5 @@
     <string name="field_coordinates">Koordinat</string>
     <string name="field_place">Tempat</string>
     <string name="field_price">Harga</string>
+    <string name="field_make">Pabrikan</string>
 </resources>

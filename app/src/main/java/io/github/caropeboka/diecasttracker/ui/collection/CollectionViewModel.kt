@@ -54,7 +54,16 @@ data class CollectionLink(
     val rarity: Rarity? = null,
     val missing: MissingField? = null,
     val sort: CollectionSort? = null,
+    val make: String? = null,
+    val scale: String? = null,
+    val years: IntRange? = null,
+    val rare: Boolean = false,
 )
+
+/** The filters only a link sets (each shown as a chip that clears it), and the rest of the menus'. */
+private data class LinkFilters(val make: String?, val scale: String?, val years: IntRange?, val rare: Boolean)
+
+private data class MoreFilters(val tag: String?, val missing: String?, val sort: CollectionSort, val links: LinkFilters)
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class CollectionViewModel(
@@ -69,21 +78,35 @@ class CollectionViewModel(
     /** What the search field shows right away; the query follows it after a short pause. */
     val search: StateFlow<String> = saved.getStateFlow(SEARCH, "")
 
+    private val links = combine(
+        saved.getStateFlow<String?>(MAKE, null),
+        saved.getStateFlow<String?>(SCALE, null),
+        saved.getStateFlow<Int?>(YEAR_FROM, null),
+        saved.getStateFlow<Int?>(YEAR_TO, null),
+        saved.getStateFlow(RARE, false),
+    ) { make, scale, from, to, rare ->
+        LinkFilters(make, scale, if (from != null && to != null) from..to else null, rare)
+    }
+
     private val filter = combine(
         search.debounce { if (it.isEmpty()) 0 else 300 }.onStart { emit(search.value) }.distinctUntilChanged(),
         saved.getStateFlow<String?>(BRAND, null),
         saved.getStateFlow<String?>(STATUS, null),
         saved.getStateFlow<String?>(RARITY, null),
-        combine(saved.getStateFlow<String?>(TAG, null), saved.getStateFlow<String?>(MISSING, null), prefs.sort, ::Triple),
-    ) { search, brand, status, rarity, (tag, missing, sort) ->
+        combine(saved.getStateFlow<String?>(TAG, null), saved.getStateFlow<String?>(MISSING, null), prefs.sort, links, ::MoreFilters),
+    ) { search, brand, status, rarity, more ->
         CollectionFilter(
             search = search,
             brand = brand,
             status = DiecastStatus.fromKey(status),
             rarity = Rarity.fromKey(rarity),
-            tag = tag,
-            missing = MissingField.fromKey(missing),
-            sort = sort,
+            tag = more.tag,
+            missing = MissingField.fromKey(more.missing),
+            sort = more.sort,
+            make = more.links.make,
+            scale = more.links.scale,
+            years = more.links.years,
+            rare = more.links.rare,
         )
     }.distinctUntilChanged()
 
@@ -125,8 +148,23 @@ class CollectionViewModel(
         saved[STATUS] = status?.key
     }
 
-    fun setRarity(rarity: Rarity?) {
+    /** One rarity, or with [rare] every one but regular. */
+    fun setRarity(rarity: Rarity?, rare: Boolean = false) {
         saved[RARITY] = rarity?.key
+        saved[RARE] = rare && rarity == null
+    }
+
+    fun clearMake() {
+        saved[MAKE] = null
+    }
+
+    fun clearScale() {
+        saved[SCALE] = null
+    }
+
+    fun clearYears() {
+        saved[YEAR_FROM] = null
+        saved[YEAR_TO] = null
     }
 
     fun setTag(tag: String?) {
@@ -157,6 +195,11 @@ class CollectionViewModel(
         saved[RARITY] = link.rarity?.key
         saved[TAG] = null
         saved[MISSING] = link.missing?.key
+        saved[MAKE] = link.make
+        saved[SCALE] = link.scale
+        saved[YEAR_FROM] = link.years?.first
+        saved[YEAR_TO] = link.years?.last
+        saved[RARE] = link.rare
         link.sort?.let(::setSort)
     }
 
@@ -167,6 +210,11 @@ class CollectionViewModel(
         private const val RARITY = "rarity"
         private const val TAG = "tag"
         private const val MISSING = "missing"
+        private const val MAKE = "make"
+        private const val SCALE = "scale"
+        private const val YEAR_FROM = "year_from"
+        private const val YEAR_TO = "year_to"
+        private const val RARE = "rare"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

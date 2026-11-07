@@ -33,4 +33,7 @@
     <string name="card_price_from">mulai %1$s</string>
     <string name="card_spotted_times">Ditemui %1$d×</string>
     <string name="collection_selected">Dipilih</string>
+    <string name="collection_rare">Langka (bukan regular)</string>
+    <string name="collection_no_scale">Tanpa skala</string>
+    <string name="collection_remove_filter">Hapus filter: %1$s</string>
 </resources>

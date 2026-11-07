@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Button
@@ -43,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,6 +76,7 @@ import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MissingField
 import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.data.UNKNOWN_SCALE
 import io.github.caropeboka.diecasttracker.data.dashboard.BrandCount
 import io.github.caropeboka.diecasttracker.data.dashboard.Completeness
 import io.github.caropeboka.diecasttracker.data.dashboard.Count
@@ -112,6 +115,7 @@ import kotlinx.coroutines.flow.stateIn
 import java.time.LocalTime
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 class DashboardViewModel(repository: DiecastRepository, dex: DexRepository, queue: ScanQueue, texts: Texts) : ViewModel() {
     /** Null while loading; follows every change to the collection and the Dex. */
@@ -153,6 +157,8 @@ fun DashboardScreen(
     val queued by viewModel.queued.collectAsStateWithLifecycle()
     val opened = rememberSaveable { mutableStateOf<String?>(null) }
     val opener = remember(onOpen) { Opener(opened, onOpen) }
+    val list = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -178,6 +184,7 @@ fun DashboardScreen(
             data.isEmpty && queued == 0 -> EmptyGarage(onAdd, Modifier.padding(padding))
             else -> LazyColumn(
                 Modifier.padding(padding).fillMaxSize(),
+                state = list,
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
@@ -186,7 +193,9 @@ fun DashboardScreen(
                     item(key = "empty") { EmptyGarage(onAdd) }
                     return@LazyColumn
                 }
-                item(key = "value") { ValueHero(data, opener, onCollection) }
+                // The items above the brands, for "Brands" in the hero.
+                val brandsIndex = (if (queued > 0) 1 else 0) + 2 + (if (data.dex.isNotEmpty()) 1 else 0) + 2
+                item(key = "value") { ValueHero(data, opener, onCollection, onBrands = { scope.launch { list.animateScrollToItem(brandsIndex) } }) }
                 item(key = "stats") { StatTiles(data.stats, onCollection) }
                 if (data.dex.isNotEmpty()) {
                     item(key = "dex") { DexPanel(data.dex, onOpenCatalog, onAll = { onTab(MainTab.Dex) }) }
@@ -201,10 +210,10 @@ fun DashboardScreen(
                     item(key = "makes") { MakePanel(data.makes, onCollection) }
                 }
                 if (data.years.isNotEmpty()) {
-                    item(key = "years") { YearPanel(data.years, data.unknownYears) }
+                    item(key = "years") { YearPanel(data.years, data.unknownYears, onCollection) }
                 }
                 if (data.scales.size > 1) {
-                    item(key = "scales") { ScalePanel(data.scales) }
+                    item(key = "scales") { ScalePanel(data.scales, onCollection) }
                 }
                 if (data.topGainers.isNotEmpty()) {
                     item(key = "gainers") { GainersPanel(data.topGainers, opener) }
@@ -288,8 +297,9 @@ private fun EmptyGarage(onAdd: () -> Unit, modifier: Modifier = Modifier) {
 
 /** The collection's market value, the gain against what it cost, and a collage of the best pieces. */
 @Composable
-private fun ValueHero(data: Dashboard, opener: Opener, onCollection: (CollectionLink) -> Unit) {
+private fun ValueHero(data: Dashboard, opener: Opener, onCollection: (CollectionLink) -> Unit, onBrands: () -> Unit) {
     val stats = data.stats
+    val dearest = data.mostValuable.firstOrNull()
 
     Surface(shape = MaterialTheme.shapes.large, color = Garage.Card, border = BorderStroke(1.dp, Garage.Border)) {
         Column {
@@ -311,15 +321,27 @@ private fun ValueHero(data: Dashboard, opener: Opener, onCollection: (Collection
 
                 HorizontalDivider(color = Garage.Border, modifier = Modifier.padding(top = 4.dp))
                 Row(Modifier.height(IntrinsicSize.Min).padding(vertical = 4.dp)) {
-                    MiniStat(stringResource(R.string.dashboard_average), stats.averageValue?.let(::formatMoneyCompact) ?: "—", Modifier.weight(1f))
+                    // The valued ones, dearest first; the dearest itself; the brands further down.
+                    MiniStat(
+                        stringResource(R.string.dashboard_average),
+                        stats.averageValue?.let(::formatMoneyCompact) ?: "—",
+                        Modifier.weight(1f),
+                        onClick = stats.averageValue?.let { { onCollection(OWNED.copy(sort = CollectionSort.Value)) } },
+                    )
                     VerticalDivider(color = Garage.Border)
                     MiniStat(
                         stringResource(R.string.dashboard_dearest),
-                        data.mostValuable.firstOrNull()?.marketValue?.let(::formatMoneyCompact) ?: "—",
-                        Modifier.weight(1f).padding(start = 12.dp),
+                        dearest?.marketValue?.let(::formatMoneyCompact) ?: "—",
+                        Modifier.weight(1f).padding(start = 12.dp).then(dearest?.let { opener.card("dearest", it.id) } ?: Modifier),
+                        onClick = dearest?.let { { opener.open("dearest", it.id) } },
                     )
                     VerticalDivider(color = Garage.Border)
-                    MiniStat(stringResource(R.string.dashboard_brands), stats.brands.toString(), Modifier.weight(1f).padding(start = 12.dp))
+                    MiniStat(
+                        stringResource(R.string.dashboard_brands),
+                        stats.brands.toString(),
+                        Modifier.weight(1f).padding(start = 12.dp),
+                        onClick = onBrands.takeIf { stats.brands > 0 },
+                    )
                 }
                 Text(
                     stringResource(R.string.dashboard_value_basis, stats.valuedItems, stats.uniqueItems),
@@ -364,8 +386,12 @@ private fun GainLine(stats: DashboardStats, onFillPrices: () -> Unit) {
 }
 
 @Composable
-private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier) {
+private fun MiniStat(label: String, value: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(4.dp))
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
+    ) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
@@ -430,6 +456,7 @@ private fun StatTiles(stats: DashboardStats, onCollection: (CollectionLink) -> U
                 if (stats.pricedItems > 0) formatMoney(stats.totalSpent) else "—",
                 stringResource(R.string.dashboard_priced, stats.pricedItems, stats.uniqueItems),
                 Modifier.weight(1f).fillMaxHeight(),
+                onClick = if (stats.pricedItems > 0) ({ onCollection(OWNED.copy(sort = CollectionSort.Price)) }) else null,
             )
         }
         Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -439,6 +466,7 @@ private fun StatTiles(stats: DashboardStats, onCollection: (CollectionLink) -> U
                 stats.specialItems.toString(),
                 if (stats.specialItems > 0) pluralStringResource(R.plurals.dashboard_sth_count, stats.superTreasureHunts, stats.superTreasureHunts) else stringResource(R.string.dashboard_no_rare),
                 Modifier.weight(1f).fillMaxHeight(),
+                onClick = if (stats.specialItems > 0) ({ onCollection(OWNED.copy(rare = true)) }) else null,
             )
             StatTile(
                 R.drawable.ic_favorite,
@@ -656,38 +684,59 @@ private fun RarityPanel(rarities: List<RarityCount>, onCollection: (CollectionLi
     }
 }
 
+/** The car manufacturers, the top [TOP_MAKES] until "Show all". */
 @Composable
 private fun MakePanel(makes: List<Count>, onCollection: (CollectionLink) -> Unit) {
+    var all by rememberSaveable { mutableStateOf(false) }
     SectionCard(stringResource(R.string.dashboard_makes)) {
-        CountBars(makes) { make -> onCollection(OWNED.copy(search = make)) }
+        CountBars(if (all) makes else makes.take(TOP_MAKES), max = makes.first().total) { make -> onCollection(OWNED.copy(make = make)) }
+        if (makes.size > TOP_MAKES) {
+            TextButton(onClick = { all = !all }, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                Text(
+                    if (all) stringResource(R.string.dashboard_show_fewer) else pluralStringResource(R.plurals.dashboard_show_all, makes.size, makes.size),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
     }
 }
 
-@Composable
-private fun ScalePanel(scales: List<Count>) {
-    SectionCard(stringResource(R.string.field_scale)) { CountBars(scales, onClick = null) }
-}
+private const val TOP_MAKES = 5
 
 @Composable
-private fun CountBars(counts: List<Count>, onClick: ((String) -> Unit)?) {
-    val max = counts.maxOf { it.total }.coerceAtLeast(1)
+private fun ScalePanel(scales: List<Count>, onCollection: (CollectionLink) -> Unit) {
+    SectionCard(stringResource(R.string.field_scale)) {
+        CountBars(scales, label = { if (it == UNKNOWN_SCALE) stringResource(R.string.collection_no_scale) else it }) { scale ->
+            onCollection(OWNED.copy(scale = scale))
+        }
+    }
+}
+
+/** [max]: the longest bar's count, so a shortened list keeps the bars' lengths. */
+@Composable
+private fun CountBars(
+    counts: List<Count>,
+    max: Int = counts.maxOf { it.total },
+    label: @Composable (String) -> String = { it },
+    onClick: (String) -> Unit,
+) {
     BarList(
         counts.map { count ->
             BarRow(
                 key = count.label,
-                label = count.label,
+                label = label(count.label),
                 display = stringResource(R.string.dashboard_pcs, count.total),
-                fraction = count.total.toFloat() / max,
-                onClick = onClick?.let { open -> { open(count.label) } },
+                fraction = count.total.toFloat() / max.coerceAtLeast(1),
+                onClick = { onClick(count.label) },
             )
         },
     )
 }
 
 @Composable
-private fun YearPanel(years: List<YearColumn>, unknownYears: Int) {
+private fun YearPanel(years: List<YearColumn>, unknownYears: Int, onCollection: (CollectionLink) -> Unit) {
     SectionCard(stringResource(R.string.dashboard_release_years)) {
-        ColumnChart(years)
+        ColumnChart(years) { column -> onCollection(OWNED.copy(years = column.start until column.start + column.span)) }
         if (unknownYears > 0) {
             Text(
                 pluralStringResource(R.plurals.dashboard_unknown_years, unknownYears, unknownYears),

@@ -54,7 +54,6 @@
     <string name="dashboard_by_value">Value</string>
     <string name="dashboard_all_regular">All regular so far</string>
     <string name="dashboard_all_regular_text">No Treasure Hunt, Super TH or Chase yet. Happy hunting! 🔥</string>
-    <string name="dashboard_makes">Car makes</string>
     <string name="dashboard_release_years">Release years</string>
     <plurals name="dashboard_unknown_years">
         <item quantity="one">%d diecast has no release year yet.</item>
@@ -63,4 +62,10 @@
     <string name="dashboard_gainers">Biggest price gains</string>
     <string name="dashboard_gain">Up %1$s</string>
     <string name="dashboard_wishlist">Wishlist (%1$d)</string>
+    <plurals name="dashboard_show_all">
+        <item quantity="one">Show all %d</item>
+        <item quantity="other">Show all %d</item>
+    </plurals>
+    <string name="dashboard_show_fewer">Show fewer</string>
+    <string name="dashboard_makes">Car manufacturers</string>
 </resources>

@@ -35,4 +35,7 @@
     <string name="card_price_from">from %1$s</string>
     <string name="card_spotted_times">Spotted %1$d×</string>
     <string name="collection_selected">Selected</string>
+    <string name="collection_rare">Rare (not regular)</string>
+    <string name="collection_no_scale">No scale</string>
+    <string name="collection_remove_filter">Remove filter: %1$s</string>
 </resources>

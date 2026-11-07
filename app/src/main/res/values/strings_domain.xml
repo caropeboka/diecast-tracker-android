@@ -38,7 +38,6 @@
     <string name="missing_tags">No tags yet</string>
     <string name="field_name">Name</string>
     <string name="field_brand">Brand</string>
-    <string name="field_make">Make</string>
     <string name="field_series">Series</string>
     <string name="field_collection_number">Collection number</string>
     <string name="field_year">Year</string>
@@ -59,4 +58,5 @@
     <string name="field_coordinates">Coordinates</string>
     <string name="field_place">Place</string>
     <string name="field_price">Price</string>
+    <string name="field_make">Car manufacturer</string>
 </resources>

@@ -3,6 +3,7 @@ package io.github.caropeboka.diecasttracker.data.dashboard
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.MissingField
 import io.github.caropeboka.diecasttracker.data.Rarity
+import io.github.caropeboka.diecasttracker.data.UNKNOWN_SCALE
 import io.github.caropeboka.diecasttracker.data.db.DashboardRow
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.data.dex.CatalogSummary
@@ -60,7 +61,7 @@ data class Dashboard(
     val completeness: List<Completeness> = emptyList(),
     /** Most pieces first. */
     val brands: List<BrandCount> = emptyList(),
-    /** The 8 makes with most pieces. */
+    /** Car manufacturers, most pieces first. */
     val makes: List<Count> = emptyList(),
     /** In the web's fixed order, rarities without pieces left out. */
     val rarities: List<RarityCount> = emptyList(),
@@ -133,13 +134,12 @@ data class Dashboard(
             val makes = owned.filter { it.make != null }.groupBy { it.make!!.lowercase() }.values
                 .map { group -> Count(group.first().make!!, group.sumOf { it.item.quantity }) }
                 .sortedWith(compareByDescending<Count> { it.total }.thenBy { it.label.lowercase() })
-                .take(8)
 
             val rarities = RARITY_ORDER
                 .map { rarity -> RarityCount(rarity, owned.filter { it.item.rarity == rarity }.sumOf { it.item.quantity }) }
                 .filter { it.total > 0 }
 
-            val scales = owned.groupBy { it.scale ?: "?" }
+            val scales = owned.groupBy { it.scale ?: UNKNOWN_SCALE }
                 .map { (scale, group) -> Count(scale, group.sumOf { it.item.quantity }) }
                 .sortedWith(compareByDescending<Count> { it.total }.thenBy { it.label })
 
