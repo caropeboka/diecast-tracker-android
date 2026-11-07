@@ -39,4 +39,7 @@
     <string name="confidence_low">不太确定——请核对</string>
     <string name="ai_err_scan_not_set">AI 扫描尚未启用。请在 AI 设置中填写 API 密钥。</string>
     <string name="ai_answer_language">Simplified Chinese</string>
+    <string name="ai_miss_too_big_retry">照片太大，改发较小的</string>
+    <string name="ai_miss_image_format">不接受照片格式，改用另一种</string>
+    <string name="ai_miss_no_search">无法联网搜索，改为直接回答</string>
 </resources>

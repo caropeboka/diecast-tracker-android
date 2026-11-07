@@ -39,4 +39,7 @@
     <string name="confidence_low">Kurang yakin — cek lagi</string>
     <string name="ai_err_scan_not_set">Scan AI belum aktif. Isi API key di Pengaturan AI.</string>
     <string name="ai_answer_language">Indonesian</string>
+    <string name="ai_miss_too_big_retry">foto terlalu besar, dikirim lebih kecil</string>
+    <string name="ai_miss_image_format">format foto ditolak, dicoba format lain</string>
+    <string name="ai_miss_no_search">tidak bisa mencari di web, ditanya tanpa itu</string>
 </resources>

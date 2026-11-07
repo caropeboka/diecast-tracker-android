@@ -49,7 +49,6 @@
     <string name="ai_open">Buka</string>
     <string name="ai_use">Pakai %1$s</string>
     <string name="ai_custom_name">Nama (opsional)</string>
-    <string name="ai_custom_name_placeholder">mis. NVIDIA</string>
     <string name="ai_server_address">Alamat server</string>
     <string name="ai_saved_key">Key tersimpan: %1$s</string>
     <string name="ai_remove_key">Hapus key</string>
@@ -75,6 +74,15 @@
     <string name="ai_note_groq">Gratis dan sangat cepat (sekitar 1.000 permintaan sehari). Sekali kirim paling banyak 3 foto; foto lainnya tidak ikut.</string>
     <string name="ai_note_mistral">Gratis lewat paket Experiment (perlu verifikasi nomor HP). Di paket gratis, foto yang dikirim boleh dipakai Mistral untuk melatih modelnya.</string>
     <string name="ai_note_openrouter">Model gratis: 50 permintaan sehari (1.000 sehari setelah sekali isi kredit $10). Model openrouter/free memilih sendiri model gratis yang bisa membaca foto.</string>
-    <string name="ai_note_custom">Layanan lain yang memakai format API OpenAI. Contoh alamat — NVIDIA NIM: https://integrate.api.nvidia.com/v1, Cloudflare Workers AI: https://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID>/ai/v1. Pilih model yang bisa membaca foto.</string>
     <string name="ai_custom_key_placeholder">Kosongkan kalau servernya tanpa key</string>
+    <string name="ai_note_cloudflare">Gratis: 10.000 neuron sehari di akun Cloudflare-mu sendiri, direset jam 07.00 WIB. Perlu Account ID (di halaman Workers AI pada dashboard) dan API token dengan izin Workers AI.</string>
+    <string name="ai_note_nvidia">Gratis untuk uji coba dengan akun NVIDIA Developer (sekitar 40 permintaan per menit). NVIDIA mencatat yang dikirim dan boleh memakainya untuk produknya. Pilih model yang bisa membaca foto (vision).</string>
+    <string name="ai_note_zai">GLM-4.6V-Flash dari Z.ai (Zhipu AI) gratis, satu permintaan sekaligus. Daftar pakai email, tanpa kartu kredit.</string>
+    <string name="ai_note_ovh">Tanpa akun dan tanpa key: sekitar 2 permintaan per menit per model dari tiap HP, anonim. Cocok sebagai cadangan terakhir. Mati sampai kamu nyalakan.</string>
+    <string name="ai_note_custom">Layanan lain yang memakai format API OpenAI, misalnya server di jaringanmu sendiri. Pilih model yang bisa membaca foto.</string>
+    <string name="ai_custom_name_placeholder">mis. LM Studio</string>
+    <string name="ai_no_key_needed">tanpa key</string>
+    <string name="ai_cloudflare_account">Account ID</string>
+    <string name="ai_account_needed">Isi Account ID dulu.</string>
+    <string name="ai_account_invalid">Account ID terdiri dari 32 huruf dan angka (0–9, a–f).</string>
 </resources>

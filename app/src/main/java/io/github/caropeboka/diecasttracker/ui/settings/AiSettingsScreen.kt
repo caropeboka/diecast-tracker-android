@@ -193,14 +193,19 @@ private fun ProviderCard(
     val texts = rememberTexts()
     var showKey by rememberSaveable(provider) { mutableStateOf(false) }
     val custom = provider == AiProvider.Custom
-    val configured = if (custom) !saved.baseUrl.isNullOrBlank() else saved.keyHint != null
+    val configured = when {
+        custom -> !saved.baseUrl.isNullOrBlank()
+        provider == AiProvider.Cloudflare -> saved.keyHint != null && !saved.account.isNullOrBlank()
+        !provider.needsKey -> true
+        else -> saved.keyHint != null
+    }
     val active = configured && draft.on
     val status = when {
         !configured && draft.keyInput.isNotEmpty() -> stringResource(R.string.ai_status_unsaved)
         !configured -> stringResource(R.string.ai_status_not_set)
         !draft.on -> stringResource(R.string.ai_status_off)
         restUntil > System.currentTimeMillis() -> stringResource(R.string.ai_status_resting, restEnd(texts, restUntil))
-        else -> stringResource(R.string.ai_status_on, (if (custom) saved.label else saved.keyHint).orEmpty())
+        else -> stringResource(R.string.ai_status_on, (if (custom) saved.label else if (!provider.needsKey) stringResource(R.string.ai_no_key_needed) else saved.keyHint).orEmpty())
     }
 
     Surface(
@@ -269,8 +274,15 @@ private fun ProviderCard(
                         )
                     }
 
+                    if (provider == AiProvider.Cloudflare) {
+                        TextInput(
+                            draft.account, { viewModel.changeAccount(it) }, stringResource(R.string.ai_cloudflare_account),
+                            placeholder = "0123456789abcdef…", error = draft.accountError, capitalization = KeyboardCapitalization.None,
+                        )
+                    }
+
                     val savedKey = saved.keyHint
-                    if (savedKey != null) {
+                    if (provider.needsKey && savedKey != null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             // Neutral: a saved key is not a tested one.
                             Icon(painterResource(R.drawable.ic_check_circle), contentDescription = null, tint = Garage.MutedForeground, modifier = Modifier.size(18.dp))
@@ -291,7 +303,7 @@ private fun ProviderCard(
                         }
                     }
 
-                    OutlinedTextField(
+                    if (provider.needsKey) OutlinedTextField(
                         value = draft.keyInput,
                         onValueChange = { viewModel.changeKey(provider, it) },
                         label = { Text(stringResource(if (savedKey != null) R.string.ai_replace_key else if (custom) R.string.ai_key_optional else R.string.ai_key)) },
@@ -318,7 +330,7 @@ private fun ProviderCard(
                     )
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        val label = stringResource(if (custom) R.string.ai_test_server else R.string.ai_test_key)
+                        val label = stringResource(if (custom || !provider.needsKey) R.string.ai_test_server else R.string.ai_test_key)
                         OutlinedButton(
                             onClick = { viewModel.testKey(provider) },
                             enabled = draft.test != KeyTest.Testing,
@@ -343,7 +355,7 @@ private fun ProviderCard(
                         is KeyTest.Ok -> Text(
                             when {
                                 test.models.isEmpty() -> stringResource(R.string.ai_test_no_vision)
-                                provider == AiProvider.Groq || custom -> pluralStringResource(R.plurals.ai_test_models_pick, test.models.size, test.models.size)
+                                provider !in VISION_LISTED -> pluralStringResource(R.plurals.ai_test_models_pick, test.models.size, test.models.size)
                                 else -> pluralStringResource(R.plurals.ai_test_models_vision, test.models.size, test.models.size)
                             },
                             style = MaterialTheme.typography.bodySmall,
@@ -375,12 +387,19 @@ private fun ProviderCard(
     }
 }
 
+/** Whose model lists say which models read photos; the others' are picked by name, so the collector checks. */
+private val VISION_LISTED = setOf(AiProvider.Gemini, AiProvider.Mistral, AiProvider.OpenRouter)
+
 @StringRes
 private fun note(provider: AiProvider) = when (provider) {
     AiProvider.Gemini -> R.string.ai_note_gemini
     AiProvider.Groq -> R.string.ai_note_groq
     AiProvider.Mistral -> R.string.ai_note_mistral
     AiProvider.OpenRouter -> R.string.ai_note_openrouter
+    AiProvider.Cloudflare -> R.string.ai_note_cloudflare
+    AiProvider.Nvidia -> R.string.ai_note_nvidia
+    AiProvider.Zai -> R.string.ai_note_zai
+    AiProvider.Ovh -> R.string.ai_note_ovh
     AiProvider.Custom -> R.string.ai_note_custom
 }
 
@@ -389,6 +408,7 @@ private fun keyPlaceholder(provider: AiProvider) = when (provider) {
     AiProvider.Gemini -> "AIza…"
     AiProvider.Groq -> "gsk_…"
     AiProvider.OpenRouter -> "sk-or-…"
+    AiProvider.Nvidia -> "nvapi-…"
     AiProvider.Custom -> stringResource(R.string.ai_custom_key_placeholder)
-    AiProvider.Mistral -> ""
+    AiProvider.Mistral, AiProvider.Cloudflare, AiProvider.Zai, AiProvider.Ovh -> ""
 }

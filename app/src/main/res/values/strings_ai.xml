@@ -39,4 +39,7 @@
     <string name="confidence_low">Not sure — check it</string>
     <string name="ai_err_scan_not_set">The AI scan isn\'t on yet. Add an API key in the AI settings.</string>
     <string name="ai_answer_language">English</string>
+    <string name="ai_miss_too_big_retry">photos too big, sending smaller ones</string>
+    <string name="ai_miss_image_format">refused the photo format, trying the other one</string>
+    <string name="ai_miss_no_search">can\'t search the web, asking without it</string>
 </resources>

@@ -6,10 +6,21 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 
 /** What a provider read; [by] is its label, [provider] which one. */
 class AiAnswer(val data: JsonObject, val provider: AiProvider, val by: String)
+
+/** One turn of a conversation: the collector's ([fromUser]) or the AI's. The photos go with the first. */
+data class ChatTurn(val fromUser: Boolean, val text: String)
+
+/** A page the AI looked at while answering (Gemini's Google Search). */
+@Serializable
+data class WebSource(val title: String, val url: String)
+
+/** What a provider said in a chat, with the pages it searched. */
+class ChatReply(val text: String, val sources: List<WebSource>, val provider: AiProvider, val by: String)
 
 /**
  * Reads photos with the providers in the user's order (web: `AiVision.php`, which has one provider at a time):
@@ -35,7 +46,34 @@ class AiVision(
         instruction: String,
         schema: JsonObject,
         onEvent: (AiEvent) -> Unit = {},
-    ): AiAnswer {
+    ): AiAnswer = firstAnswer(onEvent) { provider ->
+        val data = when (provider.provider) {
+            AiProvider.Gemini -> gemini.extract(provider.key.orEmpty(), provider.model, images, system, instruction, schema, onEvent)
+            else -> openAi.extract(provider, images, system, instruction, schema, onEvent)
+        }
+        AiAnswer(data, provider.provider, provider.label)
+    }
+
+    /**
+     * A conversation about some JPEGs ([turns] end with the collector's question): the answer in words. Gemini may
+     * search the web for it ([ChatReply.sources]); the others answer from what they know.
+     */
+    suspend fun chat(
+        images: List<ByteArray>,
+        system: String,
+        turns: List<ChatTurn>,
+        onEvent: (AiEvent) -> Unit = {},
+    ): ChatReply = firstAnswer(onEvent) { provider ->
+        if (provider.provider == AiProvider.Gemini) {
+            val (text, sources) = gemini.chat(provider.key.orEmpty(), provider.model, images, system, turns, onEvent)
+            ChatReply(text, sources, provider.provider, provider.label)
+        } else {
+            ChatReply(openAi.chat(provider, images, system, turns, onEvent), emptyList(), provider.provider, provider.label)
+        }
+    }
+
+    /** [ask]s the providers in order until one answers; see the class comment. */
+    private suspend fun <T> firstAnswer(onEvent: (AiEvent) -> Unit, ask: suspend (ProviderSettings) -> T): T {
         val chain = setup.first().chain
         if (chain.isEmpty()) throw AiException(texts(R.string.ai_err_not_set))
 
@@ -51,12 +89,9 @@ class AiVision(
             if (index > 0) onEvent(AiEvent.Switching(provider.label))
             onEvent(AiEvent.Provider(provider.label))
             try {
-                val data = when (provider.provider) {
-                    AiProvider.Gemini -> gemini.extract(provider.key.orEmpty(), provider.model, images, system, instruction, schema, onEvent)
-                    else -> openAi.extract(provider, images, system, instruction, schema, onEvent)
-                }
+                val answer = ask(provider)
                 if (rested.getValue(provider.provider) != 0L) rests.clear(provider.provider)
-                return AiAnswer(data, provider.provider, provider.label)
+                return answer
             } catch (e: AiException) {
                 misses += e
                 (e as? AiRetryLaterException)?.restUntil?.let { rests.rest(provider.provider, it) }

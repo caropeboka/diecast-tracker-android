@@ -28,8 +28,8 @@ import java.time.ZoneOffset
 import java.util.Base64
 
 /**
- * The providers that speak OpenAI's chat completions (Groq, Mistral, OpenRouter, a custom server): photos go as data
- * URLs and the answer comes back as a JSON object. Their support for JSON Schema differs, so the schema goes in the
+ * The providers that speak OpenAI's chat completions (all but Gemini): photos go as data URLs (or plain base64) and
+ * the answer comes back as a JSON object. Their support for JSON Schema differs, so the schema goes in the
  * prompt and JSON mode only asks for an object; the callers clean the fields as they do Gemini's.
  */
 class OpenAiClient(
@@ -37,10 +37,16 @@ class OpenAiClient(
     private val texts: Texts,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
-    /** Checks a key by listing its models: only those that read images where the service says which do. */
+    /**
+     * Checks a key by listing its models: only those that read images where the service says which do, or whose
+     * names say so. A service without a list gets a one-word question instead.
+     */
     suspend fun availableModels(provider: ProviderSettings): List<String> {
         val label = provider.label
-        val request = Request.Builder().url(url(provider, "models")).authorized(provider).build()
+        val cloudflare = provider.provider == AiProvider.Cloudflare
+        // Workers AI lists its models outside the OpenAI-style part of its API.
+        val listing = if (cloudflare) url(provider, "").removeSuffix("/v1/") + "/models/search?per_page=100" else url(provider, "models")
+        val request = Request.Builder().url(listing).authorized(provider).build()
 
         val reply = try {
             http.withTimeout(LIST_TIMEOUT_S).newCall(request).fetch(::reply)
@@ -48,20 +54,52 @@ class OpenAiClient(
             throw AiException(texts(R.string.ai_err_connect_address, label))
         }
 
+        if (reply.code == 404 && provider.provider != AiProvider.Custom && !cloudflare) return listOf(ping(provider))
         if (!reply.ok) {
             throw AiException(if (reply.code in listOf(401, 403)) texts(R.string.ai_err_key_invalid_short, label) else texts(R.string.ai_err_answered_code, label, reply.code))
         }
 
-        val models = reply.json()?.array("data").orEmpty().mapNotNull { it as? JsonObject }
-        fun List<JsonObject>.ids() = mapNotNull { it.string("id") }
+        val json = reply.json()
+        val models = (json?.array("data") ?: json?.array("result")).orEmpty().mapNotNull { it as? JsonObject }
+        fun List<JsonObject>.ids() = mapNotNull { it.string(if (cloudflare) "name" else "id") }
+        val default = provider.provider.defaultModel
 
         return when (provider.provider) {
             AiProvider.OpenRouter -> listOf(AiProvider.OpenRouter.defaultModel) + models
                 .filter { it.string("id").orEmpty().endsWith(":free") && "image" in it.obj("architecture")?.strings("input_modalities").orEmpty() }
                 .ids()
             AiProvider.Mistral -> models.filter { (it.obj("capabilities")?.get("vision") as? JsonPrimitive)?.booleanOrNull == true }.ids()
+            // Their lists don't say which read images; the names mostly do. One page of Cloudflare's may miss its default.
+            AiProvider.Cloudflare, AiProvider.Nvidia, AiProvider.Zai, AiProvider.Ovh -> {
+                val vision = models.ids().filter { VISION.containsMatchIn(it) && !NOT_FOR_VISION.containsMatchIn(it) }
+                (if (cloudflare || default in vision) listOf(default) else emptyList()) + vision
+            }
             else -> models.ids().filterNot { NOT_FOR_VISION.containsMatchIn(it) }
         }.distinct()
+    }
+
+    /** A one-word question: the model asked if the key works (or only the quota is out), else why not. */
+    private suspend fun ping(provider: ProviderSettings): String {
+        val model = provider.model.ifBlank { provider.provider.defaultModel }
+        val payload = buildJsonObject {
+            put("model", model)
+            putJsonArray("messages") {
+                addJsonObject {
+                    put("role", "user")
+                    put("content", "Reply with OK.")
+                }
+            }
+            put("max_tokens", 5)
+        }.toString().toByteArray()
+        val request = Request.Builder().url(url(provider, "chat/completions")).authorized(provider).post(ProgressBody(payload) {}).build()
+        val reply = try {
+            http.withTimeout(LIST_TIMEOUT_S).newCall(request).fetch(::reply)
+        } catch (_: IOException) {
+            throw AiException(texts(R.string.ai_err_connect_address, provider.label))
+        }
+        if (reply.ok || reply.code == 429) return model
+        if (reply.code in listOf(401, 403)) throw AiException(texts(R.string.ai_err_key_invalid_short, provider.label))
+        throw failure(provider, reply)
     }
 
     /**
@@ -76,18 +114,73 @@ class OpenAiClient(
         schema: JsonObject,
         onEvent: (AiEvent) -> Unit = {},
     ): JsonObject {
-        val sent = fitting(provider.provider, images)
+        val withSchema = "$system\n\nAnswer with a single JSON object and nothing else. It must follow this JSON Schema:\n$schema"
+        val turns = listOf(ChatTurn(fromUser = true, instruction))
+        var jsonMode = true
+        val text = complete(
+            provider,
+            images,
+            onEvent,
+            // Some models refuse JSON mode; the schema in the prompt still asks for an object.
+            retry = { reply ->
+                (jsonMode && reply.code == 400 && reply.body.contains("response_format")).also { refused ->
+                    if (refused) {
+                        onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_no_json), retrying = true))
+                        jsonMode = false
+                    }
+                }
+            },
+        ) { sent, raw -> payload(provider.model, sent, withSchema, turns, jsonMode, raw) }
+        return text?.let(::jsonObjectIn) ?: throw AiException(texts(R.string.ai_err_unreadable_named, provider.label))
+    }
+
+    /** A conversation about some JPEGs (they go with the first turn): the answer in words, past any thinking. */
+    suspend fun chat(
+        provider: ProviderSettings,
+        images: List<ByteArray>,
+        system: String,
+        turns: List<ChatTurn>,
+        onEvent: (AiEvent) -> Unit = {},
+    ): String {
+        val text = complete(provider, images, onEvent) { sent, raw -> payload(provider.model, sent, system, turns, jsonMode = false, raw) }
+        return text?.let { THINKING.replace(it, "").trim() }?.ifEmpty { null }
+            ?: throw AiException(texts(R.string.ai_err_unreadable_named, provider.label))
+    }
+
+    /**
+     * Sends what [payload] builds from the photos that fit (plain base64 or not) until [provider] answers: smaller
+     * photos or the other encoding when it refuses them, again when [retry] says so. The answer's text.
+     */
+    private suspend fun complete(
+        provider: ProviderSettings,
+        images: List<ByteArray>,
+        onEvent: (AiEvent) -> Unit,
+        retry: (Reply) -> Boolean = { false },
+        payload: (List<ByteArray>, Boolean) -> ByteArray,
+    ): String? {
+        var sent = fitting(provider.provider, images)
         if (sent.size < images.size) onEvent(AiEvent.Trimmed(sent.size, images.size))
 
-        var jsonMode = true
+        var raw = provider.provider.rawBase64
+        var shrunk = false
+        var flipped = false
         while (true) {
-            val reply = call(provider, payload(provider.model, sent, system, instruction, schema, jsonMode), onEvent)
+            val reply = call(provider, payload(sent, raw), onEvent)
             val error = reply.json()?.obj("error")?.takeIf { reply.ok }
 
-            // Some models refuse JSON mode; the schema in the prompt still asks for an object.
-            if (jsonMode && reply.code == 400 && reply.body.contains("response_format")) {
-                onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_no_json), retrying = true))
-                jsonMode = false
+            if (retry(reply)) continue
+            // Some take only small photos inline (NVIDIA's older ones: about 135 KB each).
+            if (!shrunk && (reply.code == 413 || reply.code == 400 && TOO_BIG.containsMatchIn(reply.body))) {
+                onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_too_big_retry), retrying = true))
+                sent = sent.map { shrinkJpeg(it, SMALL_PHOTO_BYTES) }
+                shrunk = true
+                continue
+            }
+            // Some want plain base64, others a data URL.
+            if (!flipped && reply.code == 400 && IMAGE_FORMAT.containsMatchIn(reply.body)) {
+                onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_image_format), retrying = true))
+                raw = !raw
+                flipped = true
                 continue
             }
 
@@ -100,7 +193,7 @@ class OpenAiClient(
             }
 
             onEvent(AiEvent.Answered)
-            return answer(reply) ?: throw AiException(texts(R.string.ai_err_unreadable_named, provider.label))
+            return answer(reply)
         }
     }
 
@@ -121,26 +214,33 @@ class OpenAiClient(
         }
     }
 
-    private fun payload(model: String, images: List<ByteArray>, system: String, instruction: String, schema: JsonObject, jsonMode: Boolean) =
+    private fun payload(model: String, images: List<ByteArray>, system: String, turns: List<ChatTurn>, jsonMode: Boolean, raw: Boolean) =
         buildJsonObject {
             put("model", model)
             putJsonArray("messages") {
                 addJsonObject {
                     put("role", "system")
-                    put("content", "$system\n\nAnswer with a single JSON object and nothing else. It must follow this JSON Schema:\n$schema")
+                    put("content", system)
                 }
-                addJsonObject {
-                    put("role", "user")
-                    putJsonArray("content") {
-                        images.forEach { image ->
-                            addJsonObject {
-                                put("type", "image_url")
-                                putJsonObject("image_url") { put("url", "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(image)) }
-                            }
+                turns.forEachIndexed { index, turn ->
+                    addJsonObject {
+                        put("role", if (turn.fromUser) "user" else "assistant")
+                        if (index > 0 || images.isEmpty()) {
+                            put("content", turn.text)
+                            return@addJsonObject
                         }
-                        addJsonObject {
-                            put("type", "text")
-                            put("text", instruction)
+                        putJsonArray("content") {
+                            images.forEach { image ->
+                                addJsonObject {
+                                    put("type", "image_url")
+                                    val encoded = Base64.getEncoder().encodeToString(image)
+                                    putJsonObject("image_url") { put("url", if (raw) encoded else "data:image/jpeg;base64,$encoded") }
+                                }
+                            }
+                            addJsonObject {
+                                put("type", "text")
+                                put("text", turn.text)
+                            }
                         }
                     }
                 }
@@ -157,14 +257,13 @@ class OpenAiClient(
         return sent
     }
 
-    private fun answer(reply: Reply): JsonObject? {
+    private fun answer(reply: Reply): String? {
         val message = reply.json()?.array("choices")?.firstOrNull()?.let { it as? JsonObject }?.obj("message")
-        val text = when (val content = message?.get("content")) {
+        return when (val content = message?.get("content")) {
             is JsonPrimitive -> content.contentOrNull
             is JsonArray -> content.mapNotNull { (it as? JsonObject)?.string("text") }.joinToString("")
             else -> null
         }
-        return text?.let(::jsonObjectIn)
     }
 
     private fun missReason(code: Int) = when (code) {
@@ -177,7 +276,11 @@ class OpenAiClient(
 
     private fun failure(provider: ProviderSettings, reply: Reply): AiException {
         val label = provider.label
-        val said = reply.json()?.let { it.obj("error")?.string("message") ?: it.string("message") ?: it.string("detail") }?.trim()?.take(160)
+        val said = reply.json()?.let {
+            it.obj("error")?.string("message") ?: it.string("message") ?: it.string("detail")
+                // Cloudflare's own API.
+                ?: (it.array("errors")?.firstOrNull() as? JsonObject)?.string("message")
+        }?.trim()?.take(160)
 
         return when (reply.code) {
             401, 403 -> AiException(texts(R.string.ai_err_key_invalid, label))
@@ -231,7 +334,15 @@ class OpenAiClient(
         const val LIST_TIMEOUT_S = 20L
         const val PROMPT_ROOM = 64 * 1024L
 
-        val NOT_FOR_VISION = Regex("(whisper|tts|guard|orpheus|playai|embed|transcribe|moderation)", RegexOption.IGNORE_CASE)
+        val NOT_FOR_VISION = Regex("(whisper|tts|guard|orpheus|playai|embed|transcribe|moderation|retriever|diffusion|codegemma|recurrentgemma)", RegexOption.IGNORE_CASE)
+
+        /** Names of models that read images: "-vl-", "vision", Gemma 3+, Llama 4, Qwen 3.5+, GLM-…V. */
+        val VISION = Regex("(vision|[-_]vl\\b|[-_]vl[-_]|scout|maverick|gemma-[3-9]|omni|kimi-k2\\.[5-9]|qwen3\\.[5-9]|mistral-small-3|pixtral|llava|glm-[\\d.]+v)", RegexOption.IGNORE_CASE)
+        val TOO_BIG = Regex("(too (large|big)|exceed|payload|request entity|180,?000)", RegexOption.IGNORE_CASE)
+        val IMAGE_FORMAT = Regex("(image_url|base64|data ?ur[il]|image format|invalid image|unsupported image|decode image)", RegexOption.IGNORE_CASE)
+
+        // Base64 of 180,000 characters at most.
+        const val SMALL_PHOTO_BYTES = 135_000
         val TRY_AGAIN = Regex("try again in ((?:\\d+(?:\\.\\d+)?(?:ms|h|m|s))+)", RegexOption.IGNORE_CASE)
         val PER_DAY = Regex("per[ -]day|daily|\\bRPD\\b", RegexOption.IGNORE_CASE)
     }

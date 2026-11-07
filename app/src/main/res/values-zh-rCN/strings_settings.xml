@@ -49,7 +49,6 @@
     <string name="ai_open">展开</string>
     <string name="ai_use">使用 %1$s</string>
     <string name="ai_custom_name">名称（可选）</string>
-    <string name="ai_custom_name_placeholder">例如 NVIDIA</string>
     <string name="ai_server_address">服务器地址</string>
     <string name="ai_saved_key">已保存的密钥：%1$s</string>
     <string name="ai_remove_key">删除密钥</string>
@@ -75,6 +74,15 @@
     <string name="ai_note_groq">免费且非常快（每天约 1,000 次请求）。每次最多发送 3 张照片，其余的不会发送。</string>
     <string name="ai_note_mistral">通过 Experiment 套餐免费（需验证手机号）。免费套餐下，Mistral 可以用你发送的照片训练模型。</string>
     <string name="ai_note_openrouter">免费模型：每天 50 次请求（一次性充值 10 美元后每天 1,000 次）。openrouter/free 模型会自动选择能读取照片的免费模型。</string>
-    <string name="ai_note_custom">其他兼容 OpenAI API 格式的服务。地址示例——NVIDIA NIM：https://integrate.api.nvidia.com/v1，Cloudflare Workers AI：https://api.cloudflare.com/client/v4/accounts/&lt;ACCOUNT_ID>/ai/v1。请选择能读取照片的模型。</string>
     <string name="ai_custom_key_placeholder">如果服务器不需要密钥请留空</string>
+    <string name="ai_note_cloudflare">免费：你自己的 Cloudflare 账户每天 10,000 neurons，UTC 零点重置。需要账户 ID（在控制台的 Workers AI 页面）和带 Workers AI 权限的 API 令牌。</string>
+    <string name="ai_note_nvidia">使用 NVIDIA Developer 账户可免费试用（每分钟约 40 次请求）。NVIDIA 会记录发送的内容，并可能用于改进其产品。请选择能读取照片的模型（vision）。</string>
+    <string name="ai_note_zai">Z.ai（智谱 AI）的 GLM-4.6V-Flash 免费，每次处理一个请求。用邮箱注册，无需信用卡。</string>
+    <string name="ai_note_ovh">无需账户和密钥：每台手机每个模型每分钟约 2 次请求，匿名使用。适合作为最后的备用。打开开关后才会使用。</string>
+    <string name="ai_note_custom">其他兼容 OpenAI API 格式的服务，例如你自己网络中的服务器。请选择能读取照片的模型。</string>
+    <string name="ai_custom_name_placeholder">例如 LM Studio</string>
+    <string name="ai_no_key_needed">无需密钥</string>
+    <string name="ai_cloudflare_account">账户 ID</string>
+    <string name="ai_account_needed">请先填写账户 ID。</string>
+    <string name="ai_account_invalid">账户 ID 由 32 个字母和数字组成（0–9、a–f）。</string>
 </resources>

@@ -1,6 +1,7 @@
 package io.github.caropeboka.diecasttracker.data.ai
 
 import android.app.Application
+import android.graphics.Bitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.testTexts
@@ -24,12 +25,16 @@ import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import java.io.ByteArrayOutputStream
 import java.net.UnknownHostException
 import java.time.Instant
 import java.util.Collections
+import java.util.Random
 
 @RunWith(AndroidJUnit4::class)
 @Config(application = Application::class, qualifiers = "in")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AiVisionTest {
     private var now = Instant.parse("2026-10-20T10:00:00Z").toEpochMilli()
     private val fake = FakeGemini().on("models", 200, FakeGemini.models())
@@ -217,6 +222,71 @@ class AiVisionTest {
     }
 
     @Test
+    fun `Cloudflare runs on the account's own address, and OVHcloud needs no key but waits to be switched on`() = runBlocking {
+        fake.on("api.cloudflare.com/client/v4/accounts/$ACCOUNT/ai/v1/chat/completions", 200, chat("""{"name": "Honda NSX-R"}"""))
+        val cloudflare = ProviderSettings(AiProvider.Cloudflare, "cf-token", account = ACCOUNT)
+        assertFalse(cloudflare.copy(account = null).isReady)
+
+        assertEquals("Cloudflare", vision(cloudflare).read().by)
+        assertEquals("Bearer cf-token", fake.bearers.single())
+
+        assertFalse(AiProvider.Ovh in AiSetup.EMPTY.chain.map { it.provider })
+        val ovh = ProviderSettings(AiProvider.Ovh, on = true)
+        assertTrue(ovh.isReady)
+        fake.on("oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions", 200, chat("""{"name": "Honda NSX-R"}"""))
+        fake.bearers.clear()
+        assertEquals("OVHcloud", vision(ovh).read().by)
+        assertNull(fake.bearers.single())
+    }
+
+    @Test
+    fun `photos a service refuses go again the other way encoded, or smaller`() = runBlocking {
+        // Z.ai gets plain base64 first; when it refuses that, a data URL.
+        fake.on(ZAI_CHAT, FakeGemini.Reply.Json(400, """{"error":{"message":"Invalid image_url"}}"""), FakeGemini.Reply.Json(200, chat("""{"name": "Honda NSX-R"}""")))
+        vision(ProviderSettings(AiProvider.Zai, "zai-key")).read()
+        assertEquals(listOf(false, true), fake.bodies.map { "data:image/jpeg;base64," in it })
+
+        // Too big for NVIDIA: the same photo again, shrunk.
+        fake.bodies.clear()
+        fake.on(NVIDIA_CHAT, FakeGemini.Reply.Json(413, "{}"), FakeGemini.Reply.Json(200, chat("""{"name": "Honda NSX-R"}""")))
+        val answer = vision(ProviderSettings(AiProvider.Nvidia, "nvapi-test")).extract(listOf(noisyJpeg()), "Read the card.", "Which diecast is this?", SCHEMA) { events += it }
+        assertEquals("NVIDIA", answer.by)
+        assertEquals(2, fake.bodies.size)
+        assertTrue(fake.bodies[1].length < fake.bodies[0].length / 2)
+    }
+
+    @Test
+    fun `lists without vision flags are read by the names, and a service without a list is asked a word`() = runBlocking {
+        fake.on(
+            "api.cloudflare.com/client/v4/accounts/$ACCOUNT/ai/models/search", 200,
+            """{"success":true,"result":[
+                {"id":"a1","name":"@cf/google/gemma-4-26b-a4b-it"},
+                {"id":"a2","name":"@cf/meta/llama-3.3-70b-instruct-fp8-fast"},
+                {"id":"a3","name":"@cf/baai/bge-m3"}
+            ]}""",
+        ).on(
+            "integrate.api.nvidia.com/v1/models", 200,
+            """{"data":[
+                {"id":"google/gemma-4-31b-it"},{"id":"google/codegemma-7b"},{"id":"nvidia/nemotron-3.5-super-vl-120b-a12b"},
+                {"id":"nvidia/llama-nemotron-embed-vl-1b-v2"},{"id":"meta/llama-3.3-70b-instruct"}
+            ]}""",
+        ).on(
+            "oai.endpoints.kepler.ai.cloud.ovh.net/v1/models", 200,
+            """{"data":[{"id":"Qwen3.8-27B"},{"id":"Qwen2.5-VL-72B-Instruct"},{"id":"Qwen3Guard-Gen-8B"},{"id":"gpt-oss-120b"}]}""",
+        ).on("api.z.ai/api/paas/v4/models", 404, "{}").on(ZAI_CHAT, 200, chat("OK"))
+        val client = OpenAiClient(fake.client, testTexts())
+
+        assertEquals(
+            listOf("@cf/meta/llama-4-scout-17b-16e-instruct", "@cf/google/gemma-4-26b-a4b-it"),
+            client.availableModels(ProviderSettings(AiProvider.Cloudflare, "cf-token", account = ACCOUNT)),
+        )
+        assertEquals(listOf("google/gemma-4-31b-it", "nvidia/nemotron-3.5-super-vl-120b-a12b"), client.availableModels(ProviderSettings(AiProvider.Nvidia, "nvapi-test")))
+        assertEquals(listOf("Qwen3.8-27B", "Qwen2.5-VL-72B-Instruct"), client.availableModels(ProviderSettings(AiProvider.Ovh, on = true)))
+        assertEquals(listOf("glm-4.6v-flash"), client.availableModels(ProviderSettings(AiProvider.Zai, "zai-key")))
+        assertEquals(ZAI_CHAT, fake.calls.last())
+    }
+
+    @Test
     fun `answers are found past thinking and code fences`() {
         val text = "<think>The card says {name}…</think>\nHere it is:\n```json\n{\"name\": \"Honda NSX-R\"}\n```"
 
@@ -235,6 +305,17 @@ class AiVisionTest {
         const val GROQ_CHAT = "api.groq.com/openai/v1/chat/completions"
         const val MISTRAL_CHAT = "api.mistral.ai/v1/chat/completions"
         const val OPENROUTER_CHAT = "openrouter.ai/api/v1/chat/completions"
+        const val ZAI_CHAT = "api.z.ai/api/paas/v4/chat/completions"
+        const val NVIDIA_CHAT = "integrate.api.nvidia.com/v1/chat/completions"
+        const val ACCOUNT = "0123456789abcdef0123456789abcdef"
+
+        /** A photo of noise: JPEG can't make it small, so it is over a megabyte. */
+        fun noisyJpeg(): ByteArray {
+            val random = Random(7)
+            val bitmap = Bitmap.createBitmap(1200, 900, Bitmap.Config.ARGB_8888)
+            bitmap.setPixels(IntArray(1200 * 900) { random.nextInt() or (0xff shl 24) }, 0, 1200, 0, 0, 1200, 900)
+            return ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.JPEG, 92, it) }.toByteArray()
+        }
 
         const val DAILY_429 = """{"error":{"code":429,"status":"RESOURCE_EXHAUSTED","details":[
             {"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]}

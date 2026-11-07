@@ -24,6 +24,8 @@ import java.net.UnknownHostException
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Base64
+import kotlinx.serialization.json.JsonArrayBuilder
+import kotlinx.serialization.json.booleanOrNull
 
 /** A scan that failed for a reason the collector should read; the form still works without it. */
 open class AiException(message: String) : Exception(message)
@@ -96,14 +98,7 @@ class GeminiClient(
                 addJsonObject {
                     put("role", "user")
                     putJsonArray("parts") {
-                        images.forEach { image ->
-                            addJsonObject {
-                                putJsonObject("inline_data") {
-                                    put("mime_type", "image/jpeg")
-                                    put("data", Base64.getEncoder().encodeToString(image))
-                                }
-                            }
-                        }
+                        images.forEach { addInlineJpeg(it) }
                         addJsonObject { put("text", instruction) }
                     }
                 }
@@ -114,6 +109,70 @@ class GeminiClient(
             }
         }.toString().toByteArray()
 
+        val text = answerText(generate(key, model, payload, onEvent))
+        return runCatching { Json.parseToJsonElement(text) }.getOrNull() as? JsonObject
+            ?: throw AiException(texts(R.string.ai_err_unreadable))
+    }
+
+    /**
+     * A conversation about some JPEGs (they go with the first turn): the answer in words, and the pages Google Search
+     * found for it. A model that can't search is asked again without it.
+     */
+    suspend fun chat(
+        key: String,
+        model: String,
+        images: List<ByteArray>,
+        system: String,
+        turns: List<ChatTurn>,
+        onEvent: (AiEvent) -> Unit = {},
+    ): Pair<String, List<WebSource>> {
+        fun payload(search: Boolean) = buildJsonObject {
+            putJsonObject("systemInstruction") {
+                putJsonArray("parts") { addJsonObject { put("text", system) } }
+            }
+            putJsonArray("contents") {
+                turns.forEachIndexed { index, turn ->
+                    addJsonObject {
+                        put("role", if (turn.fromUser) "user" else "model")
+                        putJsonArray("parts") {
+                            if (index == 0) images.forEach { addInlineJpeg(it) }
+                            addJsonObject { put("text", turn.text) }
+                        }
+                    }
+                }
+            }
+            if (search) putJsonArray("tools") { addJsonObject { putJsonObject("google_search") {} } }
+        }.toString().toByteArray()
+
+        val json = try {
+            generate(key, model, payload(search = true), onEvent, searching = true)
+        } catch (_: SearchRefused) {
+            onEvent(AiEvent.Missed(model, texts(R.string.ai_miss_no_search), retrying = true))
+            generate(key, model, payload(search = false), onEvent)
+        }
+        val sources = firstCandidate(json)?.obj("groundingMetadata")?.array("groundingChunks").orEmpty()
+            .mapNotNull { (it as? JsonObject)?.obj("web") }
+            .mapNotNull { web -> web.string("uri")?.let { WebSource(web.string("title") ?: it, it) } }
+            .distinctBy { it.url }
+        return answerText(json).trim().ifEmpty { throw AiException(texts(R.string.ai_err_unreadable)) } to sources
+    }
+
+    private fun firstCandidate(json: JsonObject?) = json?.array("candidates")?.firstOrNull() as? JsonObject
+
+    /** The answer's words, without the model's thoughts. */
+    private fun answerText(json: JsonObject?): String =
+        firstCandidate(json)?.obj("content")?.array("parts").orEmpty()
+            .mapNotNull { part -> (part as? JsonObject)?.takeUnless { (it["thought"] as? JsonPrimitive)?.booleanOrNull == true }?.string("text") }
+            .joinToString("")
+
+    /** A model that refused the search tool, not the question. */
+    private class SearchRefused : Exception()
+
+    /**
+     * Sends [payload] to [model], or the next ones when it can't answer; the reply's JSON. [searching]: a refusal
+     * of the search tool throws [SearchRefused] instead.
+     */
+    private suspend fun generate(key: String, model: String, payload: ByteArray, onEvent: (AiEvent) -> Unit, searching: Boolean = false): JsonObject? {
         // Busy, timed out, out of (per-model) free quota, or retired for this key: move on to the next model,
         // within an overall time budget so the scan doesn't hang.
         val started = clock()
@@ -134,6 +193,7 @@ class GeminiClient(
 
         val reply = last as? Outcome.Reply
         if (reply == null || !reply.ok) {
+            if (searching && reply != null && reply.code in listOf(400, 403) && SEARCH_REFUSED.containsMatchIn(reply.body)) throw SearchRefused()
             Log.w(TAG, "Gemini request failed: $outcomes ${reply?.body?.take(500)}")
             throw failure(model, outcomes, reply)
         }
@@ -142,14 +202,14 @@ class GeminiClient(
         if (json?.obj("promptFeedback")?.string("blockReason") != null) {
             throw AiException(texts(R.string.ai_err_blocked))
         }
+        return json
+    }
 
-        val text = json?.array("candidates")?.firstOrNull()?.let { it as? JsonObject }
-            ?.obj("content")?.array("parts").orEmpty()
-            .mapNotNull { (it as? JsonObject)?.string("text") }
-            .joinToString("")
-
-        return runCatching { Json.parseToJsonElement(text) }.getOrNull() as? JsonObject
-            ?: throw AiException(texts(R.string.ai_err_unreadable))
+    private fun JsonArrayBuilder.addInlineJpeg(image: ByteArray) = addJsonObject {
+        putJsonObject("inline_data") {
+            put("mime_type", "image/jpeg")
+            put("data", Base64.getEncoder().encodeToString(image))
+        }
     }
 
     /**
@@ -299,6 +359,7 @@ class GeminiClient(
         val VERSION = Regex("^gemini-(\\d+(?:\\.\\d+)?)")
         val NOT_FOR_SCANNING = Regex("(embedding|tts|image|banana|live|audio|robotics|computer-use|transcribe|customtools)")
         val DAILY = Regex("PerDay")
+        val SEARCH_REFUSED = Regex("(google_search|search|grounding|tool)", RegexOption.IGNORE_CASE)
         val RETRY_DELAY = Regex("\"retryDelay\"\\s*:\\s*\"(\\d+(?:\\.\\d+)?)s\"")
         val PACIFIC: ZoneId = ZoneId.of("America/Los_Angeles")
     }

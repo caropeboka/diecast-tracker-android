@@ -52,12 +52,14 @@ sealed interface KeyTest {
 class ProviderDraft(val provider: AiProvider) {
     var keyInput by mutableStateOf("")
     var model by mutableStateOf(provider.defaultModel)
-    var on by mutableStateOf(true)
+    var on by mutableStateOf(provider.defaultOn)
     var baseUrl by mutableStateOf("")
     var name by mutableStateOf("")
+    var account by mutableStateOf("")
     var test by mutableStateOf<KeyTest>(KeyTest.Idle)
     var modelError by mutableStateOf<String?>(null)
     var urlError by mutableStateOf<String?>(null)
+    var accountError by mutableStateOf<String?>(null)
 }
 
 /** Settings → AI Scan of the web app, with every provider the app can fall back on, in the order they're tried. */
@@ -99,6 +101,7 @@ class AiSettingsViewModel(
                     on = saved.on
                     baseUrl = saved.baseUrl.orEmpty()
                     name = saved.name.orEmpty()
+                    account = saved.account.orEmpty()
                 }
             }
             if (!setup.isEnabled) expanded = AiProvider.Gemini
@@ -137,6 +140,12 @@ class AiSettingsViewModel(
         drafts.getValue(AiProvider.Custom).name = value
     }
 
+    fun changeAccount(value: String) = drafts.getValue(AiProvider.Cloudflare).run {
+        account = value.trim()
+        accountError = null
+        if (test !is KeyTest.Testing) test = KeyTest.Idle
+    }
+
     fun changeOn(provider: AiProvider, value: Boolean) {
         drafts.getValue(provider).on = value
     }
@@ -145,8 +154,12 @@ class AiSettingsViewModel(
     fun testKey(provider: AiProvider) {
         val draft = drafts.getValue(provider)
         val settings = typed(provider)
-        if (settings.key.isNullOrBlank() && provider != AiProvider.Custom) {
+        if (settings.key.isNullOrBlank() && provider != AiProvider.Custom && provider.needsKey) {
             draft.test = KeyTest.Failed(texts(R.string.ai_key_needed))
+            return
+        }
+        if (provider == AiProvider.Cloudflare && draft.account.isBlank()) {
+            draft.test = KeyTest.Failed(texts(R.string.ai_account_needed))
             return
         }
         if (provider == AiProvider.Custom && !validUrl(draft.baseUrl)) {
@@ -182,7 +195,7 @@ class AiSettingsViewModel(
             settings.save(
                 order.map { provider ->
                     val draft = drafts.getValue(provider)
-                    ProviderChange(provider, draft.model, draft.on, draft.keyInput, draft.baseUrl, draft.name)
+                    ProviderChange(provider, draft.model, draft.on, draft.keyInput, draft.baseUrl, draft.name, draft.account)
                 },
             )
             messages.show(texts(R.string.ai_settings_saved))
@@ -206,18 +219,29 @@ class AiSettingsViewModel(
     private fun typed(provider: AiProvider): ProviderSettings {
         val draft = drafts.getValue(provider)
         val savedKey = current.value?.get(provider)?.key
-        return ProviderSettings(provider, draft.keyInput.ifEmpty { savedKey }, draft.model, draft.on, draft.baseUrl, draft.name)
+        return ProviderSettings(provider, draft.keyInput.ifEmpty { savedKey }, draft.model, draft.on, draft.baseUrl, draft.name, draft.account)
     }
 
-    /** A provider in use needs a model (and the custom one a server); an unused one may stay half filled. */
+    /**
+     * A provider in use needs a model (the custom one a server, Cloudflare an account id); an unused one may stay
+     * half filled. One without a key is in use when it's switched on.
+     */
     private fun validate(provider: AiProvider): Boolean {
         val draft = drafts.getValue(provider)
         val typed = typed(provider)
-        val used = if (provider == AiProvider.Custom) draft.baseUrl.isNotEmpty() || !typed.key.isNullOrBlank() else !typed.key.isNullOrBlank()
+        val used = when {
+            provider == AiProvider.Custom -> draft.baseUrl.isNotEmpty() || !typed.key.isNullOrBlank()
+            provider == AiProvider.Cloudflare -> draft.account.isNotEmpty() || !typed.key.isNullOrBlank()
+            !provider.needsKey -> draft.on
+            else -> !typed.key.isNullOrBlank()
+        }
         if (!used) return true
 
         if (provider == AiProvider.Custom && !validUrl(draft.baseUrl)) {
             draft.urlError = texts(R.string.ai_url_invalid)
+        }
+        if (provider == AiProvider.Cloudflare && !ACCOUNT_ID.matches(draft.account)) {
+            draft.accountError = texts(R.string.ai_account_invalid)
         }
         val pattern = if (provider == AiProvider.Gemini) MODEL_NAME else OPEN_MODEL_NAME
         draft.modelError = when {
@@ -226,12 +250,15 @@ class AiSettingsViewModel(
             !pattern.matches(draft.model) -> texts(R.string.ai_model_no_spaces)
             else -> null
         }
-        return draft.modelError == null && draft.urlError == null
+        return draft.modelError == null && draft.urlError == null && draft.accountError == null
     }
 
     private fun validUrl(url: String) = url.toHttpUrlOrNull() != null
 
     companion object {
+        /** A Cloudflare account id: 32 hex digits. */
+        private val ACCOUNT_ID = Regex("^[0-9a-fA-F]{32}$")
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp

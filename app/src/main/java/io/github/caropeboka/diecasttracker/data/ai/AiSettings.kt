@@ -24,7 +24,9 @@ val OPEN_MODEL_NAME = Regex("^[A-Za-z0-9@._:/\\-]+$")
 
 /**
  * The services the app can read photos with. Gemini has its own API; the others speak OpenAI's chat completions.
- * [maxImages] and [maxRequestBytes]: what one request may carry, when the service has a limit.
+ * [maxImages] and [maxRequestBytes]: what one request may carry, when the service has a limit. [needsKey] false: it
+ * can be used without one; [defaultOn] false: not used until switched on; [rawBase64]: photos go as plain base64
+ * rather than data URLs.
  */
 enum class AiProvider(
     val id: String,
@@ -36,6 +38,9 @@ enum class AiProvider(
     val keyUrl: String?,
     val maxImages: Int? = null,
     val maxRequestBytes: Long? = null,
+    val needsKey: Boolean = true,
+    val defaultOn: Boolean = true,
+    val rawBase64: Boolean = false,
 ) {
     Gemini("gemini", "Gemini", "Google Gemini", null, DEFAULT_GEMINI_MODEL, "https://aistudio.google.com/apikey"),
 
@@ -45,21 +50,41 @@ enum class AiProvider(
 
     // The free router picks a free model that can do what the request needs (images, JSON), whichever are up.
     OpenRouter("openrouter", "OpenRouter", "OpenRouter", "https://openrouter.ai/api/v1", "openrouter/free", "https://openrouter.ai/keys"),
+
+    // Workers AI on the collector's own Cloudflare account: the address takes its account id.
+    Cloudflare(
+        "cloudflare", "Cloudflare", "Cloudflare Workers AI", "https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1",
+        "@cf/meta/llama-4-scout-17b-16e-instruct", "https://dash.cloudflare.com/profile/api-tokens",
+    ),
+    Nvidia("nvidia", "NVIDIA", "NVIDIA NIM", "https://integrate.api.nvidia.com/v1", "google/gemma-4-31b-it", "https://build.nvidia.com/settings/api-keys"),
+
+    // Zhipu's own examples send images as plain base64.
+    Zai("zai", "Z.ai", "Z.ai (GLM)", "https://api.z.ai/api/paas/v4", "glm-4.6v-flash", "https://z.ai/manage-apikey/apikey-list", rawBase64 = true),
+
+    // Anonymous: a couple of requests a minute per model from each address, nothing to sign up for. Photos go to a
+    // new service, so only once the collector switches it on.
+    Ovh("ovh", "OVHcloud", "OVHcloud AI Endpoints", "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1", "Qwen3.8-27B", null, needsKey = false, defaultOn = false),
     Custom("custom", "Server", "OpenAI-compatible", null, "", null),
 }
 
-/** One provider as set up: its key, model and whether it may be used. [baseUrl] and [name] are the custom one's. */
+/**
+ * One provider as set up: its key, model and whether it may be used. [baseUrl] and [name] are the custom one's,
+ * [account] Cloudflare's account id.
+ */
 data class ProviderSettings(
     val provider: AiProvider,
     val key: String? = null,
     val model: String = provider.defaultModel,
-    val on: Boolean = true,
+    val on: Boolean = provider.defaultOn,
     val baseUrl: String? = null,
     val name: String? = null,
+    val account: String? = null,
 ) {
     /** A custom server may need no key (one on the home network, say). */
-    val isReady get() = on && model.isNotBlank() && when (provider) {
-        AiProvider.Custom -> !baseUrl.isNullOrBlank()
+    val isReady get() = on && model.isNotBlank() && when {
+        provider == AiProvider.Custom -> !baseUrl.isNullOrBlank()
+        provider == AiProvider.Cloudflare -> !key.isNullOrBlank() && !account.isNullOrBlank()
+        !provider.needsKey -> true
         else -> !key.isNullOrBlank()
     }
 
@@ -69,7 +94,11 @@ data class ProviderSettings(
     val label: String get() = if (provider == AiProvider.Custom) name?.trim()?.ifEmpty { null } ?: host() ?: provider.label else provider.label
 
     /** Where its chat completions live, without a trailing slash. */
-    val endpoint: String? get() = (provider.baseUrl ?: baseUrl)?.trim()?.trimEnd('/')
+    val endpoint: String? get() = when (provider) {
+        AiProvider.Custom -> baseUrl
+        AiProvider.Cloudflare -> account?.trim()?.ifEmpty { null }?.let { provider.baseUrl!!.replace("{account}", it) }
+        else -> provider.baseUrl
+    }?.trim()?.trimEnd('/')
 
     private fun host() = baseUrl?.substringAfter("://")?.substringBefore('/')?.ifEmpty { null }
 }
@@ -138,6 +167,7 @@ class AiSettings(context: Context, private val clock: () -> Long = System::curre
                     prefs.put(CUSTOM_URL, change.baseUrl)
                     prefs.put(CUSTOM_NAME, change.name)
                 }
+                if (provider == AiProvider.Cloudflare) prefs.put(CLOUDFLARE_ACCOUNT, change.account)
             }
         }
     }
@@ -178,9 +208,10 @@ class AiSettings(context: Context, private val clock: () -> Long = System::curre
         provider = provider,
         key = this[key(provider)],
         model = this[model(provider)] ?: provider.defaultModel,
-        on = this[on(provider)] ?: true,
+        on = this[on(provider)] ?: provider.defaultOn,
         baseUrl = if (provider == AiProvider.Custom) this[CUSTOM_URL] else null,
         name = if (provider == AiProvider.Custom) this[CUSTOM_NAME] else null,
+        account = if (provider == AiProvider.Cloudflare) this[CLOUDFLARE_ACCOUNT] else null,
     )
 
     private fun MutablePreferences.put(key: Preferences.Key<String>, value: String?) {
@@ -204,6 +235,7 @@ class AiSettings(context: Context, private val clock: () -> Long = System::curre
         val ORDER = stringPreferencesKey("provider_order")
         val CUSTOM_URL = stringPreferencesKey("custom_base_url")
         val CUSTOM_NAME = stringPreferencesKey("custom_name")
+        val CLOUDFLARE_ACCOUNT = stringPreferencesKey("cloudflare_account")
         val FALLBACKS = stringPreferencesKey("gemini_fallbacks")
         val FALLBACKS_KEY = stringPreferencesKey("gemini_fallbacks_key")
         val FALLBACKS_AT = longPreferencesKey("gemini_fallbacks_at")
@@ -219,4 +251,5 @@ data class ProviderChange(
     val newKey: String? = null,
     val baseUrl: String? = null,
     val name: String? = null,
+    val account: String? = null,
 )
