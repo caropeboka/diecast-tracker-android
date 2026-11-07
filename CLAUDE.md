@@ -36,9 +36,12 @@ on the phone since 2026-11-07 (it starts, the 64 diecasts intact) but **its new 
 **0.11.0** (the user's first look at 0.10.0, see "From the phone after 0.10.0"): every number on Garasi opens Koleksi
 filtered, the map's stats and history days open, the Dex tab per brand with a page each, Tomica Premium per year;
 covered by tests (252 pass), on the phone since 2026-11-07 (it starts, the 64 diecasts intact), not tried there yet. The collection's brands (read from the phone 2026-11-07): Hot Wheels,
-Matchbox, Tomica (Premium and the regular lineup), Bburago, Maisto, Moto Cross, Roll Speed. The
-phone got 0.7.0 and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57); the
-work since 0.9.0 is not committed yet. Next: try the new pieces on the phone (Tanya AI, the web estimate and the web list with
+Matchbox, Tomica (Premium and the regular lineup), Bburago, Maisto, Moto Cross, Roll Speed. Everything up to 0.11.0
+is committed and pushed. **Open source** (2026-11-08): MIT `LICENSE`, the README rewritten for other collectors
+(badges, screenshots from the user's phone in `docs/screenshots`, install guide, the AI providers, privacy, building,
+architecture, contributing), `CHANGELOG.md`, `docs/icon.svg` (the launcher icon as SVG), and the first GitHub release
+v0.11.0 (see "Public releases" under "Build, test, run"). The
+phone got 0.7.0 and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57). Next: try the new pieces on the phone (Tanya AI, the web estimate and the web list with
 the real Gemini key; the regions lookup; the store check's batch; the new wikis' sync); the user adds the other
 providers' keys and tries a scan with Gemini's quota used up (or Gemini switched off); the user tries the garage on the
 phone (placing,
@@ -140,9 +143,19 @@ Matches get +1 (owned) or "Dapat" (wishlist/spotted → owned today, "Beli di" =
   `diecast-tracker`, RSA 4096, until 2126; password only in `signing.properties`; the user keeps a backup of both).
   Never build a release for the phone without `signing.properties`, and never replace the keystore.
 - Updating the phone: bump `versionCode`/`versionName`, `:app:assembleRelease`, then
-  `adb install -r app/build/outputs/apk/release/app-release.apk` (keeps the data). Use `adb`, not a copied APK: since
-  2026-09-30 certified devices in Indonesia only install apps from verified developers, and `adb` is exempt (a copied
-  APK would need Android's "advanced flow": developer options, a restart, a 24-hour wait).
+  `adb install -r app/build/outputs/apk/release/app-release.apk` (keeps the data). Use `adb`: it is never subject to
+  Android's developer verification. Per Google's FAQ (checked 2026-11-08), the verification enforced since 2026-09-30
+  in Brazil, Indonesia, Singapore and Thailand covers only apps from participating app stores; APKs downloaded from a
+  website install as before until the global rollout in 2027. Then an unregistered APK needs the user's one-time
+  "advanced flow" (developer options, a restart, a one-day wait) unless the app is registered in the Android Developer
+  Console ($25 and an ID; or a free limited-distribution account, 20 devices at most). Not registered yet.
+- **Public releases** (GitHub Releases, from 0.11.0; the user publishes them on github.com, the APK is MIT-licensed
+  code without the trademarked logo): move `assets/brand/hot_wheels_logo.png` out, `:app:assembleRelease`, copy the
+  APK to `build/github-release/diecast-tracker.apk` (the asset name never changes: the README links
+  `releases/latest/download/diecast-tracker.apk`), put the logo back and build again for the phone. Check the copy
+  with `unzip -l` (no `assets/brand/`) and `apksigner verify --print-certs` (the user's key, SHA-256 `15:DE:A3:46…`).
+  Release notes in `build/github-release/release-notes-<version>.md` with the APK's SHA-256; a `CHANGELOG.md` entry
+  per version (Keep a Changelog); tag `v<version>` on the commit that bumps the version or after it.
 - Room schemas are exported to `app/schemas`; every schema change needs a real migration (no destructive fallback).
 - Test fixture `app/src/test/resources/web-backup-v1.zip` is made by the web app's own `CollectionBackup`:
   `php -d extension=zip tools/make-web-backup-fixture.php` (in-memory SQLite, does not touch the web's data).
