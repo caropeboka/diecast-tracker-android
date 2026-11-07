@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/ask.json; edit all three languages together. -->
+<resources>
+    <string name="ask_ai">Tanya AI</string>
+    <plurals name="ask_sees">
+        <item quantity="other">Melihat %d foto dan isi form</item>
+    </plurals>
+    <string name="ask_sees_form">Melihat isi form</string>
+    <string name="ask_new_chat">Mulai baru</string>
+    <string name="ask_intro">Tanya apa saja soal diecast ini: tahun rilis, seri, TH/STH, versinya. AI bisa menyarankan perubahan isi form; tidak ada yang berubah sebelum kamu ketuk Pakai, dan tidak ada yang tersimpan sebelum form disimpan.</string>
+    <string name="ask_hint">Tanya soal diecast ini…</string>
+    <string name="ask_send">Kirim</string>
+    <string name="ask_quick_year">Tahun rilisnya benar?</string>
+    <string name="ask_quick_rarity">Ini TH/STH?</string>
+    <string name="ask_quick_series">Ini seri apa, nomor berapa?</string>
+    <string name="ask_quick_versions">Apa bedanya dengan versi lainnya?</string>
+    <string name="ask_quick_fill">Lengkapi yang masih kosong</string>
+    <string name="ask_suggests">Saran perubahan</string>
+    <string name="ask_use">Pakai</string>
+    <string name="ask_used">Dipakai</string>
+    <string name="ask_empty_value">(kosong)</string>
+    <string name="ask_sources">Sumber</string>
+    <string name="ask_by_search">%1$s · dengan Google Search</string>
+    <string name="ask_preparing">Menyiapkan pertanyaan</string>
+    <string name="ask_interrupted">Tidak ada jawaban: aplikasi tertutup saat bertanya.</string>
+</resources>

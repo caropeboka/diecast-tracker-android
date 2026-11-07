@@ -28,8 +28,10 @@ import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.AiException
 import io.github.caropeboka.diecasttracker.data.ai.AiRetryLaterException
+import io.github.caropeboka.diecasttracker.data.ai.ChatContext
 import io.github.caropeboka.diecasttracker.data.ai.Confidence
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
+import io.github.caropeboka.diecasttracker.data.ai.FieldSuggestion
 import io.github.caropeboka.diecasttracker.data.ai.MAX_SCAN_PHOTOS
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
@@ -397,6 +399,36 @@ class DiecastEditViewModel(
     private fun markAiFields(fields: Set<Field>) {
         aiFields = fields
         saved[AI_FIELDS] = ArrayList(fields.map { it.name })
+    }
+
+    // Tanya AI
+
+    /** What the AI is shown with a question: the photos (real sides first), the fields, the linked Dex entry. */
+    fun chatContext(): ChatContext {
+        val (copies, sides) = form.photos.partition { it in studioPhotos }
+        val entry = (dexLink?.linked ?: dexChosen)?.row?.let { row ->
+            val item = row.item
+            listOfNotNull(
+                "${row.catalogName}${row.catalogYear?.let { " ($it)" }.orEmpty()}",
+                "#${item.number}",
+                item.name,
+                item.variantLabel,
+                item.series?.let { series -> series + item.seriesNumber?.let { " $it" }.orEmpty() },
+                item.toyCode?.let { "toy $it" },
+                "Treasure Hunt".takeIf { item.isTh },
+                "Super Treasure Hunt".takeIf { item.isSth },
+            ).joinToString(" · ")
+        }
+        return ChatContext(sides + copies, form.chatFields(), entry)
+    }
+
+    /** One of the AI's suggestions into the form, marked ✦ like a scan's; false when it no longer fits. */
+    fun applySuggestion(suggestion: FieldSuggestion): Boolean {
+        val (next, field) = form.withSuggestion(suggestion.field, suggestion.value, LocalDate.now().year) ?: return false
+        replaceForm(next)
+        clearError(field)
+        markAiFields(aiFields + field)
+        return true
     }
 
     // Photos

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/ask.json; edit all three languages together. -->
+<resources>
+    <string name="ask_ai">问 AI</string>
+    <plurals name="ask_sees">
+        <item quantity="other">能看到 %d 张照片和表单内容</item>
+    </plurals>
+    <string name="ask_sees_form">能看到表单内容</string>
+    <string name="ask_new_chat">新对话</string>
+    <string name="ask_intro">关于这辆车什么都可以问：发行年份、系列、是否 TH/STH、各个版本。AI 可能会建议修改表单；点“采用”之前不会改动，保存表单之前也不会保存。</string>
+    <string name="ask_hint">问问这辆车的事…</string>
+    <string name="ask_send">发送</string>
+    <string name="ask_quick_year">发行年份对吗？</string>
+    <string name="ask_quick_rarity">这是 TH 还是 STH？</string>
+    <string name="ask_quick_series">这是哪个系列、第几号？</string>
+    <string name="ask_quick_versions">怎么区分它的不同版本？</string>
+    <string name="ask_quick_fill">补全空着的栏位</string>
+    <string name="ask_suggests">建议修改</string>
+    <string name="ask_use">采用</string>
+    <string name="ask_used">已采用</string>
+    <string name="ask_empty_value">（空）</string>
+    <string name="ask_sources">来源</string>
+    <string name="ask_by_search">%1$s · 使用 Google 搜索</string>
+    <string name="ask_preparing">正在准备问题</string>
+    <string name="ask_interrupted">没有收到回答：提问时应用被关闭了。</string>
+</resources>

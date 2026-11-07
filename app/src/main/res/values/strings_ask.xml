@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from i18n/ask.json; edit all three languages together. -->
+<resources>
+    <string name="ask_ai">Ask AI</string>
+    <plurals name="ask_sees">
+        <item quantity="one">Sees %d photo and the form</item>
+        <item quantity="other">Sees %d photos and the form</item>
+    </plurals>
+    <string name="ask_sees_form">Sees what the form says</string>
+    <string name="ask_new_chat">New chat</string>
+    <string name="ask_intro">Ask anything about this diecast: the release year, the series, TH or STH, its versions. The AI may suggest changes to the form; nothing changes until you tap Use, and nothing is saved until you save the form.</string>
+    <string name="ask_hint">Ask about this diecast…</string>
+    <string name="ask_send">Send</string>
+    <string name="ask_quick_year">Is the release year right?</string>
+    <string name="ask_quick_rarity">Is it a TH or STH?</string>
+    <string name="ask_quick_series">Which series and number is it?</string>
+    <string name="ask_quick_versions">How do I tell its versions apart?</string>
+    <string name="ask_quick_fill">Fill in what\'s missing</string>
+    <string name="ask_suggests">Suggested changes</string>
+    <string name="ask_use">Use</string>
+    <string name="ask_used">Used</string>
+    <string name="ask_empty_value">(empty)</string>
+    <string name="ask_sources">Sources</string>
+    <string name="ask_by_search">%1$s · with Google Search</string>
+    <string name="ask_preparing">Preparing the question</string>
+    <string name="ask_interrupted">No answer came back: the app was closed while asking.</string>
+</resources>

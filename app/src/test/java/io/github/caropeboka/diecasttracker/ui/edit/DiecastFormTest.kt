@@ -120,4 +120,29 @@ class DiecastFormTest {
         assertEquals(9L, form.toEntity(saved).catalogItemId)
         assertEquals(CatalogMatch.Auto, form.toEntity(saved).catalogMatch)
     }
+
+    @Test
+    fun `an AI suggestion goes in only when it fits the field and changes something`() {
+        val form = DiecastForm(name = "Toyota Supra", year = "2019")
+
+        assertEquals(form.copy(year = "2021") to Field.Year, form.withSuggestion("year", " 2021 ", 2026))
+        assertEquals(form.copy(rarity = Rarity.TreasureHunt) to Field.Rarity, form.withSuggestion("rarity", "treasure_hunt", 2026))
+        assertEquals(form.copy(scale = "1:18") to Field.Scale, form.withSuggestion("scale", "1 : 18", 2026))
+        assertNull(form.withSuggestion("year", "2019", 2026))
+        assertNull(form.withSuggestion("year", "2031", 2026))
+        assertNull(form.withSuggestion("rarity", "ultra_rare", 2026))
+        assertNull(form.withSuggestion("scale", "big", 2026))
+        assertNull(form.withSuggestion("purchase_price", "35000", 2026))
+        assertEquals("2019", form.chatFields()["year"])
+        assertEquals("regular", form.chatFields()["rarity"])
+    }
+
+    @Test
+    fun `answers keep their bold words, headings and lists without the marks`() {
+        val text = chatText("## Rilis\nKartu **2019**, rilis **2021**.\n* Seri: HW J-Imports\n- a lone ** stays")
+
+        assertEquals("Rilis\nKartu 2019, rilis 2021.\n• Seri: HW J-Imports\n• a lone ** stays", text.text)
+        val bold = text.spanStyles.map { text.text.substring(it.start, it.end) }
+        assertEquals(listOf("Rilis", "2019", "2021"), bold)
+    }
 }

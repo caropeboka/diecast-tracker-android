@@ -116,6 +116,51 @@ data class DiecastForm(
         return next to filled
     }
 
+    /** What "Tanya AI" is told the form says, by the scan's field names; prices in whole Rupiah. */
+    fun chatFields(): Map<String, String> = linkedMapOf(
+        "status" to status.key,
+        "name" to name,
+        "brand" to brand,
+        "make" to make,
+        "series" to series,
+        "collection_number" to collectionNumber,
+        "year" to year,
+        "scale" to scale,
+        "color" to color,
+        "rarity" to rarity.key,
+        "packaging" to packaging.key,
+        "condition" to condition?.key.orEmpty(),
+        "quantity" to quantity,
+        "purchase_price_idr" to purchasePrice,
+        "market_value_idr" to marketValue,
+        "notes" to notes,
+    )
+
+    /**
+     * One of "Tanya AI"'s suggestions applied: the form and the field it changed. Null when the value doesn't fit the
+     * field (a year out of range, a rarity that doesn't exist) or the form already says so.
+     */
+    fun withSuggestion(field: String, value: String, currentYear: Int): Pair<DiecastForm, Field>? {
+        val text = value.trim()
+        if (text.isEmpty()) return null
+        val next = when (field) {
+            "name" -> copy(name = text) to Field.Name
+            "brand" -> copy(brand = text) to Field.Brand
+            "make" -> copy(make = text) to Field.Make
+            "series" -> copy(series = text) to Field.Series
+            "collection_number" -> copy(collectionNumber = text) to Field.CollectionNumber
+            "year" -> text.toIntOrNull()?.takeIf { it in MIN_YEAR..currentYear + 1 }?.let { copy(year = it.toString()) to Field.Year }
+            "scale" -> text.takeIf { SCALE.matches(it) }?.let { copy(scale = it.replace(" ", "")) to Field.Scale }
+            "color" -> copy(color = text) to Field.Color
+            "rarity" -> Rarity.entries.find { it.key == text }?.let { copy(rarity = it) to Field.Rarity }
+            "packaging" -> Packaging.entries.find { it.key == text }?.let { copy(packaging = it) to Field.Packaging }
+            "condition" -> Condition.entries.find { it.key == text }?.let { copy(condition = it) to Field.Condition }
+            "notes" -> copy(notes = text) to Field.Notes
+            else -> null
+        }
+        return next?.takeIf { it.first != this }
+    }
+
     /** Filled the way the entry's card prints it, and linked to it (web: the `dexItem` prefill). */
     fun withDex(prefill: DexPrefill, itemId: Long) = copy(
         name = prefill.name,
@@ -262,5 +307,8 @@ data class DiecastForm(
 }
 
 private fun String.clean(): String? = trim().ifEmpty { null }
+
+/** "1:64", "1 : 18". */
+private val SCALE = Regex("^1\\s*:\\s*\\d{1,4}$")
 
 fun String.toLocalDateOrNull(): LocalDate? = runCatching { LocalDate.parse(this) }.getOrNull()
