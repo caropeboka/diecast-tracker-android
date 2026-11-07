@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 72 72" width="128" height="128">
+  <!-- The launcher icon (res/drawable/ic_launcher_*.xml) as an SVG, cut to the part a launcher shows. -->
+  <defs>
+    <linearGradient id="brand" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="108" y2="108">
+      <stop offset="0" stop-color="#FF6A1A"/>
+      <stop offset="1" stop-color="#FFB020"/>
+    </linearGradient>
+    <linearGradient id="rim" gradientUnits="userSpaceOnUse" x1="34.5" y1="34.5" x2="73.5" y2="73.5">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#BDB6AC"/>
+    </linearGradient>
+    <linearGradient id="hub" gradientUnits="userSpaceOnUse" x1="48.6" y1="48.6" x2="59.4" y2="59.4">
+      <stop offset="0" stop-color="#FF6A1A"/>
+      <stop offset="1" stop-color="#FFB020"/>
+    </linearGradient>
+  </defs>
+  <rect x="18" y="18" width="72" height="72" rx="16" fill="url(#brand)"/>
+  <path fill="#160A03" d="M54,25.5a28.5,28.5 0,1 1,0 57a28.5,28.5 0,1 1,0 -57z"/>
+  <path fill="none" stroke="#2E1E14" stroke-width="1.2" d="M54,28.8a25.2,25.2 0,1 1,0 50.4a25.2,25.2 0,1 1,0 -50.4z"/>
+  <path fill="url(#rim)" d="M54,34.5a19.5,19.5 0,1 1,0 39a19.5,19.5 0,1 1,0 -39z"/>
+  <path fill="#D9D3CA" d="M54,36.6a17.4,17.4 0,1 1,0 34.8a17.4,17.4 0,1 1,0 -34.8z"/>
+  <path fill="#160A03" d="M55.53,46.15L57.15,37.8A16.5,16.5 0,0 1,68.43 46L61,50.12A8,8 0,0 0,55.53 46.15Z M61.94,53.03L70.38,51.99A16.5,16.5 0,0 1,66.07 65.25L59.85,59.46A8,8 0,0 0,61.94 53.03Z M57.38,61.25L60.97,68.95A16.5,16.5 0,0 1,47.03 68.95L50.62,61.25A8,8 0,0 0,57.38 61.25Z M48.15,59.46L41.93,65.25A16.5,16.5 0,0 1,37.62 51.99L46.06,53.03A8,8 0,0 0,48.15 59.46Z M47,50.12L39.57,46A16.5,16.5 0,0 1,50.85 37.8L52.47,46.15A8,8 0,0 0,47 50.12Z"/>
+  <path fill="url(#hub)" d="M54,48.6a5.4,5.4 0,1 1,0 10.8a5.4,5.4 0,1 1,0 -10.8z"/>
+  <path fill="#160A03" d="M54,52.1a1.9,1.9 0,1 1,0 3.8a1.9,1.9 0,1 1,0 -3.8z"/>
+</svg>
