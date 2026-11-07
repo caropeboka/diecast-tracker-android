@@ -184,6 +184,45 @@ class PlaceLookupTest {
     }
 
     @Test
+    fun `regions come from OpenStreetMap's admin levels, cached per 100 m cell for a year`() = runBlocking {
+        osm.on(
+            "reverse",
+            """{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"geocoding": {
+                "type": "house", "city": "Daerah Khusus Ibukota Jakarta", "district": "Setiabudi",
+                "admin": {"level9": "RW 02", "level7": "Kuningan Timur", "level6": "Setiabudi", "level5": "Jakarta Selatan",
+                          "level4": "Daerah Khusus Ibukota Jakarta"}}}}]}""",
+        )
+
+        assertNull(nominatim.cachedRegion(-6.2297, 106.8296))
+        val region = nominatim.region(-6.2297, 106.8296)
+
+        assertEquals(Region("Daerah Khusus Ibukota Jakarta", "Jakarta Selatan", "Setiabudi", "Kuningan Timur"), region)
+        assertEquals("geocodejson", osm.requests.single().queryParameter("format"))
+        // Same ~100 m cell: from the cache.
+        assertEquals(region, nominatim.region(-6.2299, 106.8297))
+        assertEquals(region, nominatim.cachedRegion(-6.2299, 106.8297))
+        assertEquals(1, osm.requests.size)
+
+        // A missing level stays empty; at sea there's nothing, and that's remembered too.
+        osm.on("reverse", """{"type": "FeatureCollection", "features": [{"properties": {"geocoding": {"admin": {"level5": "Kabupaten Bandung", "level4": "Jawa Barat"}}}}]}""")
+        assertEquals(Region("Jawa Barat", "Kabupaten Bandung"), nominatim.region(-7.025, 107.53))
+        osm.on("reverse", """{"error": "Unable to geocode"}""")
+        assertEquals(Region.NONE, nominatim.region(-5.9, 106.9))
+        assertEquals(Region.NONE, nominatim.cachedRegion(-5.9, 106.9))
+
+        // Out of reach: unknown, and asked again next time.
+        osm.on("reverse", "{}", code = 503)
+        assertNull(nominatim.region(-7.2575, 112.7521))
+        assertNull(nominatim.cachedRegion(-7.2575, 112.7521))
+
+        // Regions outlive the other answers when the cache is pruned.
+        env.db.places().pruneCache(before = Long.MAX_VALUE, regionsBefore = 0)
+        assertEquals(region, nominatim.cachedRegion(-6.2297, 106.8296))
+        env.db.places().pruneCache(before = 0, regionsBefore = Long.MAX_VALUE)
+        assertNull(nominatim.cachedRegion(-6.2297, 106.8296))
+    }
+
+    @Test
     fun `distance helper`() {
         // Monas to Bundaran HI is roughly 2.1 km.
         assertEquals(2200.0, distanceMeters(-6.1754, 106.8272, -6.1950, 106.8231), 150.0)

@@ -54,6 +54,36 @@ class Nominatim(
         return cached(key, REVERSE_TTL_MS, url) { (it as? JsonObject)?.takeIf { json -> "error" !in json } } as JsonObject?
     }
 
+    /**
+     * The provinsi, kabupaten/kota, kecamatan and desa around a point, cached per ~100 m cell for a year (they hardly
+     * change). [Region.NONE] when OpenStreetMap has none there (at sea), null when it can't be reached.
+     */
+    suspend fun region(lat: Double, lng: Double): Region? {
+        cachedRegion(lat, lng)?.let { return it }
+
+        // GeocodeJSON names every admin level by number; jsonv2's address keys mix them up in Indonesia.
+        val url = "$baseUrl/reverse".toHttpUrl().newBuilder()
+            .addQueryParameter("format", "geocodejson")
+            .addQueryParameter("lat", plain(lat))
+            .addQueryParameter("lon", plain(lng))
+            .addQueryParameter("zoom", "18")
+            .addQueryParameter("addressdetails", "1")
+            .addQueryParameter("accept-language", "id")
+            .build()
+        val body = fetch(url) ?: return null
+        val json = runCatching { Json.parseToJsonElement(body) }.getOrNull() as? JsonObject ?: return null
+        cache.cache(PlaceCacheEntity(regionKey(lat, lng), body, clock()))
+        return Region.from(json)
+    }
+
+    /** A region looked up before, without asking OpenStreetMap. */
+    suspend fun cachedRegion(lat: Double, lng: Double): Region? =
+        cache.cached(regionKey(lat, lng), since = clock() - REGION_TTL_MS)?.let { hit ->
+            (runCatching { Json.parseToJsonElement(hit.body) }.getOrNull() as? JsonObject)?.let(Region::from)
+        }
+
+    private fun regionKey(lat: Double, lng: Double) = REGION_PREFIX + Region.cell(lat, lng)
+
     /** Biased towards ~30 km around [lat]/[lng] when given (preferred, not limited to). */
     suspend fun search(query: String, lat: Double?, lng: Double?): JsonArray? {
         val near = lat != null && lng != null
@@ -117,5 +147,9 @@ class Nominatim(
         private const val TAG = "Nominatim"
         const val REVERSE_TTL_MS = 30L * 24 * 60 * 60 * 1000
         const val SEARCH_TTL_MS = 7L * 24 * 60 * 60 * 1000
+        const val REGION_TTL_MS = 365L * 24 * 60 * 60 * 1000
+
+        /** Cache keys of [region]; [PlaceDao.pruneCache] keeps them longer. */
+        const val REGION_PREFIX = "osm-region:"
     }
 }

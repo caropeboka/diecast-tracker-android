@@ -31,11 +31,46 @@
     <string name="explore_more">另有 %1$d 个</string>
     <string name="explore_places">地点</string>
     <string name="explore_no_data">这个时间范围内还没有数据。</string>
-    <string name="explore_show_on_map">在地图上查看</string>
     <plurals name="explore_visits">
         <item quantity="other">到访 %d 次</item>
     </plurals>
     <string name="explore_no_point">尚无定位</string>
     <string name="explore_timeline">寻车记录</string>
     <string name="explore_no_history">还没有记录。</string>
+    <string name="explore_details">查看详情</string>
+    <string name="region_province">省</string>
+    <string name="region_city">市/县</string>
+    <string name="region_district">区</string>
+    <string name="region_village">村/街道</string>
+    <string name="explore_by_province">按省</string>
+    <string name="explore_by_city">按市/县</string>
+    <string name="explore_by_district">按区</string>
+    <string name="explore_by_village">按村/街道</string>
+    <string name="explore_regions_all">全部地区</string>
+    <string name="explore_region_unknown">未知</string>
+    <plurals name="explore_region_places">
+        <item quantity="other">%d 个地点</item>
+    </plurals>
+    <string name="explore_region_only">本页的数字、地图和列表现在只显示 %1$s。</string>
+    <plurals name="explore_region_unmapped">
+        <item quantity="other">%d 条没有地图位置，因此没有地区</item>
+    </plurals>
+    <string name="explore_region_looking">正在 OpenStreetMap 上查找地区…第 %1$d/%2$d 个位置</string>
+    <string name="explore_region_offline">无法连接 OpenStreetMap，部分地区暂时未知。</string>
+    <string name="explore_region_none">地区来自你在地图上选的位置。目前还没有。</string>
+    <string name="explore_region_filter">地区：%1$s</string>
+    <string name="explore_region_clear">显示全部地区</string>
+    <string name="explore_region_open">查看其中的地区</string>
+    <string name="explore_region_pick">只显示这里</string>
+    <plurals name="explore_region_all">
+        <item quantity="other">显示全部 %d 个</item>
+    </plurals>
+    <string name="explore_region_fewer">收起</string>
+    <string name="explore_bought_at">购于%1$s</string>
+    <string name="explore_spotted_at">见于%1$s</string>
+    <string name="explore_day_open">查看模型</string>
+    <plurals name="explore_history_all">
+        <item quantity="other">显示全部 %d 天</item>
+    </plurals>
+    <string name="explore_history_fewer">收起</string>
 </resources>

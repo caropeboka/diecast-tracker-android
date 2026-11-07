@@ -31,11 +31,46 @@
     <string name="explore_more">+%1$d lainnya</string>
     <string name="explore_places">Tempat</string>
     <string name="explore_no_data">Belum ada data di rentang waktu ini.</string>
-    <string name="explore_show_on_map">Lihat di peta</string>
     <plurals name="explore_visits">
         <item quantity="other">%d× kunjungan</item>
     </plurals>
     <string name="explore_no_point">belum ada titik</string>
     <string name="explore_timeline">Riwayat jelajah</string>
     <string name="explore_no_history">Belum ada riwayat.</string>
+    <string name="explore_details">Lihat detail</string>
+    <string name="region_province">Provinsi</string>
+    <string name="region_city">Kota/kabupaten</string>
+    <string name="region_district">Kecamatan</string>
+    <string name="region_village">Desa/kelurahan</string>
+    <string name="explore_by_province">Per provinsi</string>
+    <string name="explore_by_city">Per kota/kabupaten</string>
+    <string name="explore_by_district">Per kecamatan</string>
+    <string name="explore_by_village">Per desa/kelurahan</string>
+    <string name="explore_regions_all">Semua wilayah</string>
+    <string name="explore_region_unknown">Tidak diketahui</string>
+    <plurals name="explore_region_places">
+        <item quantity="other">%d tempat</item>
+    </plurals>
+    <string name="explore_region_only">Angka, peta dan daftar di halaman ini sekarang hanya untuk %1$s.</string>
+    <plurals name="explore_region_unmapped">
+        <item quantity="other">%d tanpa titik di peta, jadi tanpa wilayah</item>
+    </plurals>
+    <string name="explore_region_looking">Mencari wilayah di OpenStreetMap… %1$d dari %2$d titik</string>
+    <string name="explore_region_offline">OpenStreetMap tidak bisa dihubungi, jadi sebagian wilayah belum diketahui.</string>
+    <string name="explore_region_none">Wilayah diambil dari titik yang kamu pilih di peta. Belum ada.</string>
+    <string name="explore_region_filter">Wilayah: %1$s</string>
+    <string name="explore_region_clear">Tampilkan semua wilayah</string>
+    <string name="explore_region_open">Lihat wilayah di dalamnya</string>
+    <string name="explore_region_pick">Tampilkan ini saja</string>
+    <plurals name="explore_region_all">
+        <item quantity="other">Lihat semua (%d)</item>
+    </plurals>
+    <string name="explore_region_fewer">Tampilkan lebih sedikit</string>
+    <string name="explore_bought_at">Dibeli di %1$s</string>
+    <string name="explore_spotted_at">Ditemui di %1$s</string>
+    <string name="explore_day_open">Lihat diecast-nya</string>
+    <plurals name="explore_history_all">
+        <item quantity="other">Lihat semua (%d hari)</item>
+    </plurals>
+    <string name="explore_history_fewer">Tampilkan lebih sedikit</string>
 </resources>

@@ -6,6 +6,8 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.TestEnvironment
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.places.Region
+import io.github.caropeboka.diecasttracker.data.places.RegionLevel
 import io.github.caropeboka.diecasttracker.data.testTexts
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -107,6 +109,9 @@ class ExplorationTest {
             assertEquals(35_000L, items[1].price)
         }
         assertEquals(1, map.timeline[2].places[0].purchases)
+        // A day in the history opens to what was seen or bought that day, and where.
+        assertEquals(listOf("Datsun 510" to "Toys Kingdom GI"), map.timeline[2].items.map { it.name to it.place })
+        assertEquals(listOf("RX-7"), map.timeline[1].items.map { it.name })
 
         with(explore(type = ExploreType.Purchase).stats) {
             assertEquals(0, sightings)
@@ -148,5 +153,56 @@ class ExplorationTest {
         val names = explore().places.map { it.name to it.count }.toSet()
 
         assertEquals(setOf("Titik tanpa nama" to 2, "Tanpa nama tempat" to 1), names)
+    }
+
+    @Test
+    fun `regions - a bar per area one level down, and the page narrowed to the one picked`() {
+        val a = add(DiecastEntity(name = "Datsun 510", status = DiecastStatus.Spotted))
+        add(
+            DiecastEntity(
+                name = "RX-7", purchasePlace = "Toys Kingdom GI", purchaseDate = LocalDate.of(2026, 10, 1),
+                purchaseLatitude = -6.1951, purchaseLongitude = 106.8219,
+            ),
+        )
+        seen(a, "Toys Kingdom GI", "2026-10-02", -6.1951, 106.8219)
+        seen(a, "Hobby Shop Cibinong", "2026-10-03", -6.4815, 106.8540)
+        seen(a, "Pasar Gembrong", "2026-10-04")
+        // Not looked up yet.
+        seen(a, "Tunjungan Plaza", "2026-10-05", -7.2625, 112.7393)
+        // OpenStreetMap has no kecamatan or desa there.
+        seen(a, "Soreang", "2026-10-06", -7.0250, 107.5300)
+        val regions = mapOf(
+            Region.cell(-6.1951, 106.8219) to Region("Daerah Khusus Ibukota Jakarta", "Jakarta Pusat", "Tanah Abang", "Kebon Melati"),
+            Region.cell(-6.4815, 106.8540) to Region("Jawa Barat", "Bogor", "Cibinong", "Cibinong"),
+            Region.cell(-7.0250, 107.5300) to Region("Jawa Barat", "Kabupaten Bandung"),
+        )
+        fun explore(vararg area: String) = runBlocking {
+            val (sightings, purchases) = env.repository.observeExploreEvents().first()
+            Exploration.build(sightings, purchases, ExploreType.All, ExploreRange.All, today, testTexts(), ZoneOffset.UTC, regions, area.toList())
+        }
+
+        val all = explore().regions
+        assertEquals(RegionLevel.Province, all.level)
+        // Two each: the name decides.
+        assertEquals(listOf(RegionRow("Daerah Khusus Ibukota Jakarta", 1, 1, 1), RegionRow("Jawa Barat", 2, 0, 2)), all.rows)
+        assertEquals(1, all.unmapped)
+        assertEquals(1, all.pending)
+
+        val west = explore("Jawa Barat")
+        assertEquals(RegionLevel.City, west.regions.level)
+        assertEquals(listOf("Bogor", "Kabupaten Bandung"), west.regions.rows.map { it.name })
+        assertEquals(2, west.stats.sightings)
+        assertEquals(setOf("Hobby Shop Cibinong", "Soreang"), west.places.map { it.name }.toSet())
+        assertEquals(0, west.regions.unmapped)
+        assertEquals(0, west.regions.pending)
+
+        assertEquals(listOf(RegionRow(null, 1, 0, 1)), explore("Jawa Barat", "Kabupaten Bandung").regions.rows)
+
+        val village = explore("Daerah Khusus Ibukota Jakarta", "Jakarta Pusat", "Tanah Abang", "Kebon Melati")
+        assertNull(village.regions.level)
+        assertEquals(emptyList<RegionRow>(), village.regions.rows)
+        assertEquals(2, village.places.single().count)
+        assertEquals(1, village.stats.purchases)
+        assertEquals(2, village.timeline.size)
     }
 }

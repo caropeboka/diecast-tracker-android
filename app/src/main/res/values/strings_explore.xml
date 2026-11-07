@@ -32,7 +32,6 @@
     <string name="explore_more">+%1$d more</string>
     <string name="explore_places">Places</string>
     <string name="explore_no_data">Nothing in this time range yet.</string>
-    <string name="explore_show_on_map">Show on the map</string>
     <plurals name="explore_visits">
         <item quantity="one">%d× visit</item>
         <item quantity="other">%d× visits</item>
@@ -40,4 +39,44 @@
     <string name="explore_no_point">no point yet</string>
     <string name="explore_timeline">Hunting history</string>
     <string name="explore_no_history">No history yet.</string>
+    <string name="explore_details">Show details</string>
+    <string name="region_province">Province</string>
+    <string name="region_city">City / regency</string>
+    <string name="region_district">District</string>
+    <string name="region_village">Village</string>
+    <string name="explore_by_province">By province</string>
+    <string name="explore_by_city">By city or regency</string>
+    <string name="explore_by_district">By district</string>
+    <string name="explore_by_village">By village</string>
+    <string name="explore_regions_all">All regions</string>
+    <string name="explore_region_unknown">Unknown</string>
+    <plurals name="explore_region_places">
+        <item quantity="one">%d place</item>
+        <item quantity="other">%d places</item>
+    </plurals>
+    <string name="explore_region_only">The numbers, map and lists on this page now show only %1$s.</string>
+    <plurals name="explore_region_unmapped">
+        <item quantity="one">%d without a point on the map, so without a region</item>
+        <item quantity="other">%d without a point on the map, so without a region</item>
+    </plurals>
+    <string name="explore_region_looking">Finding regions on OpenStreetMap… %1$d of %2$d points</string>
+    <string name="explore_region_offline">OpenStreetMap can\'t be reached, so some regions are still unknown.</string>
+    <string name="explore_region_none">Regions come from the points you pick on the map. There are none yet.</string>
+    <string name="explore_region_filter">Region: %1$s</string>
+    <string name="explore_region_clear">Show all regions</string>
+    <string name="explore_region_open">Show the areas in it</string>
+    <string name="explore_region_pick">Show only this</string>
+    <plurals name="explore_region_all">
+        <item quantity="one">Show all %d</item>
+        <item quantity="other">Show all %d</item>
+    </plurals>
+    <string name="explore_region_fewer">Show fewer</string>
+    <string name="explore_bought_at">Bought at %1$s</string>
+    <string name="explore_spotted_at">Spotted at %1$s</string>
+    <string name="explore_day_open">Show the diecasts</string>
+    <plurals name="explore_history_all">
+        <item quantity="one">Show all %d days</item>
+        <item quantity="other">Show all %d days</item>
+    </plurals>
+    <string name="explore_history_fewer">Show fewer</string>
 </resources>

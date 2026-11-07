@@ -5,6 +5,8 @@ import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.db.PurchaseEventRow
 import io.github.caropeboka.diecasttracker.data.db.SightingEventRow
 import io.github.caropeboka.diecasttracker.data.locale.Texts
+import io.github.caropeboka.diecasttracker.data.places.Region
+import io.github.caropeboka.diecasttracker.data.places.RegionLevel
 import io.github.caropeboka.diecasttracker.data.places.round6
 import java.time.Instant
 import java.time.LocalDate
@@ -85,17 +87,39 @@ data class ExploreStats(
 
 data class TimelinePlace(val name: String, val sightings: Int, val purchases: Int)
 
-data class TimelineDay(val date: LocalDate, val places: List<TimelinePlace>)
+/** One hunting day: per place, and [items] everything seen or bought that day. */
+data class TimelineDay(val date: LocalDate, val places: List<TimelinePlace>, val items: List<ExploreEvent> = emptyList())
+
+/** One bar of [RegionChart]; [name] null = OpenStreetMap has no area at this level there. */
+data class RegionRow(val name: String?, val sightings: Int, val purchases: Int, val places: Int) {
+    val count get() = sightings + purchases
+}
+
+/** The events inside [area] (names from the province down), per area one [level] below it. */
+data class RegionChart(
+    val area: List<String> = emptyList(),
+    /** Null when [area] is a village: nothing below it. */
+    val level: RegionLevel? = RegionLevel.Province,
+    /** Most events first, the unknown ones last. */
+    val rows: List<RegionRow> = emptyList(),
+    /** Events without a point on the map, so without a region (only outside a chosen area). */
+    val unmapped: Int = 0,
+    /** Events whose point hasn't been looked up yet. */
+    val pending: Int = 0,
+)
 
 /** "Peta jelajah": every place where diecasts were spotted or bought, when, and what was there (web: `ExploreController`). */
 data class Exploration(
     val places: List<ExplorePlace> = emptyList(),
     val stats: ExploreStats = ExploreStats(),
     val timeline: List<TimelineDay> = emptyList(),
+    val regions: RegionChart = RegionChart(),
 ) {
     companion object {
-        private const val TIMELINE_DAYS = 30
-
+        /**
+         * [regions]: what's known per [Region.cell]; [area]: only the events inside it count (so nothing without a
+         * point or not looked up yet).
+         */
         fun build(
             sightings: List<SightingEventRow>,
             purchases: List<PurchaseEventRow>,
@@ -104,8 +128,11 @@ data class Exploration(
             today: LocalDate,
             texts: Texts,
             zone: ZoneId = ZoneId.systemDefault(),
+            regions: Map<String, Region> = emptyMap(),
+            area: List<String> = emptyList(),
         ): Exploration {
             val since = range.days?.let { today.minusDays(it) }
+            fun regionOf(event: ExploreEvent) = if (event.lat != null && event.lng != null) regions[Region.cell(event.lat, event.lng)] else null
 
             val sightingEvents = if (type == ExploreType.Purchase) emptyList() else sightings.map { it.toEvent() }
             // Dated by purchase date, or when it was added.
@@ -113,6 +140,7 @@ data class Exploration(
 
             val events = (sightingEvents + purchaseEvents)
                 .filter { since == null || it.date >= since }
+                .filter { area.isEmpty() || regionOf(it)?.within(area) == true }
                 .sortedByDescending { it.date }
             val places = groupByPlace(events, texts)
 
@@ -132,7 +160,6 @@ data class Exploration(
                 timeline = events
                     .groupBy { it.date }
                     .entries
-                    .take(TIMELINE_DAYS)
                     .map { (date, day) ->
                         TimelineDay(
                             date,
@@ -143,20 +170,50 @@ data class Exploration(
                                     purchases = items.count { it.kind == EventKind.Purchase },
                                 )
                             },
+                            items = day,
                         )
                     },
+                regions = regionChart(events, area, ::regionOf),
             )
+        }
+
+        private fun regionChart(events: List<ExploreEvent>, area: List<String>, regionOf: (ExploreEvent) -> Region?): RegionChart {
+            val level = RegionLevel.entries.getOrNull(area.size)
+            val rows = if (level == null) {
+                emptyList()
+            } else {
+                events
+                    .mapNotNull { event -> regionOf(event)?.let { event to it.at(level) } }
+                    .groupBy({ (_, name) -> name }, { (event, _) -> event })
+                    .map { (name, items) ->
+                        RegionRow(
+                            name,
+                            sightings = items.count { it.kind == EventKind.Sighting },
+                            purchases = items.count { it.kind == EventKind.Purchase },
+                            places = items.map(::placeKey).distinct().size,
+                        )
+                    }
+                    .sortedWith(compareBy<RegionRow> { it.name == null }.thenByDescending { it.count }.thenBy { it.name })
+            }
+
+            return RegionChart(
+                area = area,
+                level = level,
+                rows = rows,
+                unmapped = events.count { it.lat == null || it.lng == null },
+                pending = events.count { it.lat != null && it.lng != null && regionOf(it) == null },
+            )
+        }
+
+        private fun placeKey(event: ExploreEvent) = when {
+            !event.place.isNullOrBlank() -> "name:" + event.place.trim().lowercase()
+            event.lat != null && event.lng != null -> String.format(Locale.ROOT, "cell:%.3f,%.3f", event.lat, event.lng)
+            else -> "unknown"
         }
 
         /** One marker per place: grouped by (case-insensitive) name; unnamed ones by ~100 m cell. [events] newest first. */
         private fun groupByPlace(events: List<ExploreEvent>, texts: Texts): List<ExplorePlace> = events
-            .groupBy { event ->
-                when {
-                    !event.place.isNullOrBlank() -> "name:" + event.place.trim().lowercase()
-                    event.lat != null && event.lng != null -> String.format(Locale.ROOT, "cell:%.3f,%.3f", event.lat, event.lng)
-                    else -> "unknown"
-                }
-            }
+            .groupBy(::placeKey)
             .map { (key, items) ->
                 val located = items.filter { it.lat != null && it.lng != null }
                 // Most used spelling of the name; on a tie, the one typed first.
