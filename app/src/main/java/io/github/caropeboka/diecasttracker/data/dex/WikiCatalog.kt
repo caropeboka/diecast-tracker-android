@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.data.dex
 
+import androidx.annotation.StringRes
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.util.array
@@ -28,12 +29,51 @@ import kotlin.coroutines.resumeWithException
 /** A sync failed for a reason the collector should read. */
 class DexSyncException(message: String) : Exception(message)
 
-/** A wiki the Dex can sync from (web: `WikiCatalog::SOURCES`). */
-enum class WikiSource(val key: String, val brand: String, val label: String, val wiki: String, private val page: String, val firstYear: Int) {
-    HotWheels("hotwheels_wiki", "Hot Wheels", "Hot Wheels Mainline", "hotwheels", "List of %d Hot Wheels", 2015),
-    Matchbox("matchbox_wiki", "Matchbox", "Matchbox Mainline", "matchbox", "List of %d Matchbox", 2015);
+/** A wiki the Dex can sync from (web: `WikiCatalog::SOURCES`, which has the first two). */
+enum class WikiSource(
+    val key: String,
+    val brand: String,
+    val label: String,
+    val wiki: String,
+    private val page: String,
+    /** The first year with a list; null for a wiki with one list and no years. */
+    val firstYear: Int?,
+    /** The last year the wiki keeps a list for, when it stopped. */
+    val lastYear: Int? = null,
+    /** The whole line's scale; null when it varies. */
+    val scale: String? = "1:64",
+    /** Other brands whose releases are on these lists too. */
+    val includes: List<String> = emptyList(),
+    @StringRes val note: Int? = null,
+) {
+    // From the first years whose lists have a collector number per release (web: 2015).
+    HotWheels("hotwheels_wiki", "Hot Wheels", "Hot Wheels Mainline", "hotwheels", "List of %d Hot Wheels", 1989),
+    Matchbox("matchbox_wiki", "Matchbox", "Matchbox Mainline", "matchbox", "List of %d Matchbox", 2000),
+    MiniGt(
+        "minigt_wiki", "Mini GT", "Mini GT", "minigt", "%d Models", 2018, lastYear = 2022,
+        includes = listOf("Kaido House", "KaidoHouse", "Kaido★House"), note = R.string.wiki_note_minigt,
+    ),
+    // The lineup on sale now, numbered No. 1–150 like the boxes.
+    Tomica("tomica_wiki", "Tomica", "Tomica Regular", "tomica", "List of Main Lineup Products", firstYear = null, scale = null, note = R.string.wiki_note_tomica),
+    // One page for every year: a year's list is what came out that year (the numbers are used again for other models).
+    TomicaPremium(
+        "tomica_premium_wiki", "Tomica", "Tomica Premium", "tomica", "Tomica Premium (toyline)", 2015, scale = null,
+        note = R.string.wiki_note_tomica_premium,
+    );
 
-    fun page(year: Int) = page.format(year)
+    /** One list, no years. */
+    val single get() = firstYear == null
+
+    fun page(year: Int?) = if (year == null || "%d" !in page) page else page.format(year)
+
+    /** On the Dex's chips: the brand, or the line when the brand has more than one. */
+    val shortName get() = if (entries.count { it.brand == brand } > 1) label else brand
+
+    /** The years to choose from, newest first. */
+    fun years(current: Int): List<Int> = firstYear?.let { first -> (minOf(current, lastYear ?: current) downTo first).toList() }.orEmpty()
+
+    /** Whether diecasts of [brand] can be on these lists. */
+    fun covers(brand: String): Boolean = brand.trim().let { name -> this.brand.equals(name, ignoreCase = true) || includes.any { it.equals(name, ignoreCase = true) } }
 
     fun wikiUrl(page: String) = "https://$wiki.fandom.com/wiki/${page.replace(' ', '_')}"
 
@@ -86,23 +126,29 @@ class WikiCatalog(
     private val pace = Mutex()
     private var called = false
 
-    /** Every numbered release of a year, one row per variant. */
-    suspend fun fetch(source: WikiSource, year: Int): Pair<String, List<WikiItem>> {
+    /** Every numbered release of a year (or of a [WikiSource.single] list: null), one row per variant. */
+    suspend fun fetch(source: WikiSource, year: Int?): Pair<String, List<WikiItem>> {
         val page = source.page(year)
         val response = call(source.wiki, mapOf("action" to "parse", "page" to page, "prop" to "wikitext"))
 
         response.obj("error")?.let { error ->
             throw DexSyncException(
-                if (error.string("code") == "missingtitle") {
-                    texts(R.string.wiki_year_missing, year)
-                } else {
-                    texts(R.string.wiki_refused, error.string("info") ?: error.string("code").orEmpty())
+                when {
+                    error.string("code") != "missingtitle" -> texts(R.string.wiki_refused, error.string("info") ?: error.string("code").orEmpty())
+                    year == null -> texts(R.string.wiki_list_missing)
+                    else -> texts(R.string.wiki_year_missing, year)
                 },
             )
         }
 
         val wikitext = response.obj("parse")?.string("wikitext").orEmpty()
-        val items = if (source == WikiSource.Matchbox) matchboxItems(wikitext) else hotWheelsItems(wikitext)
+        val items = when (source) {
+            WikiSource.HotWheels -> hotWheelsItems(wikitext)
+            WikiSource.Matchbox -> matchboxItems(wikitext)
+            WikiSource.MiniGt -> miniGtItems(wikitext)
+            WikiSource.Tomica -> tomicaItems(wikitext)
+            WikiSource.TomicaPremium -> tomicaPremiumItems(wikitext, checkNotNull(year))
+        }
         return page to items
     }
 
@@ -172,11 +218,14 @@ class WikiCatalog(
         }
     }
 
-    /** Hot Wheels Wiki: Toy # | Col.# | Model Name | Series | Series # | Photo. */
+    /**
+     * Hot Wheels Wiki: Toy # | Col.# | Model Name | Series | Series # | Photo. 1990–1994 name the column "Casting
+     * Name" or "Car name" and give a row per colour; 1997–1999 write each row as a template (see [templateRows]).
+     */
     private fun hotWheelsItems(wikitext: String): List<WikiItem> = numberVariants(
-        WikiTableParser.rows(wikitext).mapNotNull { row ->
+        (WikiTableParser.rows(wikitext) + WikiTableParser.rows(templateRows(wikitext))).mapNotNull { row ->
             val number = row["col#"]?.text.orEmpty()
-            val name = row["modelname"]
+            val name = row["modelname"] ?: row["castingname"] ?: row["carname"]
             // Unnumbered specials (store promos, "No #") aren't part of the numbered set.
             if (!HW_NUMBER.matches(number) || name == null) return@mapNotNull null
 
@@ -188,14 +237,51 @@ class WikiCatalog(
                 seriesNumber = row["series#"]?.text,
                 toyCode = row["toy#"]?.text,
                 photo = row["photo"],
+                colour = row["color"]?.text,
             )
         },
     )
 
-    /** Matchbox Wiki: Model # | Man # | Card # | Sub-series (or Segment) | Model Name | Photo. */
+    /**
+     * The rows 1997–1999 write as `{{List0000White|toy|col|name|series|series #|}}`, each followed by its
+     * `|[[Image:…]]` cell, as a table the parser reads.
+     */
+    private fun templateRows(wikitext: String): String {
+        val rows = ROW_TEMPLATE.findAll(wikitext).mapNotNull { match ->
+            val cells = topLevelSplit(match.groupValues[1])
+            if (cells.size < 5) return@mapNotNull null
+            (cells.take(5) + match.groupValues[2]).joinToString("\n", "|-\n") { "|" + it.trim() }
+        }.toList()
+        if (rows.isEmpty()) return ""
+        return "{|\n!Toy #!!Col #!!Model Name!!Series!!Series #!!Photo\n" + rows.joinToString("\n") + "\n|}"
+    }
+
+    /** "a|[[b|c]]|{{d|e}}" → a, [[b|c]], {{d|e}}: split on the bars outside links and templates. */
+    private fun topLevelSplit(text: String): List<String> {
+        val parts = mutableListOf<String>()
+        var depth = 0
+        var start = 0
+        var i = 0
+        while (i < text.length) {
+            when {
+                text.startsWith("[[", i) || text.startsWith("{{", i) -> { depth++; i++ }
+                text.startsWith("]]", i) || text.startsWith("}}", i) -> { depth = maxOf(0, depth - 1); i++ }
+                text[i] == '|' && depth == 0 -> { parts += text.substring(start, i); start = i + 1 }
+            }
+            i++
+        }
+        parts += text.substring(start)
+        return parts
+    }
+
+    /**
+     * Matchbox Wiki: Model # | Man # | Card # | Sub-series (or Segment) | Model Name | Photo. 2000 heads them "Model"
+     * and "Card", with the region after the number ("MB02 (USA)"), which then names the variant.
+     */
     private fun matchboxItems(wikitext: String): List<WikiItem> = numberVariants(
         WikiTableParser.rows(wikitext).mapNotNull { row ->
-            val match = MB_NUMBER.matchEntire(row["model#"]?.text.orEmpty())
+            val model = (row["model#"] ?: row["model"])?.lines.orEmpty().joinToString(" ")
+            val match = MB_NUMBER.matchEntire(model) ?: MB_NUMBER_REGION.matchEntire(model)
             val name = row["modelname"]
             if (match == null || name == null) return@mapNotNull null
 
@@ -206,11 +292,141 @@ class WikiCatalog(
                 series = row["subseries"] ?: row["segment"] ?: row["series"],
                 seriesNumber = null,
                 // "JHM65 (USA) / JHP00 (ROW)": the first card code.
-                toyCode = CARD_CODE.find(row["card#"]?.text.orEmpty())?.value,
+                toyCode = CARD_CODE.find((row["card#"] ?: row["card"])?.text.orEmpty())?.value,
                 photo = row["photo"] ?: row["photoorcolor"],
+                colour = match.groupValues.getOrNull(2)?.takeIf { it.isNotBlank() && !it.equals("core", ignoreCase = true) },
             )
         },
     )
+
+    /**
+     * Mini GT Wiki: Code | Name | LHD/RHD | Brand (the car's make) | Photo, whose caption names exclusives ("Mijo / USA
+     * Exclusive") and Kaido House's releases. The make stands in for a series, so the Dex groups by it.
+     */
+    private fun miniGtItems(wikitext: String): List<WikiItem> = numberVariants(
+        WikiTableParser.rows(wikitext).mapNotNull { row ->
+            val code = row["code"]?.text.orEmpty().uppercase()
+            val match = MINI_GT_CODE.matchEntire(code)
+            val name = row["name"]?.text?.takeIf(String::isNotEmpty)
+            if (match == null || name == null) return@mapNotNull null
+
+            val caption = row["photo"]?.let { fileCaption(it.raw) }.orEmpty()
+            val kaido = match.groupValues[1] == "KHMG"
+            WikiItem(
+                number = code,
+                // Mini GT's own numbers first, the sub-lines after them.
+                sort = match.groupValues[2].toInt() + if (match.groupValues[1] == "MGT") 0 else 100_000,
+                variant = 0,
+                variantLabel = null,
+                name = name.take(255),
+                series = (if (kaido) "Kaido House" else row["brand"]?.text?.takeIf(String::isNotEmpty))?.take(255),
+                seriesNumber = null,
+                toyCode = null,
+                exclusive = caption.firstNotNullOfOrNull { MINI_GT_EXCLUSIVE.find(it)?.groupValues?.get(1) }?.take(255),
+                imageFile = row["photo"]?.file?.take(255),
+            )
+        },
+    )
+
+    /**
+     * Tomica Wiki's lineup page: "No. 12 Toyota Alphard" | release date, one table per section (regular, long type),
+     * which becomes the series.
+     */
+    private fun tomicaItems(wikitext: String): List<WikiItem> = numberVariants(
+        sections(wikitext).flatMap { (heading, text) ->
+            val series = TOMICA_RANGE.replace(heading, "").trim().takeIf(String::isNotEmpty)
+            WikiTableParser.rows(text).mapNotNull { row ->
+                val cell = row.entries.firstOrNull { (key, _) -> key.startsWith("productno") }?.value?.text.orEmpty()
+                val match = TOMICA_NUMBER.matchEntire(cell) ?: return@mapNotNull null
+                WikiItem(
+                    number = "No." + match.groupValues[1],
+                    sort = match.groupValues[1].toInt(),
+                    variant = 0,
+                    variantLabel = null,
+                    name = match.groupValues[2].trim().take(255),
+                    series = series?.take(255),
+                    seriesNumber = null,
+                    toyCode = null,
+                    imageFile = null,
+                )
+            }
+        },
+    )
+
+    /**
+     * Tomica Wiki's Tomica Premium page: "No. 15 Nissan Fairlady Z (Z31)" | release date ("11/2024", "4/2/2015",
+     * "1/21/23"), the main line and Unlimited (numbered on its own, so "Unlimited No.1" and after the main line). The
+     * sets, RS, Racing, reprints and exclusives have no numbers and are left out. Only what came out in [year].
+     */
+    private fun tomicaPremiumItems(wikitext: String, year: Int): List<WikiItem> = numberVariants(
+        commemorations(
+            sections(wikitext).flatMap { (heading, text) ->
+                val unlimited = heading.contains("Unlimited", ignoreCase = true)
+                if (!unlimited && !heading.equals("Main Line", ignoreCase = true)) return@flatMap emptyList()
+                WikiTableParser.rows(text).mapNotNull { row ->
+                    val cell = row.entries.firstOrNull { (key, _) -> key.startsWith("productname") }?.value?.text.orEmpty()
+                    val date = row.entries.firstOrNull { (key, _) -> key.startsWith("releasedate") }?.value?.text.orEmpty()
+                    val released = RELEASE_YEAR.find(date.trim())?.groupValues?.get(1)?.toInt()?.let { if (it < 100) 2000 + it else it }
+                    val match = TOMICA_NUMBER.matchEntire(cell)
+                    if (released != year || match == null) return@mapNotNull null
+                    val number = match.groupValues[1].toInt()
+                    WikiItem(
+                        number = (if (unlimited) "Unlimited No." else "No.") + number,
+                        sort = number + if (unlimited) 1_000 else 0,
+                        variant = 0,
+                        variantLabel = null,
+                        name = match.groupValues[2].trim().take(255),
+                        series = if (unlimited) "Tomica Premium Unlimited" else "Tomica Premium",
+                        seriesNumber = null,
+                        toyCode = null,
+                        imageFile = null,
+                    )
+                }
+            },
+        ),
+    )
+
+    /**
+     * "Morris Mini (Release Commemoration Version)" next to "Morris Mini" under the same number: the same model, so the
+     * bracket becomes its variant label.
+     */
+    private fun commemorations(items: List<WikiItem>): List<WikiItem> {
+        val names = items.groupBy { it.number }.mapValues { (_, group) -> group.map { it.name }.toSet() }
+        return items.map { item ->
+            val bracket = TRAILING_BRACKET.find(item.name) ?: return@map item
+            val base = item.name.substring(0, bracket.range.first).trim()
+            if (base in names.getValue(item.number)) item.copy(name = base, variantLabel = bracket.groupValues[1].take(255)) else item
+        }
+    }
+
+    /** The page cut at its `== headings ==`: (heading as plain text, the text under it). */
+    private fun sections(wikitext: String): List<Pair<String, String>> {
+        val headings = HEADING.findAll(wikitext).toList()
+        return headings.mapIndexed { i, heading ->
+            val end = headings.getOrNull(i + 1)?.range?.first ?: wikitext.length
+            WikiTableParser.clean(heading.groupValues[1]).text to wikitext.substring(heading.range.last + 1, end)
+        }
+    }
+
+    /** `[[File:x.jpg|thumb|[[A|b]] <br/> Japan Exclusive|center]]` → "b", "Japan Exclusive": the lines that aren't layout options. */
+    private fun fileCaption(raw: String): List<String>? {
+        val start = raw.indexOf("[[File:", ignoreCase = true).takeIf { it >= 0 } ?: raw.indexOf("[[Image:", ignoreCase = true).takeIf { it >= 0 } ?: return null
+        var depth = 0
+        var end = raw.length
+        var i = start
+        while (i < raw.length - 1) {
+            val pair = raw.substring(i, i + 2)
+            if (pair == "[[") depth++
+            if (pair == "]]" && --depth == 0) {
+                end = i
+                break
+            }
+            if (pair == "[[" || pair == "]]") i++
+            i++
+        }
+        val parts = topLevelSplit(raw.substring(start + 2, end)).drop(1)
+        return parts.filterNot { LAYOUT_OPTION.matches(it.trim()) }.flatMap { WikiTableParser.clean(it).lines }
+    }
 
     private fun item(
         number: String,
@@ -220,10 +436,11 @@ class WikiCatalog(
         seriesNumber: String?,
         toyCode: String?,
         photo: WikiCell?,
+        colour: String? = null,
     ): WikiItem {
         var title = name.text
         var variant: Int? = null
-        var label: String? = null
+        var label: String? = colour?.trim()?.ifEmpty { null }
 
         // "Mazda RX-7 (2nd Color - Zamac)" → name + variant 2 + label.
         COLOR_VARIANT.find(title)?.let { match ->
@@ -322,6 +539,10 @@ class WikiCatalog(
 
         val HW_NUMBER = Regex("^\\d{1,3}$")
         val MB_NUMBER = Regex("^MB\\s*0*(\\d{1,3})$", RegexOption.IGNORE_CASE)
+        val MB_NUMBER_REGION = Regex("^MB\\s*0*(\\d{1,3})\\s*\\(([^)]*)\\)$", RegexOption.IGNORE_CASE)
+
+        // A 1997–1999 row: the template's parameters, then the photo cell after it.
+        val ROW_TEMPLATE = Regex("\\{\\{\\s*List[0-9A-Za-z]*\\s*\\|((?:[^{}]|\\{\\{[^{}]*\\}\\})*)\\}\\}\\s*(?:\\|\\s*(\\[\\[(?:File|Image):[^\\]]*\\]\\]))?")
         val CARD_CODE = Regex("[A-Z0-9]{5}")
         val COLOR_VARIANT = Regex("\\s*\\(((\\d+)(?:st|nd|rd|th)\\s+colou?r[^)]*)\\)\\s*$", RegexOption.IGNORE_CASE)
         val NEW_SUFFIX = Regex("\\s*\\(new\\)\\s*$", RegexOption.IGNORE_CASE)
@@ -329,6 +550,15 @@ class WikiCatalog(
         val EXCLUSIVE = Regex("(\\w[\\w ]*?) exclusive", RegexOption.IGNORE_CASE)
         val SERIES_NUMBER = Regex("^\\d+\\s*/\\s*\\d+$")
         val TOY_CODE = Regex("^[A-Z0-9]{4,8}$")
+        val MINI_GT_EXCLUSIVE = Regex("^(.+?)\\s+exclusive\\b", RegexOption.IGNORE_CASE)
+        val MINI_GT_CODE = Regex("^(MGT|MGTS|KHMG)(\\d{2,6})$")
+        val TOMICA_NUMBER = Regex("^No\\.?\\s*(\\d{1,3})\\s+(.+)$", RegexOption.IGNORE_CASE)
+        val TOMICA_RANGE = Regex("\\(\\s*No\\.[^)]*\\)", RegexOption.IGNORE_CASE)
+        // "4/2/2015", "11/2024", "1/21/23": the year at the end.
+        val RELEASE_YEAR = Regex("(?:^|/)(\\d{4}|\\d{2})$")
+        val TRAILING_BRACKET = Regex("\\(([^()]+)\\)\\s*$")
+        val HEADING = Regex("^==+\\s*(.+?)\\s*==+\\s*$", RegexOption.MULTILINE)
+        val LAYOUT_OPTION = Regex("^(thumb|thumbnail|frame|frameless|border|center|centre|left|right|none|upright.*|\\d*x?\\d+px|(link|alt|class|page|lang)=.*)$", RegexOption.IGNORE_CASE)
         val WHITESPACE = Regex("\\s+")
     }
 }

@@ -26,4 +26,6 @@
     <string name="wiki_offline">无法连接维基。请检查网络连接后重试。</string>
     <string name="wiki_trouble">维基出现问题（HTTP %1$d），请稍后再试。</string>
     <string name="wiki_sync_failed">同步失败（%1$s）。</string>
+    <string name="wiki_list_empty">维基上的清单还没有数据。</string>
+    <string name="wiki_list_missing">维基上没有（或已没有）这份清单。</string>
 </resources>

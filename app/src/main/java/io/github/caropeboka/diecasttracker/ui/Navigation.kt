@@ -26,7 +26,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import io.github.caropeboka.diecasttracker.container
+import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.ui.check.CheckScreen
 import io.github.caropeboka.diecasttracker.ui.collection.CollectionLink
 import io.github.caropeboka.diecasttracker.ui.collection.CollectionScreen
@@ -34,6 +36,7 @@ import io.github.caropeboka.diecasttracker.ui.collection.CollectionViewModel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
 import io.github.caropeboka.diecasttracker.ui.dashboard.DashboardScreen
 import io.github.caropeboka.diecasttracker.ui.data.DataScreen
+import io.github.caropeboka.diecasttracker.ui.dex.DexBrandScreen
 import io.github.caropeboka.diecasttracker.ui.dex.DexCatalogScreen
 import io.github.caropeboka.diecasttracker.ui.dex.DexMatchesScreen
 import io.github.caropeboka.diecasttracker.ui.dex.DexScreen
@@ -97,8 +100,13 @@ data object ExploreRoute
 @Serializable
 data object DexRoute
 
+/** One brand's dexes. */
 @Serializable
-data class DexCatalogRoute(val id: Long)
+data class DexBrandRoute(val brand: String)
+
+/** One dex; with [number], opened on that entry (closing it goes back). */
+@Serializable
+data class DexCatalogRoute(val id: Long, val number: String? = null)
 
 /** "Cocokkan Dex". */
 @Serializable
@@ -147,6 +155,7 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
     }
     val openDiecast = { id: Long -> nav.navigate(DiecastEditRoute(id = id)) }
     val openCatalog = { id: Long -> nav.navigate(DexCatalogRoute(id)) }
+    val openEntry = { item: CatalogItemEntity -> nav.navigate(DexCatalogRoute(item.catalogId, item.number)) }
     // The collection is always at the bottom of the stack. Its filters live in its view model's own saved state
     // (not the entry's savedStateHandle, a different one), so the link goes through that view model.
     val openCollection = { link: CollectionLink ->
@@ -249,7 +258,15 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                         ExploreScreen(onTab = openTab, onOpen = openDiecast)
                     }
                     screen<DexRoute> {
-                        DexScreen(onTab = openTab, onOpen = openCatalog, onMatches = dropUnlessResumed { nav.navigate(DexMatchesRoute) })
+                        DexScreen(
+                            onTab = openTab,
+                            onOpen = openCatalog,
+                            onBrand = { brand -> nav.navigate(DexBrandRoute(brand)) },
+                            onMatches = dropUnlessResumed { nav.navigate(DexMatchesRoute) },
+                        )
+                    }
+                    screen<DexBrandRoute> { entry ->
+                        DexBrandScreen(entry.toRoute<DexBrandRoute>().brand, onBack = dropUnlessResumed { nav.popBackStack() }, onOpen = openCatalog)
                     }
                     screen<DexCatalogRoute> {
                         DexCatalogScreen(
@@ -263,14 +280,14 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                         DexMatchesScreen(
                             onBack = dropUnlessResumed { nav.popBackStack() },
                             onOpenDiecast = openDiecast,
-                            onOpenCatalog = openCatalog,
+                            onOpenEntry = openEntry,
                         )
                     }
                     screen<DiecastEditRoute> {
                         DiecastEditScreen(
                             onClose = { nav.popBackStack<DiecastEditRoute>(inclusive = true) },
                             onOpen = { id -> nav.navigate(DiecastEditRoute(id = id)) },
-                            onOpenCatalog = openCatalog,
+                            onOpenEntry = openEntry,
                             onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
                         )
                     }

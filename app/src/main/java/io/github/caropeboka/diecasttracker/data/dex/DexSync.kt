@@ -28,12 +28,13 @@ class DexSync(
 ) {
     private val dao = db.dex()
 
-    suspend fun sync(source: WikiSource, year: Int): SyncResult {
+    /** [year]: null for a [WikiSource.single] list. */
+    suspend fun sync(source: WikiSource, year: Int?): SyncResult {
         val (page, rows) = wiki.fetch(source, year)
-        if (rows.isEmpty()) throw DexSyncException(texts(R.string.wiki_year_empty, year))
+        if (rows.isEmpty()) throw DexSyncException(if (year == null) texts(R.string.wiki_list_empty) else texts(R.string.wiki_year_empty, year))
 
         val stale = mutableListOf<String?>()
-        val name = "${source.label} $year"
+        val name = if (year == null) source.label else "${source.label} $year"
 
         val (catalogId, counts) = db.withTransaction {
             val known = dao.catalogFor(source.key, year)

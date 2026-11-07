@@ -7,6 +7,8 @@ data class WikiCell(
     val lines: List<String>,
     val templates: List<WikiTemplate>,
     val file: String?,
+    /** As written, markup and all. */
+    val raw: String = "",
 )
 
 data class WikiTemplate(val name: String, val args: List<String>)
@@ -73,7 +75,7 @@ object WikiTableParser {
 
         val lines = text.split('\n').map { WHITESPACE.replace(it, " ").trim() }.filter { it.isNotEmpty() }
 
-        return WikiCell(lines.firstOrNull().orEmpty(), lines, templates, file)
+        return WikiCell(lines.firstOrNull().orEmpty(), lines, templates, file, raw)
     }
 
     /** "Col. #" → "col#", "Model Name" → "modelname", "Sub-series" → "subseries". */

@@ -22,10 +22,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.concurrent.TimeUnit
 
-/** How one year's sync went. */
+/** How one year's sync went; [year] null for a wiki with one list. */
 @Serializable
 data class YearResult(
-    val year: Int,
+    val year: Int?,
     val error: String? = null,
     val items: Int = 0,
     val added: Int = 0,
@@ -37,7 +37,8 @@ data class YearResult(
 sealed interface SyncProgress {
     data object Idle : SyncProgress
 
-    data class Running(val year: Int?, val done: Int, val total: Int) : SyncProgress
+    /** [started] false: waiting for a connection; [year] null then, or for a wiki with one list. */
+    data class Running(val year: Int?, val done: Int, val total: Int, val started: Boolean = year != null) : SyncProgress
 
     data class Finished(val source: WikiSource?, val results: List<YearResult>) : SyncProgress
 }
@@ -60,7 +61,9 @@ object DexWork {
     private const val DONE = "done"
     private const val TOTAL = "total"
     private const val RESULTS = "results"
+    private const val STARTED = "started"
 
+    /** [years] are ignored for a [WikiSource.single] list. */
     fun sync(context: Context, source: WikiSource, years: List<Int>) {
         val request = OneTimeWorkRequestBuilder<DexSyncWorker>()
             .setInputData(workDataOf(SOURCE to source.key, YEARS to years.toIntArray()))
@@ -87,6 +90,7 @@ object DexWork {
                     year = info.progress.getInt(YEAR, 0).takeIf { it > 0 },
                     done = info.progress.getInt(DONE, 0),
                     total = info.progress.getInt(TOTAL, 0),
+                    started = info.progress.getBoolean(STARTED, false),
                 )
                 WorkInfo.State.SUCCEEDED -> SyncProgress.Finished(
                     WikiSource.fromKey(info.outputData.getString(SOURCE)),
@@ -111,11 +115,11 @@ object DexWork {
         override suspend fun doWork(): Result {
             val container = applicationContext.container
             val source = WikiSource.fromKey(inputData.getString(SOURCE)) ?: return Result.failure()
-            val years = inputData.getIntArray(YEARS) ?: return Result.failure()
+            val years: List<Int?> = if (source.single) listOf(null) else inputData.getIntArray(YEARS)?.toList() ?: return Result.failure()
             val results = mutableListOf<YearResult>()
 
             years.forEachIndexed { index, year ->
-                setProgress(workDataOf(YEAR to year, DONE to index, TOTAL to years.size))
+                setProgress(workDataOf(YEAR to (year ?: 0), DONE to index, TOTAL to years.size, STARTED to true))
                 results += try {
                     val result = container.dexSync.sync(source, year)
                     YearResult(year, items = result.items, added = result.added, removed = result.removed, linked = result.linked)

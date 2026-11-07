@@ -2,7 +2,6 @@ package io.github.caropeboka.diecasttracker.data.dex
 
 import androidx.sqlite.db.SimpleSQLiteQuery
 import io.github.caropeboka.diecasttracker.data.CatalogMatch
-import io.github.caropeboka.diecasttracker.data.DEFAULT_SCALE
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.db.DexDao
 import io.github.caropeboka.diecasttracker.data.db.DexItemRow
@@ -40,7 +39,8 @@ class DexMatcher(private val dao: DexDao) {
         val brand = diecast.brand?.trim().orEmpty()
         if (brand.isEmpty()) return emptyList()
 
-        val catalogIds = dao.catalogIdsForBrand(brand)
+        // Kaido House is on Mini GT's lists.
+        val catalogIds = (listOf(brand) + WikiSource.entries.filter { it.covers(brand) }.map { it.brand }).distinct().flatMap { dao.catalogIdsForBrand(it) }.distinct()
         val numbers = numbers(diecast.collectionNumber)
         val tokens = tokens(diecast.name)
         // The most distinctive words of the name, to find candidates when the numbers don't help.
@@ -123,7 +123,7 @@ class DexMatcher(private val dao: DexDao) {
                 item.isTh -> Rarity.TreasureHunt
                 else -> Rarity.Regular
             },
-            scale = DEFAULT_SCALE.takeIf { wiki != null },
+            scale = wiki?.scale,
         )
     }
 
@@ -175,6 +175,7 @@ class DexMatcher(private val dao: DexDao) {
 
         private val PAIR = Regex("(\\d{1,3})\\s*/\\s*(\\d{1,3})")
         private val LINE_NUMBER = Regex("\\b(?:MB|No\\.?|#)\\s*0*(\\d{1,4})\\b", RegexOption.IGNORE_CASE)
+        private val BARE_NUMBER = Regex("^0*(\\d{1,4})$")
         private val CODE = Regex("\\b([A-Z]{2,5}-?\\d{3,6})\\b", RegexOption.IGNORE_CASE)
         private val MB_CODE = Regex("^MB\\d+$", RegexOption.IGNORE_CASE)
         private val SHORT_YEAR = Regex("['’`]\\d{2}\\b")
@@ -198,6 +199,8 @@ class DexMatcher(private val dao: DexDao) {
             }
 
             if (main == null) LINE_NUMBER.find(value)?.let { main = it.groupValues[1].toInt() }
+            // Just a number, as on a Tomica box ("15").
+            if (main == null) BARE_NUMBER.matchEntire(value.trim())?.let { main = it.groupValues[1].toInt() }
 
             val code = CODE.find(value)?.groupValues?.get(1)?.takeIf { !MB_CODE.matches(it) }?.uppercase()
 

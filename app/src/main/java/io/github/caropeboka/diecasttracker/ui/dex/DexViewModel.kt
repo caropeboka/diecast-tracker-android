@@ -99,10 +99,15 @@ class DexViewModel(
     val fromYear: StateFlow<Int> = saved.getStateFlow(FROM, currentYear)
     val toYear: StateFlow<Int> = saved.getStateFlow(TO, currentYear)
 
-    fun years(source: WikiSource) = (currentYear downTo source.firstYear).toList()
+    fun years(source: WikiSource) = source.years(currentYear)
 
+    /** Starts on the source's newest year (Mini GT's lists stop at 2022). */
     fun setSource(source: WikiSource) {
         saved[SOURCE] = source.key
+        source.years(currentYear).firstOrNull()?.let {
+            saved[FROM] = it
+            saved[TO] = it
+        }
     }
 
     fun setFrom(year: Int) {
@@ -148,7 +153,7 @@ class DexViewModel(
 
     fun newCatalog() = storeCatalogDraft(CatalogDraft(brand = collectionBrands.value.firstOrNull().orEmpty()))
 
-    private fun hasWikiList(brand: String) = WikiSource.entries.any { it.brand.equals(brand.trim(), ignoreCase = true) }
+    private fun hasWikiList(brand: String) = WikiSource.entries.any { it.covers(brand) }
 
     fun editCatalog(catalog: CatalogEntity) =
         storeCatalogDraft(CatalogDraft(catalog.id, catalog.brand, catalog.name, catalog.year?.toString().orEmpty()))

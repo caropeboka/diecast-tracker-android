@@ -26,4 +26,6 @@
     <string name="wiki_offline">Tidak bisa menghubungi wiki. Cek koneksi internet lalu coba lagi.</string>
     <string name="wiki_trouble">Wiki sedang bermasalah (HTTP %1$d). Coba lagi nanti.</string>
     <string name="wiki_sync_failed">Sinkron gagal (%1$s).</string>
+    <string name="wiki_list_empty">Daftar di wiki belum berisi data.</string>
+    <string name="wiki_list_missing">Daftar ini (sudah) tidak ada di wiki.</string>
 </resources>

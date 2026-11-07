@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -47,6 +48,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -81,6 +83,7 @@ import io.github.caropeboka.diecasttracker.ui.theme.Garage
 fun DexScreen(
     onTab: (MainTab) -> Unit,
     onOpen: (Long) -> Unit,
+    onBrand: (String) -> Unit,
     onMatches: () -> Unit,
     viewModel: DexViewModel = viewModel(factory = DexViewModel.Factory),
 ) {
@@ -90,8 +93,6 @@ fun DexScreen(
     val images by viewModel.images.collectAsStateWithLifecycle()
     val cellular by viewModel.cellular.collectAsStateWithLifecycle()
     val sync by viewModel.sync.collectAsStateWithLifecycle()
-    val brandSuggestions by viewModel.brandSuggestions.collectAsStateWithLifecycle()
-    var deleting by remember { mutableStateOf<CatalogEntity?>(null) }
 
     LaunchedEffect(viewModel) { viewModel.opened.collect(onOpen) }
 
@@ -132,29 +133,116 @@ fun DexScreen(
             if (groups.isEmpty()) {
                 item { EmptyDex() }
             } else {
-                items(groups, key = { it.brand }) { group ->
-                    SectionCard(null) {
-                        SubHeading(group.brand)
-                        DexMeter(group.counts)
-                        DexLegend(group.counts)
-                        group.catalogs.forEach { summary ->
-                            HorizontalDivider(color = Garage.Border)
-                            CatalogRow(
-                                summary,
-                                onOpen = { onOpen(summary.catalog.id) },
-                                onResync = { viewModel.resync(summary.catalog) },
-                                onEdit = { viewModel.editCatalog(summary.catalog) },
-                                onDelete = { deleting = summary.catalog },
-                            )
-                        }
-                    }
-                }
+                // A card per brand; its lists are on the brand's page.
+                items(groups, key = { it.brand }) { group -> BrandCard(group, onOpen = { onBrand(group.brand) }) }
             }
 
             item { OwnDexCard(viewModel::newCatalog) }
             item { SyncCard(viewModel) }
         }
     }
+
+    CatalogDialogs(viewModel, deleting = null, onDeleteDone = {})
+}
+
+/** One brand's dexes (its years and own lists) with their combined progress. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DexBrandScreen(
+    brand: String,
+    onBack: () -> Unit,
+    onOpen: (Long) -> Unit,
+    viewModel: DexViewModel = viewModel(factory = DexViewModel.Factory),
+) {
+    val brands by viewModel.brands.collectAsStateWithLifecycle()
+    var deleting by remember { mutableStateOf<CatalogEntity?>(null) }
+    val group = brands?.find { it.brand == brand }
+
+    // Its last dex removed: nothing left to show.
+    if (brands != null && group == null) LaunchedEffect(Unit) { onBack() }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Heading(brand) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back)) }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+            )
+        },
+        snackbarHost = { SnackbarHost(LocalSnackbar.current) },
+    ) { padding ->
+        if (group == null) {
+            Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            return@Scaffold
+        }
+
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(padding).fillMaxSize(),
+        ) {
+            item {
+                SectionCard(null) {
+                    DexMeter(group.counts)
+                    DexLegend(group.counts)
+                    Text(
+                        pluralStringResource(R.plurals.dex_brand_lists, group.catalogs.size, group.catalogs.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Garage.MutedForeground,
+                    )
+                }
+            }
+            item {
+                SectionCard(null) {
+                    group.catalogs.forEachIndexed { index, summary ->
+                        if (index > 0) HorizontalDivider(color = Garage.Border)
+                        CatalogRow(
+                            summary,
+                            onOpen = { onOpen(summary.catalog.id) },
+                            onResync = { viewModel.resync(summary.catalog) },
+                            onEdit = { viewModel.editCatalog(summary.catalog) },
+                            onDelete = { deleting = summary.catalog },
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    CatalogDialogs(viewModel, deleting, onDeleteDone = { deleting = null })
+}
+
+/** A brand on the Dex tab: its progress over all its lists; tapping it opens them. */
+@Composable
+private fun BrandCard(group: BrandGroup, onOpen: () -> Unit) {
+    SectionCard(
+        group.brand,
+        modifier = Modifier.clip(MaterialTheme.shapes.large).clickable(onClickLabel = stringResource(R.string.dex_brand_open), onClick = onOpen),
+        action = {
+            TextButton(onClick = onOpen, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                Text(stringResource(R.string.dex_brand_open), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+    ) {
+        DexMeter(group.counts)
+        DexLegend(group.counts)
+        Text(
+            pluralStringResource(R.plurals.dex_brand_lists, group.catalogs.size, group.catalogs.size) +
+                (group.catalogs.firstOrNull()?.let { " · " + it.catalog.name } ?: ""),
+            style = MaterialTheme.typography.bodySmall,
+            color = Garage.MutedForeground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** The own dex sheet (new or edited) and the confirmation before a dex is removed. */
+@Composable
+private fun CatalogDialogs(viewModel: DexViewModel, deleting: CatalogEntity?, onDeleteDone: () -> Unit) {
+    val brandSuggestions by viewModel.brandSuggestions.collectAsStateWithLifecycle()
 
     viewModel.catalogDraft?.let { draft ->
         CatalogSheet(
@@ -169,16 +257,16 @@ fun DexScreen(
 
     deleting?.let { catalog ->
         AlertDialog(
-            onDismissRequest = { deleting = null },
+            onDismissRequest = onDeleteDone,
             title = { Text(stringResource(R.string.delete_named, catalog.name)) },
             text = { Text(stringResource(R.string.dex_delete_text)) },
             confirmButton = {
                 TextButton(onClick = {
-                    deleting = null
+                    onDeleteDone()
                     viewModel.delete(catalog)
                 }) { Text(stringResource(R.string.delete), color = Garage.Loss) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) } },
+            dismissButton = { TextButton(onClick = onDeleteDone) { Text(stringResource(R.string.cancel)) } },
         )
     }
 }
@@ -345,18 +433,32 @@ private fun SyncCard(viewModel: DexViewModel) {
             color = Garage.MutedForeground,
         )
         SourceToggle(source, enabled = !running, onSelect = viewModel::setSource)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ChoiceInput(from, years, { it.toString() }, viewModel::setFrom, stringResource(R.string.dex_from), Modifier.weight(1f))
-            ChoiceInput(to, years, { it.toString() }, viewModel::setTo, stringResource(R.string.dex_to), Modifier.weight(1f))
+        source.note?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground) }
+        if (!source.single) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ChoiceInput(from, years, { it.toString() }, viewModel::setFrom, stringResource(R.string.dex_from), Modifier.weight(1f))
+                ChoiceInput(to, years, { it.toString() }, viewModel::setTo, stringResource(R.string.dex_to), Modifier.weight(1f))
+            }
         }
         Button(onClick = viewModel::startSync, enabled = !running, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-            IconLabel(R.drawable.ic_sync, if (from == to) stringResource(R.string.dex_sync_one, from) else pluralStringResource(R.plurals.dex_sync_range, to - from + 1, from, to, to - from + 1))
+            IconLabel(
+                R.drawable.ic_sync,
+                when {
+                    source.single -> stringResource(R.string.dex_sync_list)
+                    from == to -> stringResource(R.string.dex_sync_one, from)
+                    else -> pluralStringResource(R.plurals.dex_sync_range, to - from + 1, from, to, to - from + 1)
+                },
+            )
         }
 
         when (val state = sync) {
             is SyncProgress.Running -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    state.year?.let { stringResource(R.string.dex_syncing, it, state.done + 1, state.total) } ?: stringResource(R.string.waiting_for_connection),
+                    when {
+                        !state.started -> stringResource(R.string.waiting_for_connection)
+                        state.year != null -> stringResource(R.string.dex_syncing, state.year, state.done + 1, state.total)
+                        else -> stringResource(R.string.dex_syncing_list)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                 )
                 // One year at a time: a range moves the bar, a single year just shows activity.
@@ -374,31 +476,39 @@ private fun SyncCard(viewModel: DexViewModel) {
     }
 }
 
+/** The wikis, two to a row so the names fit a phone. */
 @Composable
 private fun SourceToggle(selected: WikiSource, enabled: Boolean, onSelect: (WikiSource) -> Unit) {
-    Row(
+    Column(
         Modifier
             .fillMaxWidth()
             .background(Garage.Muted, RoundedCornerShape(10.dp))
             .padding(4.dp)
             .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        WikiSource.entries.forEach { source ->
-            val active = source == selected
-            val shape = RoundedCornerShape(8.dp)
-            Text(
-                source.brand,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (active) MaterialTheme.colorScheme.onSurface else Garage.MutedForeground,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .weight(1f)
-                    .then(if (active) Modifier.background(Garage.Card, shape).border(1.dp, Garage.Brand.copy(alpha = 0.5f), shape) else Modifier)
-                    .selectable(selected = active, enabled = enabled, role = Role.RadioButton, onClick = { onSelect(source) })
-                    .padding(vertical = 10.dp),
-            )
+        WikiSource.entries.chunked(2).forEach { pair ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                pair.forEach { source ->
+                    val active = source == selected
+                    val shape = RoundedCornerShape(8.dp)
+                    Text(
+                        source.shortName,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (active) MaterialTheme.colorScheme.onSurface else Garage.MutedForeground,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(shape)
+                            .then(if (active) Modifier.background(Garage.Card, shape).border(1.dp, Garage.Brand.copy(alpha = 0.5f), shape) else Modifier)
+                            .selectable(selected = active, enabled = enabled, role = Role.RadioButton, onClick = { onSelect(source) })
+                            .padding(vertical = 10.dp),
+                    )
+                }
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
+            }
         }
     }
 }
@@ -406,7 +516,7 @@ private fun SourceToggle(selected: WikiSource, enabled: Boolean, onSelect: (Wiki
 @Composable
 private fun YearLine(source: WikiSource?, result: YearResult) {
     val style = MaterialTheme.typography.bodySmall
-    val label = "${source?.brand ?: ""} ${result.year}".trim()
+    val label = listOfNotNull(source?.brand, result.year?.toString()).joinToString(" ")
     if (result.error != null) {
         Text(stringResource(R.string.named_problem, label, result.error), style = style, color = Garage.Loss)
     } else {

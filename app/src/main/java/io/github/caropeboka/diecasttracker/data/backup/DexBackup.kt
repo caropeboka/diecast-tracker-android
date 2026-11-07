@@ -125,8 +125,7 @@ internal class DexRestorer(db: AppDatabase, private val photos: PhotoStore, priv
 
             val local = when {
                 custom -> dao.customNamed(catalog.name)
-                catalog.year != null -> dao.catalogFor(catalog.source, catalog.year)
-                else -> null
+                else -> dao.catalogFor(catalog.source, catalog.year)
             }
             val catalogId = local?.id ?: dao.insertCatalog(
                 CatalogEntity(

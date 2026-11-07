@@ -28,4 +28,6 @@
     <string name="wiki_offline">Can\'t reach the wiki. Check the internet connection and try again.</string>
     <string name="wiki_trouble">The wiki is having trouble (HTTP %1$d). Try again later.</string>
     <string name="wiki_sync_failed">The sync failed (%1$s).</string>
+    <string name="wiki_list_empty">The wiki\'s list has no data yet.</string>
+    <string name="wiki_list_missing">The wiki doesn\'t have this list (any more).</string>
 </resources>
