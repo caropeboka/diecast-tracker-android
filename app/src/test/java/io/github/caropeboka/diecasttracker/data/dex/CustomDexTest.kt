@@ -23,6 +23,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 import java.time.LocalDate
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 
 /** Ports of the web app's `CustomDexTest`, plus editing entries (which the web can't do). */
 @RunWith(AndroidJUnit4::class)
@@ -140,7 +145,7 @@ class CustomDexTest {
                 """.trimIndent(),
             ),
         )
-        val reader = ChecklistReader(fake.vision())
+        val reader = ChecklistReader(fake.vision(), env.texts)
         val id = dex()
         val mine = env.repository.save(DiecastEntity(name = "Nissan Skyline GT-R R34", brand = "Mini GT", collectionNumber = "MGT00512"))
 
@@ -157,6 +162,34 @@ class CustomDexTest {
         assertEquals(listOf(true, true), custom.known(id, rows))
         assertEquals(dao.items(id).first().id, diecast(mine).catalogItemId)
         assertEquals(CatalogMatch.Auto, diecast(mine).catalogMatch)
+    }
+
+    @Test
+    fun `a list looked up on the web comes with what the AI said and its sources`() = runBlocking {
+        val fake = FakeGemini().on("models", 200, FakeGemini.models()).otherwise(
+            200,
+            buildJsonObject {
+                putJsonArray("candidates") {
+                    addJsonObject {
+                        putJsonObject("content") { putJsonArray("parts") { addJsonObject { put("text", "Mini GT 2024 dari minigt.com dan Mijo; sepertinya lengkap sampai Juni.\n\n```json\n{\"items\": [{\"number\": \"MGT00700\", \"name\": \"Toyota GR86\", \"series\": null, \"series_number\": null, \"variant\": \"LHD\"}, {\"number\": 701, \"name\": \"Honda NSX\", \"series\": null, \"series_number\": null, \"variant\": null}, {\"number\": null, \"name\": null}]}\n```") } } }
+                        putJsonObject("groundingMetadata") {
+                            putJsonArray("groundingChunks") { addJsonObject { putJsonObject("web") { put("uri", "https://example.test/mgt"); put("title", "minigt.com") } } }
+                        }
+                    }
+                }
+            }.toString(),
+        )
+        val id = dex()
+
+        val found = ChecklistReader(fake.vision(), env.texts).search(dao.catalog(id)!!, "Mini GT 2024")
+
+        assertEquals(listOf("MGT00700", "701"), found.rows.map { it.number })
+        assertEquals("LHD", found.rows[0].variantLabel)
+        assertEquals("Mini GT 2024 dari minigt.com dan Mijo; sepertinya lengkap sampai Juni.", found.note)
+        assertEquals(listOf("minigt.com"), found.sources.map { it.title })
+        assertTrue(found.searched)
+        assertTrue("google_search" in fake.bodies.last())
+        assertTrue("Mini GT 2024" in fake.bodies.last())
     }
 
     @Test

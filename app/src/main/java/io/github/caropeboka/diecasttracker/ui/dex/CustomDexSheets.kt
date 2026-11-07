@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -29,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,10 +40,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -286,6 +291,33 @@ fun ImportSheet(viewModel: CustomDexViewModel, brand: String, onAiSettings: () -
                 TextButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.dex_open_ai_settings)) }
             }
         }
+
+        ImportOption(
+            icon = R.drawable.ic_search,
+            title = stringResource(R.string.dex_from_web),
+            text = if (aiEnabled) stringResource(R.string.dex_from_web_text) else stringResource(R.string.ai_err_not_set),
+            busy = busy == ImportBusy.Web,
+        ) {
+            if (aiEnabled) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+                    OutlinedTextField(
+                        value = viewModel.webQuery,
+                        onValueChange = viewModel::updateWebQuery,
+                        placeholder = { Text(stringResource(R.string.dex_web_query_hint, brand), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        singleLine = true,
+                        enabled = busy == null,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { viewModel.searchWeb() }),
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = viewModel::searchWeb, enabled = busy == null, shape = MaterialTheme.shapes.medium) {
+                        Text(stringResource(R.string.dex_web_search))
+                    }
+                }
+            } else {
+                TextButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.dex_open_ai_settings)) }
+            }
+        }
         checklistProgress?.let { AiProgressView(it) }
 
         ImportOption(
@@ -305,6 +337,41 @@ fun ImportSheet(viewModel: CustomDexViewModel, brand: String, onAiSettings: () -
         )
     }
 }
+
+/** What the AI said about the list it found, a warning to check it, and where it looked. */
+@Composable
+private fun WebFindNote(web: WebFind) {
+    val uriHandler = LocalUriHandler.current
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (web.note.isNotEmpty()) Text(web.note, style = MaterialTheme.typography.bodySmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(painterResource(R.drawable.ic_warning), contentDescription = null, tint = Garage.Brand2, modifier = Modifier.size(16.dp))
+            Text(
+                stringResource(if (web.searched) R.string.dex_web_by_search else R.string.dex_web_by_memory, web.by),
+                style = MaterialTheme.typography.bodySmall,
+                color = Garage.MutedForeground,
+            )
+        }
+        if (web.sources.isNotEmpty()) {
+            Text(stringResource(R.string.dex_web_sources), style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
+            web.sources.take(MAX_SOURCES).forEach { source ->
+                Text(
+                    "↗ " + source.title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Garage.Brand,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable { runCatching { uriHandler.openUri(source.url) } }
+                        .padding(vertical = 2.dp),
+                )
+            }
+        }
+    }
+}
+
+private const val MAX_SOURCES = 5
 
 private val SPREADSHEET_TYPES = arrayOf(
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -364,6 +431,7 @@ fun ChecklistReviewSheet(viewModel: CustomDexViewModel) {
                 style = MaterialTheme.typography.bodySmall,
                 color = Garage.MutedForeground,
             )
+            review.web?.let { WebFindNote(it) }
             LazyColumn(Modifier.weight(1f, fill = false)) {
                 itemsIndexed(review.rows) { index, row ->
                     val known = review.known.getOrElse(index) { false }

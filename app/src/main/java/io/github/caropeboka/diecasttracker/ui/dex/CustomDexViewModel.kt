@@ -19,6 +19,8 @@ import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.PhotoException
 import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.ai.AiException
+import io.github.caropeboka.diecasttracker.data.ai.WebSource
+import io.github.caropeboka.diecasttracker.data.db.CatalogEntity
 import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.dex.CatalogField
 import io.github.caropeboka.diecasttracker.data.dex.ChecklistReader
@@ -65,15 +67,19 @@ data class EntryDraft(
     val isNew get() = itemId == 0L
 }
 
-/** What the AI read from a checklist, to be ticked before it's added. */
+/** What the AI said about a list it looked up on the web, and where it looked. */
 @Serializable
-data class ChecklistReview(val rows: List<DexRow>, val known: List<Boolean>, val selected: Set<Int>)
+data class WebFind(val note: String, val sources: List<WebSource>, val by: String, val searched: Boolean)
+
+/** What the AI read from a checklist (or found on the web: [web]), to be ticked before it's added. */
+@Serializable
+data class ChecklistReview(val rows: List<DexRow>, val known: List<Boolean>, val selected: Set<Int>, val web: WebFind? = null)
 
 /** The dex's name, brand and year being edited. */
 @Serializable
 data class CatalogDraft(val id: Long = 0, val brand: String = "", val name: String = "", val year: String = "")
 
-enum class ImportBusy { Checklist, Spreadsheet, Collection }
+enum class ImportBusy { Checklist, Web, Spreadsheet, Collection }
 
 /** Building an own dex: entries by hand, many at once, and the dex itself (web: `custom-dex-tools.tsx`). */
 class CustomDexViewModel(
@@ -118,6 +124,10 @@ class CustomDexViewModel(
     var importNote by mutableStateOf<String?>(null)
         private set
     var review by mutableStateOf(saved.get<String>(REVIEW)?.let { Json.decodeFromString<ChecklistReview>(it) })
+        private set
+
+    /** What to look up on the web; empty = the dex itself. */
+    var webQuery by mutableStateOf(saved.get<String>(WEB_QUERY).orEmpty())
         private set
 
     var catalogDraft by mutableStateOf(saved.get<String>(CATALOG)?.let { Json.decodeFromString<CatalogDraft>(it) })
@@ -284,21 +294,37 @@ class CustomDexViewModel(
         if (success && file.length() > 0) readChecklist { listOf(photos.screenshot(file)) } else file.delete()
     }
 
-    private fun readChecklist(load: () -> List<ByteArray>) {
+    private fun readChecklist(load: () -> List<ByteArray>) = lookUp(ImportBusy.Checklist, texts(R.string.dex_preparing_images)) { catalog ->
+        val images = withContext(Dispatchers.IO) { load() }
+        checklist.read(catalog, images, checklistLog::onEvent) to null
+    }
+
+    fun updateWebQuery(query: String) {
+        webQuery = query
+        saved[WEB_QUERY] = query
+    }
+
+    /** The AI looks the list up on the web (Gemini with Google Search); the rows are ticked like a checklist's. */
+    fun searchWeb() = lookUp(ImportBusy.Web, texts(R.string.dex_web_searching)) { catalog ->
+        val found = checklist.search(catalog, webQuery, checklistLog::onEvent)
+        found.rows to WebFind(found.note, found.sources, found.by, found.searched)
+    }
+
+    /** Rows from the AI for the review sheet, rows already in the dex unticked. */
+    private fun lookUp(kind: ImportBusy, start: String, find: suspend (CatalogEntity) -> Pair<List<DexRow>, WebFind?>) {
         if (busy != null) return
-        busy = ImportBusy.Checklist
-        checklistLog.start(texts(R.string.dex_preparing_images))
+        busy = kind
+        checklistLog.start(start)
         viewModelScope.launch {
             try {
-                val images = withContext(Dispatchers.IO) { load() }
                 val catalog = dex.catalog(catalogId) ?: return@launch
-                val rows = checklist.read(catalog, images, checklistLog::onEvent)
+                val (rows, web) = find(catalog)
                 if (rows.isEmpty()) {
-                    note(texts(R.string.dex_checklist_none))
+                    note(web?.note?.takeIf(String::isNotEmpty) ?: texts(if (web != null) R.string.dex_web_none else R.string.dex_checklist_none))
                 } else {
                     checklistLog.step(texts(R.string.dex_checking_known))
                     val known = custom.known(catalogId, rows)
-                    storeReview(ChecklistReview(rows, known, rows.indices.filterNot { known[it] }.toSet()))
+                    storeReview(ChecklistReview(rows, known, rows.indices.filterNot { known[it] }.toSet(), web))
                     openImport(false)
                 }
             } catch (e: CancellationException) {
@@ -466,6 +492,7 @@ class CustomDexViewModel(
         const val CHECKLIST_CAMERA = "checklist_camera_file"
         private const val DRAFT = "entry_draft"
         private const val REVIEW = "checklist_review"
+        private const val WEB_QUERY = "web_query"
         private const val CATALOG = "catalog_draft"
         private const val IMPORTING = "importing"
         private const val MAX_SHEET_BYTES = 5 * 1024 * 1024
