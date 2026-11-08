@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.ui.edit
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -40,6 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -50,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -79,6 +83,7 @@ import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
+import io.github.caropeboka.diecasttracker.util.formatMoney
 import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.StateFlow
@@ -184,12 +189,17 @@ class AskAiViewModel(
     }
 }
 
+/** A chip under the conversation: its label, and the question it sends when that is longer than the label. */
+private class QuickQuestion(@StringRes val label: Int, @StringRes val question: Int = label)
+
 private val QUICK_QUESTIONS = listOf(
-    R.string.ask_quick_year,
-    R.string.ask_quick_rarity,
-    R.string.ask_quick_series,
-    R.string.ask_quick_versions,
-    R.string.ask_quick_fill,
+    QuickQuestion(R.string.ask_quick_year),
+    // For a diecast bought long ago whose price is forgotten: what it cost at the minimarket when it came out.
+    QuickQuestion(R.string.ask_quick_price, R.string.ask_quick_price_question),
+    QuickQuestion(R.string.ask_quick_rarity),
+    QuickQuestion(R.string.ask_quick_series),
+    QuickQuestion(R.string.ask_quick_versions),
+    QuickQuestion(R.string.ask_quick_fill),
 )
 
 private val FIELD_LABELS = mapOf(
@@ -205,6 +215,9 @@ private val FIELD_LABELS = mapOf(
     "packaging" to R.string.field_packaging,
     "condition" to R.string.field_condition,
     "notes" to R.string.field_notes,
+    "purchase_price" to R.string.edit_purchase_price,
+    "market_value" to R.string.edit_market_value,
+    "target_price" to R.string.edit_target_price,
 )
 
 /**
@@ -255,10 +268,12 @@ fun AskAiSheet(
             HorizontalDivider(color = Garage.Border)
 
             LazyColumn(
-                Modifier.weight(1f).fillMaxWidth(),
+                Modifier.weight(1f).fillMaxWidth().nestedScroll(KeepFlings),
                 state = list,
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                // The stretch at either end blinked in the sheet on the phone.
+                overscrollEffect = null,
             ) {
                 item(key = "intro") {
                     Text(stringResource(R.string.ask_intro), style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
@@ -282,9 +297,13 @@ fun AskAiSheet(
                 Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                QUICK_QUESTIONS.forEach { question ->
-                    val text = stringResource(question)
-                    SuggestionChip(onClick = { viewModel.ask(text, context()) }, enabled = !viewModel.asking, label = { Text(text) })
+                QUICK_QUESTIONS.forEach { quick ->
+                    val text = stringResource(quick.question)
+                    SuggestionChip(
+                        onClick = { viewModel.ask(text, context()) },
+                        enabled = !viewModel.asking,
+                        label = { Text(stringResource(quick.label)) },
+                    )
                 }
             }
             Row(
@@ -403,9 +422,10 @@ private fun Suggestion(suggestion: FieldSuggestion, applied: Boolean, form: Diec
     }
 }
 
-/** A value as the form shows it: the label of a rarity, packaging or condition. */
+/** A value as the form shows it: the label of a rarity, packaging or condition, a price in the chosen currency. */
 @Composable
 private fun shown(field: String, value: String): String {
+    if (field in PRICES) return value.toLongOrNull()?.let(::formatMoney) ?: value
     val label = when (field) {
         "rarity" -> Rarity.entries.find { it.key == value }?.label
         "packaging" -> Packaging.entries.find { it.key == value }?.label
@@ -451,6 +471,15 @@ internal fun chatText(text: String): AnnotatedString = buildAnnotatedString {
     }
 }
 
+/**
+ * A fling that runs past either end of the conversation stays with it: the sheet would otherwise take it, jolting at
+ * the bottom and closing at the top. Dragging down from the top still pulls the sheet down.
+ */
+private val KeepFlings = object : NestedScrollConnection {
+    override suspend fun onPostFling(consumed: Velocity, available: Velocity) = available
+}
+
 private const val MAX_SOURCES = 5
+private val PRICES = setOf("purchase_price", "market_value", "target_price")
 private val HEADING = Regex("^\\s*#{1,6}\\s+")
 private val BULLET = Regex("^(\\s*)[*-]\\s+")

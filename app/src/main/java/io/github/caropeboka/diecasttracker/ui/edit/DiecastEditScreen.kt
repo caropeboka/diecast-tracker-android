@@ -36,6 +36,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -175,9 +177,23 @@ fun DiecastEditScreen(
                     if (scanEnabled && !viewModel.loading) {
                         TextButton(onClick = { askAi = true }) { IconLabel(R.drawable.ic_sparkles, stringResource(R.string.ask_ai)) }
                     }
+                    // Deleting sits in a menu, out of the way of "Tanya AI" next to it.
                     if (!viewModel.isNew && viewModel.existing != null) {
-                        IconButton(onClick = { confirmDelete = true }) {
-                            Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.edit_delete), tint = Garage.Loss)
+                        Box {
+                            var menuOpen by remember { mutableStateOf(false) }
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.more_options))
+                            }
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.edit_delete), color = Garage.Loss) },
+                                    leadingIcon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null, tint = Garage.Loss) },
+                                    onClick = {
+                                        menuOpen = false
+                                        confirmDelete = true
+                                    },
+                                )
+                            }
                         }
                     }
                 },
@@ -228,7 +244,7 @@ fun DiecastEditScreen(
 
     if (askAi) {
         AskAiSheet(
-            key = if (viewModel.isNew) "new" else viewModel.diecastId.toString(),
+            key = if (viewModel.isNew) "new-${viewModel.round}" else viewModel.diecastId.toString(),
             form = viewModel.form,
             context = viewModel::chatContext,
             onApply = viewModel::applySuggestion,
@@ -720,16 +736,17 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
             }
             form.status == DiecastStatus.Wishlist -> MoneyInput(
                 form.targetPrice, { v -> set(Field.TargetPrice) { it.copy(targetPrice = v) } }, stringResource(R.string.edit_target_price),
-                placeholder = "500.000", error = errors[Field.TargetPrice],
+                placeholder = "500.000", error = errors[Field.TargetPrice], highlighted = Field.TargetPrice in viewModel.aiFields,
             )
             else -> {
                 MoneyInput(
                     form.purchasePrice, { v -> set(Field.PurchasePrice) { it.copy(purchasePrice = v) } }, stringResource(R.string.edit_purchase_price),
-                    placeholder = "35.000", error = errors[Field.PurchasePrice],
+                    placeholder = "35.000", error = errors[Field.PurchasePrice], highlighted = Field.PurchasePrice in viewModel.aiFields,
                 )
                 MoneyInput(
                     form.marketValue, { v -> set(Field.MarketValue) { it.copy(marketValue = v) } }, stringResource(R.string.edit_market_value),
                     placeholder = stringResource(R.string.optional), error = errors[Field.MarketValue],
+                    highlighted = Field.MarketValue in viewModel.aiFields,
                 )
                 val existing = viewModel.existing
                 if (existing?.marketValueSource != null && existing.marketValueSource != ValueSource.Manual && form.marketValue == existing.marketValue?.toString()) {

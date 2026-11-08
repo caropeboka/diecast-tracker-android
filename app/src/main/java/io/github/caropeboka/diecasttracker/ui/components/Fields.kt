@@ -142,6 +142,7 @@ fun MoneyInput(
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     error: String? = null,
+    highlighted: Boolean = false,
 ) {
     val currency = Formats.shownCurrency
     if (currency == Currency.IDR) {
@@ -151,7 +152,7 @@ fun MoneyInput(
                 val digits = text.filter(Char::isDigit).trimStart('0').take(12)
                 onValueChange(if (digits.isEmpty() && text.any(Char::isDigit)) "0" else digits)
             },
-            label = { Text(label) },
+            label = { FieldLabel(label, highlighted) },
             prefix = { Text("Rp ") },
             placeholder = placeholder?.let { { Text(it) } },
             isError = error != null,
@@ -159,7 +160,7 @@ fun MoneyInput(
             singleLine = true,
             visualTransformation = remember(Formats.locale) { ThousandsTransformation(groupThousands(1000)[1]) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-            colors = fieldColors(),
+            colors = if (highlighted) highlightColors() else fieldColors(),
             modifier = modifier.fillMaxWidth(),
         )
         return
@@ -181,14 +182,14 @@ fun MoneyInput(
             sent = clean.toDoubleOrNull()?.let { convertToIdr(it).toString() }.orEmpty()
             onValueChange(sent)
         },
-        label = { Text(label) },
+        label = { FieldLabel(label, highlighted) },
         prefix = { Text(currency.symbol) },
         placeholder = placeholder?.let { { Text(it) } },
         isError = error != null,
         supportingText = errorText(error),
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-        colors = fieldColors(),
+        colors = if (highlighted) highlightColors() else fieldColors(),
         modifier = modifier.fillMaxWidth(),
     )
 }

@@ -11,6 +11,8 @@
     <string name="ask_hint">Tanya soal diecast ini…</string>
     <string name="ask_send">Kirim</string>
     <string name="ask_quick_year">Tahun rilisnya benar?</string>
+    <string name="ask_quick_price">Harga di Indomaret dulu?</string>
+    <string name="ask_quick_price_question">Aku lupa harga belinya. Berapa harga normal diecast ini di minimarket Indonesia (Indomaret atau Alfamart) pada tahun rilisnya? Kalau tahun rilisnya belum diisi, cari tahu dulu. Kalau seri ini tidak dijual di minimarket, pakai harga normalnya di toko mainan Indonesia. Kalau harga pastinya tidak ketemu, beri perkiraan terbaik dan bilang itu perkiraan. Sarankan sebagai harga beli.</string>
     <string name="ask_quick_rarity">Ini TH/STH?</string>
     <string name="ask_quick_series">Ini seri apa, nomor berapa?</string>
     <string name="ask_quick_versions">Apa bedanya dengan versi lainnya?</string>

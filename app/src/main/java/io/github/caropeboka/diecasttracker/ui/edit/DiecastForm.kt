@@ -131,18 +131,23 @@ data class DiecastForm(
         "packaging" to packaging.key,
         "condition" to condition?.key.orEmpty(),
         "quantity" to quantity,
-        "purchase_price_idr" to purchasePrice,
-        "market_value_idr" to marketValue,
+        "purchase_price" to purchasePrice,
+        "market_value" to marketValue,
+        "target_price" to targetPrice,
         "notes" to notes,
     )
 
     /**
      * One of "Tanya AI"'s suggestions applied: the form and the field it changed. Null when the value doesn't fit the
-     * field (a year out of range, a rarity that doesn't exist) or the form already says so.
+     * field (a year out of range, a rarity that doesn't exist), the form doesn't show the field for its status (a
+     * target price only on the wishlist, the purchase price and market value only when owned or sold) or already says
+     * so. Prices are whole Rupiah.
      */
     fun withSuggestion(field: String, value: String, currentYear: Int): Pair<DiecastForm, Field>? {
         val text = value.trim()
         if (text.isEmpty()) return null
+        val bought = status == DiecastStatus.Owned || status == DiecastStatus.Sold
+        fun money(text: String) = text.toLongOrNull()?.takeIf { it in 1..MAX_MONEY }?.toString()
         val next = when (field) {
             "name" -> copy(name = text) to Field.Name
             "brand" -> copy(brand = text) to Field.Brand
@@ -156,6 +161,9 @@ data class DiecastForm(
             "packaging" -> Packaging.entries.find { it.key == text }?.let { copy(packaging = it) to Field.Packaging }
             "condition" -> Condition.entries.find { it.key == text }?.let { copy(condition = it) to Field.Condition }
             "notes" -> copy(notes = text) to Field.Notes
+            "purchase_price" -> money(text)?.takeIf { bought }?.let { copy(purchasePrice = it) to Field.PurchasePrice }
+            "market_value" -> money(text)?.takeIf { bought }?.let { copy(marketValue = it) to Field.MarketValue }
+            "target_price" -> money(text)?.takeIf { status == DiecastStatus.Wishlist }?.let { copy(targetPrice = it) to Field.TargetPrice }
             else -> null
         }
         return next?.takeIf { it.first != this }

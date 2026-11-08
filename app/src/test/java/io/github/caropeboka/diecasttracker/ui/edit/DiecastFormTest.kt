@@ -132,7 +132,14 @@ class DiecastFormTest {
         assertNull(form.withSuggestion("year", "2031", 2026))
         assertNull(form.withSuggestion("rarity", "ultra_rare", 2026))
         assertNull(form.withSuggestion("scale", "big", 2026))
-        assertNull(form.withSuggestion("purchase_price", "35000", 2026))
+        assertEquals(form.copy(purchasePrice = "35000") to Field.PurchasePrice, form.withSuggestion("purchase_price", "35000", 2026))
+        assertEquals(form.copy(marketValue = "60000") to Field.MarketValue, form.withSuggestion("market_value", "60000", 2026))
+        assertNull(form.withSuggestion("purchase_price", "0", 2026))
+        // Only the prices the form shows for the status.
+        assertNull(form.withSuggestion("target_price", "50000", 2026))
+        val wished = form.copy(status = DiecastStatus.Wishlist)
+        assertEquals(wished.copy(targetPrice = "50000") to Field.TargetPrice, wished.withSuggestion("target_price", "50000", 2026))
+        assertNull(wished.withSuggestion("purchase_price", "35000", 2026))
         assertEquals("2019", form.chatFields()["year"])
         assertEquals("regular", form.chatFields()["rarity"])
     }

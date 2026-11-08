@@ -73,8 +73,14 @@ class DiecastChat(
     }
 
     companion object {
-        /** Fields the AI may suggest a value for, as the scan names them. */
-        val FIELDS = listOf("name", "brand", "make", "series", "collection_number", "year", "scale", "color", "rarity", "packaging", "condition", "notes")
+        /** Fields the AI may suggest a value for, as the scan names them; prices in whole Rupiah. */
+        val FIELDS = listOf(
+            "name", "brand", "make", "series", "collection_number", "year", "scale", "color", "rarity", "packaging", "condition", "notes",
+            "purchase_price", "market_value", "target_price",
+        )
+
+        /** Other names models use for them. */
+        private val ALIASES = mapOf("number" to "collection_number", "release_year" to "year")
 
         private val SYSTEM_PROMPT = """
             You are an expert diecast car collector helping a collector with one diecast in their collection tracker.
@@ -94,21 +100,29 @@ class DiecastChat(
             Fields: name, brand, make (the real car's maker), series, collection_number (as printed, e.g. "123/250"),
             year (the release year, a number), scale (like "1:64"), color, rarity (one of: ${Rarity.entries.joinToString { it.key }}),
             packaging (one of: ${Packaging.entries.joinToString { it.key }}), condition (one of: ${Condition.entries.joinToString { it.key }}),
-            notes. Suggest only what you are fairly sure of, and not values the form already has.
+            notes, purchase_price, market_value, target_price (prices in whole Indonesian Rupiah, digits only, like
+            "50000"; only when the collector asks about prices). Suggest only what you are fairly sure of, or what the
+            collector asked you to estimate, and not values the form already has.
         """.trimIndent()
 
-        /** The answer's words and its suggestions, from a ```suggest (or ```json) block anywhere in it. */
+        /**
+         * The answer's words and its suggestions, from a ```suggest (or ```json) block anywhere in it. A ```suggest
+         * block never shows as it is, even when nothing in it can go into the form (a field the form doesn't have)
+         * or the answer was cut off before it closed.
+         */
         fun splitSuggestions(answer: String): Pair<String, List<FieldSuggestion>> {
             val suggestions = mutableListOf<FieldSuggestion>()
             val text = BLOCK.replace(answer) { block ->
-                val found = parse(block.groupValues[1])
-                if (found == null) {
-                    block.value
-                } else {
-                    suggestions += found
-                    ""
+                val found = parse(block.groupValues[2])
+                when {
+                    found != null -> {
+                        suggestions += found
+                        ""
+                    }
+                    block.groupValues[1].equals("suggest", ignoreCase = true) -> ""
+                    else -> block.value
                 }
-            }
+            }.replace(UNCLOSED, "")
             return text.replace(BLANK_LINES, "\n\n").trim() to suggestions.distinctBy { it.field }
         }
 
@@ -122,14 +136,32 @@ class DiecastChat(
             }
             val suggestions = items.mapNotNull { item ->
                 val obj = item as? JsonObject ?: return@mapNotNull null
-                val field = obj.string("field")?.trim()?.lowercase()?.takeIf { it in FIELDS } ?: return@mapNotNull null
-                val value = (obj["value"] as? JsonPrimitive)?.content?.trim()?.takeIf { it.isNotEmpty() && it != "null" } ?: return@mapNotNull null
+                val field = obj.string("field")?.let(::fieldName) ?: return@mapNotNull null
+                val said = (obj["value"] as? JsonPrimitive)?.content?.trim()?.takeIf { it.isNotEmpty() && it != "null" } ?: return@mapNotNull null
+                val value = if (field in MONEY) rupiah(said) ?: return@mapNotNull null else said
                 FieldSuggestion(field, value, obj.string("reason")?.trim()?.ifEmpty { null })
             }
             return suggestions.takeIf { items.isEmpty() || it.isNotEmpty() }
         }
 
-        private val BLOCK = Regex("```[ \\t]*(?:suggest|json)?[ \\t]*\\r?\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
+        /** "Purchase_Price_IDR" → "purchase_price"; null for a field the form doesn't have. */
+        private fun fieldName(said: String): String? {
+            val name = said.trim().lowercase().replace(' ', '_').removeSuffix("_idr").removeSuffix("_rp")
+            return (ALIASES[name] ?: name).takeIf { it in FIELDS }
+        }
+
+        /** "Rp 50.000", "50,000", "IDR 50000.00", "50.000 – 70.000" → "50000" (the first); null when it isn't a price. */
+        internal fun rupiah(said: String): String? {
+            val number = NUMBER.find(said)?.value ?: return null
+            val digits = number.replace(CENTS, "").filter(Char::isDigit).trimStart('0')
+            return digits.takeIf { it.isNotEmpty() && it.length <= 12 }
+        }
+
+        private val MONEY = setOf("purchase_price", "market_value", "target_price")
+        private val NUMBER = Regex("\\d[\\d.,]*")
+        private val CENTS = Regex("[.,]\\d{1,2}$")
+        private val BLOCK = Regex("```[ \\t]*(suggest|json)?[ \\t]*\\r?\\n?(.*?)```", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+        private val UNCLOSED = Regex("```[ \\t]*suggest\\b.*$", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
         private val BLANK_LINES = Regex("\\n{3,}")
     }
 }

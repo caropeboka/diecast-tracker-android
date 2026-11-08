@@ -139,6 +139,10 @@ class DiecastEditViewModel(
     var selectedPhoto by mutableIntStateOf(0)
         private set
 
+    /** Counts the new diecasts started on this page ("Simpan & tambah lagi"), so each gets its own "Tanya AI". */
+    var round by mutableIntStateOf(saved.get<Int>(ROUND) ?: 0)
+        private set
+
     /** The saved record (edit only). */
     var existing by mutableStateOf<DiecastEntity?>(null)
         private set
@@ -791,6 +795,8 @@ class DiecastEditViewModel(
 
                 if (addAnother) {
                     reset(DiecastForm.new(form.status, today))
+                    round++
+                    saved[ROUND] = round
                     dexChosen = null
                     startAtRecentPlace()
                     selectedPhoto = 0
@@ -814,7 +820,14 @@ class DiecastEditViewModel(
     fun delete() {
         val diecast = existing ?: return
         viewModelScope.launch {
-            repository.delete(diecast.id)
+            try {
+                repository.delete(diecast.id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                messages.show(texts(R.string.failed_because, e.message ?: e::class.simpleName.orEmpty()))
+                return@launch
+            }
             messages.show(texts(R.string.deleted_named, diecast.name))
             original = form
             _events.send(EditEvent.Close)
@@ -855,6 +868,7 @@ class DiecastEditViewModel(
         private const val SIGHTING_CAMERA = "sighting_camera_file"
         private const val QUEUE_PHOTO = "queue_photo"
         private const val STUDIO_PHOTOS = "studio_photos"
+        private const val ROUND = "round"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

@@ -19,6 +19,7 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -117,6 +118,29 @@ class DiecastChatTest {
 
         assertEquals(listOf(FieldSuggestion("rarity", "treasure_hunt")), suggestions)
         assertEquals("Two changes.\n\nA casting code looks like this:\n```\nHW-123\n```", text)
+    }
+
+    @Test
+    fun `prices come as whole Rupiah, and a suggest block never shows as it is`() {
+        // As Cloudflare's model answered on the phone: the field named the way the form is shown to it.
+        val (text, suggestions) = DiecastChat.splitSuggestions(
+            "Around IDR 50,000.\n\n```suggest\n" +
+                """[{"field": "purchase_price_idr", "value": "Rp 50.000", "reason": "minimarket price"}, {"field": "Market Value", "value": "65,000 - 70,000"}]""" +
+                "\n```",
+        )
+        assertEquals("Around IDR 50,000.", text)
+        assertEquals(
+            listOf(FieldSuggestion("purchase_price", "50000", "minimarket price"), FieldSuggestion("market_value", "65000")),
+            suggestions,
+        )
+
+        // Nothing the form takes, or cut off before the block closed: the block goes all the same.
+        val unknown = "No change.\n```suggest\n" + """[{"field": "shop", "value": "Indomaret"}]""" + "\n```"
+        assertEquals("No change." to emptyList<FieldSuggestion>(), DiecastChat.splitSuggestions(unknown))
+        val cut = "Cut off.\n\n```suggest\n" + """[{"field": "year", "val"""
+        assertEquals("Cut off." to emptyList<FieldSuggestion>(), DiecastChat.splitSuggestions(cut))
+        assertEquals("50000", DiecastChat.rupiah("IDR 50000.00"))
+        assertNull(DiecastChat.rupiah("free"))
     }
 
     private companion object {
