@@ -22,6 +22,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -64,7 +65,8 @@ enum class WikiSource(
     /** One list, no years. */
     val single get() = firstYear == null
 
-    fun page(year: Int?) = if (year == null || "%d" !in page) page else page.format(year)
+    // Locale.ROOT: in some languages "%d" writes other digits than the wiki's.
+    fun page(year: Int?) = if (year == null || "%d" !in page) page else String.format(Locale.ROOT, page, year)
 
     /** On the Dex's chips: the brand, or the line when the brand has more than one. */
     val shortName get() = if (entries.count { it.brand == brand } > 1) label else brand
