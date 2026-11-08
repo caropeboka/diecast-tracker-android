@@ -28,6 +28,7 @@
     <string name="ai_err_credit">%1$s minta kredit untuk model \"%2$s\". Pilih model gratis di Pengaturan AI.</string>
     <string name="ai_err_model_missing">Model \"%2$s\" tidak ada di %1$s. Pilih model lain di Pengaturan AI.</string>
     <string name="ai_err_too_big">Fotonya terlalu besar untuk %1$s.</string>
+    <string name="ai_err_too_many_tokens">Permintaan ini melebihi batas token paket %1$s kamu, walau dengan satu foto saja.</string>
     <string name="ai_err_busy">Server %1$s sedang sibuk. Coba lagi sebentar lagi.</string>
     <string name="ai_err_refused_said">%1$s menolak permintaan ini: %2$s</string>
     <string name="ai_err_refused_code">%1$s menolak permintaan ini (%2$d).</string>
@@ -40,6 +41,7 @@
     <string name="ai_err_scan_not_set">Scan AI belum aktif. Isi API key di Pengaturan AI.</string>
     <string name="ai_answer_language">Indonesian</string>
     <string name="ai_miss_too_big_retry">foto terlalu besar, dikirim lebih kecil</string>
+    <string name="ai_miss_too_many_tokens">melebihi batas token, dikirim lebih sedikit foto</string>
     <string name="ai_miss_image_format">format foto ditolak, dicoba format lain</string>
     <string name="ai_miss_no_search">tidak bisa mencari di web, ditanya tanpa itu</string>
 </resources>

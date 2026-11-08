@@ -24,9 +24,10 @@ val OPEN_MODEL_NAME = Regex("^[A-Za-z0-9@._:/\\-]+$")
 
 /**
  * The services the app can read photos with. Gemini has its own API; the others speak OpenAI's chat completions.
- * [maxImages] and [maxRequestBytes]: what one request may carry, when the service has a limit. [needsKey] false: it
- * can be used without one; [defaultOn] false: not used until switched on; [rawBase64]: photos go as plain base64
- * rather than data URLs.
+ * [maxImages] and [maxRequestBytes]: what one request may carry, when the service has a limit. [imageTokens]: what
+ * one photo counts against a token limit, whatever its size, when the service says. [needsKey] false: it can be used
+ * without one; [defaultOn] false: not used until switched on; [rawBase64]: photos go as plain base64 rather than
+ * data URLs.
  */
 enum class AiProvider(
     val id: String,
@@ -38,14 +39,19 @@ enum class AiProvider(
     val keyUrl: String?,
     val maxImages: Int? = null,
     val maxRequestBytes: Long? = null,
+    val imageTokens: Int? = null,
     val needsKey: Boolean = true,
     val defaultOn: Boolean = true,
     val rawBase64: Boolean = false,
 ) {
     Gemini("gemini", "Gemini", "Google Gemini", null, DEFAULT_GEMINI_MODEL, "https://aistudio.google.com/apikey"),
 
-    // Its vision model takes 3 images, and base64 requests up to 4 MB.
-    Groq("groq", "Groq", "Groq", "https://api.groq.com/openai/v1", "qwen/qwen3.8-27b", "https://console.groq.com/keys", maxImages = 3, maxRequestBytes = 4L * 1024 * 1024),
+    // Its vision model takes 3 images, and base64 requests up to 4 MB. Each image counts as 2048 tokens however small,
+    // and a request may not be over the plan's tokens a minute (6–8K free): 3 photos and the prompt are, so 2 go.
+    Groq(
+        "groq", "Groq", "Groq", "https://api.groq.com/openai/v1", "qwen/qwen3.8-27b", "https://console.groq.com/keys",
+        maxImages = 2, maxRequestBytes = 4L * 1024 * 1024, imageTokens = 2048,
+    ),
     Mistral("mistral", "Mistral", "Mistral", "https://api.mistral.ai/v1", "mistral-small-latest", "https://console.mistral.ai/api-keys"),
 
     // The free router picks a free model that can do what the request needs (images, JSON), whichever are up.

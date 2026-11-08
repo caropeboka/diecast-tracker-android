@@ -148,8 +148,8 @@ class OpenAiClient(
     }
 
     /**
-     * Sends what [payload] builds from the photos that fit (plain base64 or not) until [provider] answers: smaller
-     * photos or the other encoding when it refuses them, again when [retry] says so. The answer's text.
+     * Sends what [payload] builds from the photos that fit (plain base64 or not) until [provider] answers: fewer or
+     * smaller photos or the other encoding when it refuses them, again when [retry] says so. The answer's text.
      */
     private suspend fun complete(
         provider: ProviderSettings,
@@ -169,12 +169,31 @@ class OpenAiClient(
             val error = reply.json()?.obj("error")?.takeIf { reply.ok }
 
             if (retry(reply)) continue
-            // Some take only small photos inline (NVIDIA's older ones: about 135 KB each).
-            if (!shrunk && (reply.code == 413 || reply.code == 400 && TOO_BIG.containsMatchIn(reply.body))) {
-                onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_too_big_retry), retrying = true))
-                sent = sent.map { shrinkJpeg(it, SMALL_PHOTO_BYTES) }
-                shrunk = true
-                continue
+            if (reply.code == 413 || reply.code == 400 && TOO_BIG.containsMatchIn(reply.body)) {
+                val keep = photosWithinTokens(provider.provider, reply.body, sent.size)
+                when {
+                    // Over a token limit (Groq's tokens a minute): a photo counts the same however small, so fewer go.
+                    keep != null -> if (keep in 1 until sent.size) {
+                        onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_too_many_tokens), retrying = true))
+                        sent = sent.take(keep)
+                        onEvent(AiEvent.Trimmed(sent.size, images.size))
+                        continue
+                    }
+                    // Some take only small photos inline (NVIDIA's older ones: about 135 KB each).
+                    !shrunk -> {
+                        onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_too_big_retry), retrying = true))
+                        sent = sent.map { shrinkJpeg(it, SMALL_PHOTO_BYTES) }
+                        shrunk = true
+                        continue
+                    }
+                    // Still too much: the first photo alone.
+                    sent.size > 1 -> {
+                        onEvent(AiEvent.Missed(provider.model, texts(R.string.ai_miss_too_big_retry), retrying = true))
+                        sent = sent.take(1)
+                        onEvent(AiEvent.Trimmed(sent.size, images.size))
+                        continue
+                    }
+                }
             }
             // Some want plain base64, others a data URL.
             if (!flipped && reply.code == 400 && IMAGE_FORMAT.containsMatchIn(reply.body)) {
@@ -248,6 +267,24 @@ class OpenAiClient(
             if (jsonMode) putJsonObject("response_format") { put("type", "json_object") }
         }.toString().toByteArray()
 
+    /**
+     * When [body] says the request was over a token limit ("Limit 8000, Requested 9472", Groq's 413): how many of
+     * the [sent] photos should bring it under, at least one; 0 when one was already too many. Null when the limit
+     * was something else.
+     */
+    private fun photosWithinTokens(provider: AiProvider, body: String, sent: Int): Int? {
+        val numbers = TOKEN_LIMIT.find(body)
+        if (numbers == null && !TOKENS.containsMatchIn(body)) return null
+        if (sent <= 1) return 0
+        val limit = numbers?.groupValues?.get(1)?.toLongOrNull()
+        val requested = numbers?.groupValues?.get(2)?.toLongOrNull()
+        if (limit == null || requested == null || requested <= limit) return sent - 1
+        // Without the service's figure, the photos are taken to be most of what was asked.
+        val perPhoto = provider.imageTokens?.toLong() ?: (requested / (sent + 1)).coerceAtLeast(1)
+        val drop = ((requested - limit + perPhoto - 1) / perPhoto).toInt()
+        return (sent - drop).coerceIn(1, sent - 1)
+    }
+
     /** The photos one request to [provider] may carry, best first: as many as it takes, within its size limit. */
     private fun fitting(provider: AiProvider, images: List<ByteArray>): List<ByteArray> {
         var sent = provider.maxImages?.let(images::take) ?: images
@@ -286,7 +323,7 @@ class OpenAiClient(
             401, 403 -> AiException(texts(R.string.ai_err_key_invalid, label))
             402 -> AiException(texts(R.string.ai_err_credit, label, provider.model))
             404 -> AiException(texts(R.string.ai_err_model_missing, label, provider.model))
-            413 -> AiException(texts(R.string.ai_err_too_big, label))
+            413 -> AiException(texts(if (TOKENS.containsMatchIn(reply.body)) R.string.ai_err_too_many_tokens else R.string.ai_err_too_big, label))
             429 -> AiRetryLaterException(texts(R.string.ai_err_quota, label), restUntil = quotaBack(reply))
             in 500..599 -> AiRetryLaterException(texts(R.string.ai_err_busy, label))
             else -> AiException(said?.let { texts(R.string.ai_err_refused_said, label, it) } ?: texts(R.string.ai_err_refused_code, label, reply.code))
@@ -339,6 +376,8 @@ class OpenAiClient(
         /** Names of models that read images: "-vl-", "vision", Gemma 3+, Llama 4, Qwen 3.5+, GLM-…V. */
         val VISION = Regex("(vision|[-_]vl\\b|[-_]vl[-_]|scout|maverick|gemma-[3-9]|omni|kimi-k2\\.[5-9]|qwen3\\.[5-9]|mistral-small-3|pixtral|llava|glm-[\\d.]+v)", RegexOption.IGNORE_CASE)
         val TOO_BIG = Regex("(too (large|big)|exceed|payload|request entity|180,?000)", RegexOption.IGNORE_CASE)
+        val TOKEN_LIMIT = Regex("Limit:? (\\d+), Requested:? (\\d+)", RegexOption.IGNORE_CASE)
+        val TOKENS = Regex("tokens per minute|\\bTPM\\b|token limit|too many tokens", RegexOption.IGNORE_CASE)
         val IMAGE_FORMAT = Regex("(image_url|base64|data ?ur[il]|image format|invalid image|unsupported image|decode image)", RegexOption.IGNORE_CASE)
 
         // Base64 of 180,000 characters at most.

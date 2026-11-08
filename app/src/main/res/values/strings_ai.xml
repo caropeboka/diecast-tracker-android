@@ -28,6 +28,7 @@
     <string name="ai_err_credit">%1$s wants credit for the model \"%2$s\". Pick a free model in the AI settings.</string>
     <string name="ai_err_model_missing">The model \"%2$s\" isn\'t on %1$s. Pick another model in the AI settings.</string>
     <string name="ai_err_too_big">The photos are too big for %1$s.</string>
+    <string name="ai_err_too_many_tokens">This is over the token limit of your %1$s plan, even with one photo.</string>
     <string name="ai_err_busy">%1$s\'s server is busy. Try again in a moment.</string>
     <string name="ai_err_refused_said">%1$s refused this request: %2$s</string>
     <string name="ai_err_refused_code">%1$s refused this request (%2$d).</string>
@@ -40,6 +41,7 @@
     <string name="ai_err_scan_not_set">The AI scan isn\'t on yet. Add an API key in the AI settings.</string>
     <string name="ai_answer_language">English</string>
     <string name="ai_miss_too_big_retry">photos too big, sending smaller ones</string>
+    <string name="ai_miss_too_many_tokens">over its token limit, sending fewer photos</string>
     <string name="ai_miss_image_format">refused the photo format, trying the other one</string>
     <string name="ai_miss_no_search">can\'t search the web, asking without it</string>
 </resources>

@@ -88,7 +88,7 @@ class AiVisionTest {
     }
 
     @Test
-    fun `Groq gets at most 3 photos as data URLs with its key in JSON mode`() = runBlocking {
+    fun `Groq gets at most 2 photos as data URLs with its key in JSON mode`() = runBlocking {
         fake.on(GROQ_CHAT, 200, chat("""{"name": "Honda NSX-R"}"""))
 
         vision(groq).read(images = 4)
@@ -101,9 +101,35 @@ class AiVisionTest {
         assertTrue(system.startsWith("Read the card."))
         assertTrue("the schema goes in the prompt", "\"name\"" in system)
         val parts = body["messages"]!!.jsonArray[1].jsonObject["content"]!!.jsonArray.map { it.jsonObject }
-        assertEquals(listOf("image_url", "image_url", "image_url", "text"), parts.map { it["type"]!!.jsonPrimitive.content })
+        assertEquals(listOf("image_url", "image_url", "text"), parts.map { it["type"]!!.jsonPrimitive.content })
         assertTrue(parts[0]["image_url"]!!.jsonObject["url"]!!.jsonPrimitive.content.startsWith("data:image/jpeg;base64,"))
-        assertTrue(AiEvent.Trimmed(3, 4) in events)
+        assertTrue(AiEvent.Trimmed(2, 4) in events)
+    }
+
+    @Test
+    fun `over Groq's tokens a minute, fewer photos go, not smaller ones`() = runBlocking {
+        // Groq's 413 for a request over the plan's limit; each photo counts 2048 tokens.
+        val tooMany = """{"error":{"message":"Request too large for model `qwen/qwen3.8-27b` in organization `org_1` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6900, please reduce your message size and try again.","type":"tokens","code":"rate_limit_exceeded"}}"""
+        fake.on(GROQ_CHAT, FakeGemini.Reply.Json(413, tooMany), FakeGemini.Reply.Json(200, chat("""{"name": "Honda NSX-R"}""")))
+
+        assertEquals("Groq", vision(groq).read(images = 2).by)
+
+        fun photos(body: String) = Json.parseToJsonElement(body).jsonObject["messages"]!!.jsonArray[1].jsonObject["content"]!!.jsonArray
+            .count { it.jsonObject["type"]!!.jsonPrimitive.content == "image_url" }
+        assertEquals(listOf(2, 1), fake.bodies.map(::photos))
+        // The same photo, not shrunk.
+        assertEquals(
+            Json.parseToJsonElement(fake.bodies[0]).jsonObject["messages"]!!.jsonArray[1].jsonObject["content"]!!.jsonArray[0],
+            Json.parseToJsonElement(fake.bodies[1]).jsonObject["messages"]!!.jsonArray[1].jsonObject["content"]!!.jsonArray[0],
+        )
+        assertTrue(AiEvent.Trimmed(1, 2) in events)
+
+        // Still over with one: Groq gives up with its own reason, and the next AI may take it.
+        fake.bodies.clear()
+        fake.on(GROQ_CHAT, FakeGemini.Reply.Json(413, tooMany), FakeGemini.Reply.Json(413, tooMany))
+        val error = runCatching { vision(groq).read(images = 2) }.exceptionOrNull()
+        assertTrue(error is AiException)
+        assertEquals(2, fake.bodies.size)
     }
 
     @Test

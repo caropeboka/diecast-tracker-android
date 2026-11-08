@@ -28,6 +28,7 @@
     <string name="ai_err_credit">%1$s 需要付费才能使用模型“%2$s”。请在 AI 设置中选择免费模型。</string>
     <string name="ai_err_model_missing">%1$s 上没有模型“%2$s”。请在 AI 设置中选择其他模型。</string>
     <string name="ai_err_too_big">照片对 %1$s 来说太大了。</string>
+    <string name="ai_err_too_many_tokens">即使只发一张照片，也超过了你的 %1$s 套餐的令牌上限。</string>
     <string name="ai_err_busy">%1$s 服务器繁忙，请稍后再试。</string>
     <string name="ai_err_refused_said">%1$s 拒绝了此请求：%2$s</string>
     <string name="ai_err_refused_code">%1$s 拒绝了此请求（%2$d）。</string>
@@ -40,6 +41,7 @@
     <string name="ai_err_scan_not_set">AI 扫描尚未启用。请在 AI 设置中填写 API 密钥。</string>
     <string name="ai_answer_language">Simplified Chinese</string>
     <string name="ai_miss_too_big_retry">照片太大，改发较小的</string>
+    <string name="ai_miss_too_many_tokens">超过令牌上限，改发较少的照片</string>
     <string name="ai_miss_image_format">不接受照片格式，改用另一种</string>
     <string name="ai_miss_no_search">无法联网搜索，改为直接回答</string>
 </resources>
