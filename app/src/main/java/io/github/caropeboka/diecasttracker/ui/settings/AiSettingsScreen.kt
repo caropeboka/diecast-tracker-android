@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -80,15 +81,19 @@ fun AiSettingsScreen(
     val current by viewModel.current.collectAsStateWithLifecycle()
     val resting by viewModel.resting.collectAsStateWithLifecycle()
     var confirmRemove by rememberSaveable { mutableStateOf<AiProvider?>(null) }
+    var confirmLeave by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) { viewModel.closed.collect { onClose() } }
+    // Keys typed but not saved would go without a word.
+    val leave = { if (viewModel.isDirty) confirmLeave = true else onClose() }
+    BackHandler(enabled = viewModel.isDirty) { confirmLeave = true }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Heading(stringResource(R.string.settings_ai)) },
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
+                    IconButton(onClick = leave) {
                         Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back))
                     }
                 },
@@ -173,6 +178,26 @@ fun AiSettingsScreen(
                 }) { Text(stringResource(R.string.delete), color = Garage.Loss) }
             },
             dismissButton = { TextButton(onClick = { confirmRemove = null }) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
+
+    if (confirmLeave) {
+        AlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            title = { Text(stringResource(R.string.edit_discard_title)) },
+            text = { Text(stringResource(R.string.ai_discard_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmLeave = false
+                    viewModel.save()
+                }) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    confirmLeave = false
+                    onClose()
+                }) { Text(stringResource(R.string.discard), color = Garage.Loss) }
+            },
         )
     }
 }

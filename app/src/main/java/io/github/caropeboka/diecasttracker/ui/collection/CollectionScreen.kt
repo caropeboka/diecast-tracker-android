@@ -88,8 +88,6 @@ fun CollectionScreen(
     onOpen: (Long) -> Unit,
     onData: () -> Unit,
     onBulkScan: () -> Unit,
-    onCheck: () -> Unit,
-    onAiSettings: () -> Unit,
     onSettings: () -> Unit,
     viewModel: CollectionViewModel = viewModel(factory = CollectionViewModel.Factory),
 ) {
@@ -97,7 +95,6 @@ fun CollectionScreen(
     val search by viewModel.search.collectAsStateWithLifecycle()
     val backupDue by viewModel.backupDue.collectAsStateWithLifecycle()
     val queued by viewModel.queued.collectAsStateWithLifecycle()
-    var menuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -122,53 +119,9 @@ fun CollectionScreen(
                             Icon(painterResource(R.drawable.ic_grid_view), contentDescription = stringResource(R.string.collection_show_grid))
                         }
                     }
-                    Box {
-                        // What the menu opens grows out of this button.
-                        IconButton(onClick = { menuOpen = true }, modifier = revealSource().tourTarget(LocalTour.current, TourTarget.Menu)) {
-                            Icon(painterResource(R.drawable.ic_more_vert), contentDescription = stringResource(R.string.collection_more_menu))
-                        }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_store_check)) },
-                                leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
-                                onClick = {
-                                    menuOpen = false
-                                    onCheck()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_bulk_scan)) },
-                                leadingIcon = { Icon(painterResource(R.drawable.ic_photo_library), contentDescription = null) },
-                                onClick = {
-                                    menuOpen = false
-                                    onBulkScan()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.settings_ai)) },
-                                leadingIcon = { Icon(painterResource(R.drawable.ic_sparkles), contentDescription = null) },
-                                onClick = {
-                                    menuOpen = false
-                                    onAiSettings()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.settings_data)) },
-                                leadingIcon = { Icon(painterResource(R.drawable.ic_folder_zip), contentDescription = null) },
-                                onClick = {
-                                    menuOpen = false
-                                    onData()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.settings_menu)) },
-                                leadingIcon = { Icon(painterResource(R.drawable.ic_settings), contentDescription = null) },
-                                onClick = {
-                                    menuOpen = false
-                                    onSettings()
-                                },
-                            )
-                        }
+                    // Settings grow out of this button.
+                    IconButton(onClick = onSettings, modifier = revealSource().tourTarget(LocalTour.current, TourTarget.Settings)) {
+                        Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.settings_title))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),

@@ -12,17 +12,17 @@
     <string name="tour_collection_title">Your collection</string>
     <string name="tour_collection_text">Every diecast you own, wish for or spotted lives here. Search, filter and sort; tap one to open it.</string>
     <string name="tour_create_title">Add a diecast</string>
-    <string name="tour_create_text">Tap + to scan a card with the AI, fill one in by hand, or check in a store whether you already have it.</string>
+    <string name="tour_create_text">Tap + to scan a card with the AI, scan many at once, fill one in by hand, or check in a store whether you already have it.</string>
     <string name="tour_garage_title">Garage</string>
     <string name="tour_garage_text">Your collection in numbers: what it\'s worth, what\'s rarest, and your shelves in 3D.</string>
     <string name="tour_map_title">Hunting map</string>
     <string name="tour_map_text">Where and when you bought and spotted diecasts, so you know which stores are worth a visit.</string>
     <string name="tour_dex_title">Dex</string>
     <string name="tour_dex_text">Tick off the Hot Wheels and Matchbox lists year by year, or make your own list for any brand.</string>
-    <string name="tour_menu_title">More</string>
-    <string name="tour_menu_text">Bulk scan, backups and Settings: language, currency, date format and the AI.</string>
+    <string name="tour_settings_title">Settings</string>
+    <string name="tour_settings_text">Language, currency, date format, the AI and your backups, all in one place.</string>
     <string name="tour_ready_title">Ready to hunt</string>
-    <string name="tour_ready_text">Everything lives on this phone, so back up now and then (⋮ → Data &amp; backup). This tour is in Settings if you want it again.</string>
+    <string name="tour_ready_text">Everything lives on this phone, so back up now and then (Settings → Data &amp; backup). This tour is in Settings if you want it again.</string>
     <string name="tour_ai_hint">To scan with the AI, add a free API key first (Gemini is the easiest).</string>
     <string name="tour_ai_settings">Set up the AI</string>
 </resources>

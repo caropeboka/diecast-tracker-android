@@ -7,7 +7,6 @@
     </plurals>
     <string name="collection_show_list">Tampilkan sebagai daftar</string>
     <string name="collection_show_grid">Tampilkan sebagai grid</string>
-    <string name="collection_more_menu">Menu lain</string>
     <string name="menu_store_check">Cek di toko</string>
     <string name="menu_bulk_scan">Scan massal</string>
     <string name="collection_search">Cari nama, seri, warna, lokasi…</string>

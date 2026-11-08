@@ -108,6 +108,20 @@ class AiSettingsViewModel(
         }
     }
 
+    /** Something typed or changed here that Save hasn't stored yet. */
+    val isDirty: Boolean
+        get() {
+            val setup = current.value ?: return false
+            if (order.isEmpty()) return false
+            if (order.toList() != setup.providers.map { it.provider }) return true
+            return setup.providers.any { saved ->
+                val draft = drafts.getValue(saved.provider)
+                draft.keyInput.isNotEmpty() || draft.model != saved.model || draft.on != saved.on ||
+                    draft.baseUrl != saved.baseUrl.orEmpty() || draft.name.trim() != saved.name.orEmpty() ||
+                    draft.account != saved.account.orEmpty()
+            }
+        }
+
     fun toggle(provider: AiProvider) {
         expanded = if (expanded == provider) null else provider
     }

@@ -2,7 +2,14 @@
 <!-- Generated from i18n/settings.json; edit all three languages together. -->
 <resources>
     <string name="settings_title">Settings</string>
-    <string name="settings_menu">Settings</string>
+    <string name="settings_general">General</string>
+    <string name="settings_section_ai">AI</string>
+    <string name="settings_ai_in_use">In use: %1$s</string>
+    <string name="settings_ai_none">Not set up yet: add a free key to scan with the AI</string>
+    <string name="settings_backup_last">Last backup %1$s</string>
+    <string name="settings_backup_never">Never backed up</string>
+    <string name="settings_about">About Diecast Tracker</string>
+    <string name="settings_about_summary">Version %1$s · open source (MIT license)</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_system_now">Phone language (now %1$s)</string>
     <string name="settings_language_note">When the phone uses another language, the app shows English.</string>
@@ -19,11 +26,8 @@
     <string name="settings_rates_failed">Couldn\'t get the exchange rates. Check the internet connection.</string>
     <string name="settings_date_format">Date format</string>
     <string name="settings_date_language">Like the language (%1$s)</string>
-    <string name="settings_more">More</string>
     <string name="settings_ai">AI settings</string>
-    <string name="settings_ai_note">Keys and the order of the AI providers</string>
     <string name="settings_data">Data &amp; backup</string>
-    <string name="settings_data_note">Back up, restore, export to Excel</string>
     <string name="settings_tour">Show the tour again</string>
     <string name="settings_tour_note">The short walk through the app from the first launch</string>
     <string name="ai_key_needed">Enter an API key first.</string>
@@ -40,6 +44,7 @@
     <string name="ai_remove_key_title">Remove the %1$s API key?</string>
     <string name="ai_remove_key_text">%1$s isn\'t used until you add a key again.</string>
     <string name="ai_status_unsaved">New key not saved yet</string>
+    <string name="ai_discard_text">The keys and changes you made here haven\'t been saved yet.</string>
     <string name="ai_status_not_set">Not set up</string>
     <string name="ai_status_off">Turned off</string>
     <string name="ai_status_resting">Out of quota until %1$s</string>
@@ -73,7 +78,7 @@
     <string name="ai_model">Model</string>
     <string name="ai_model_placeholder">model name</string>
     <string name="ai_note_gemini">A free daily quota from Google. When one model is busy or out of quota, other Gemini models are tried before moving to the next AI.</string>
-    <string name="ai_note_groq">Free and very fast (about 1,000 requests a day). Each request takes 3 photos at most; the others are left out.</string>
+    <string name="ai_note_groq">Free and very fast (about 1,000 requests a day). Each request takes 2 photos at most (each one counts as 2,048 tokens of the free plan); the others are left out.</string>
     <string name="ai_note_mistral">Free on the Experiment plan (needs a phone number check). On the free plan, Mistral may use the photos you send to train its models.</string>
     <string name="ai_note_openrouter">Free models: 50 requests a day (1,000 a day after a one-time $10 top-up). The openrouter/free model picks a free model that can read photos by itself.</string>
     <string name="ai_custom_key_placeholder">Leave empty if the server needs no key</string>

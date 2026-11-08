@@ -78,7 +78,7 @@ import io.github.caropeboka.diecasttracker.ui.settings.phoneLanguage
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 
 /** What the first-run tour points at; each piece says where it is with [tourTarget]. */
-enum class TourTarget { Collection, Create, Garage, Map, Dex, Menu }
+enum class TourTarget { Collection, Create, Garage, Map, Dex, Settings }
 
 /** The tour in order: what each step points at (nothing: a card in the middle) and what it says. */
 enum class TourStep(val target: TourTarget?, @StringRes val title: Int, @StringRes val text: Int) {
@@ -88,7 +88,7 @@ enum class TourStep(val target: TourTarget?, @StringRes val title: Int, @StringR
     Garage(TourTarget.Garage, R.string.tour_garage_title, R.string.tour_garage_text),
     Map(TourTarget.Map, R.string.tour_map_title, R.string.tour_map_text),
     Dex(TourTarget.Dex, R.string.tour_dex_title, R.string.tour_dex_text),
-    Menu(TourTarget.Menu, R.string.tour_menu_title, R.string.tour_menu_text),
+    Settings(TourTarget.Settings, R.string.tour_settings_title, R.string.tour_settings_text),
     Ready(null, R.string.tour_ready_title, R.string.tour_ready_text),
 }
 

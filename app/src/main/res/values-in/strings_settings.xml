@@ -2,7 +2,14 @@
 <!-- Generated from i18n/settings.json; edit all three languages together. -->
 <resources>
     <string name="settings_title">Pengaturan</string>
-    <string name="settings_menu">Pengaturan</string>
+    <string name="settings_general">Umum</string>
+    <string name="settings_section_ai">AI</string>
+    <string name="settings_ai_in_use">Dipakai: %1$s</string>
+    <string name="settings_ai_none">Belum diatur: tambahkan key gratis untuk memindai dengan AI</string>
+    <string name="settings_backup_last">Backup terakhir %1$s</string>
+    <string name="settings_backup_never">Belum pernah di-backup</string>
+    <string name="settings_about">Tentang Diecast Tracker</string>
+    <string name="settings_about_summary">Versi %1$s · open source (lisensi MIT)</string>
     <string name="settings_language">Bahasa</string>
     <string name="settings_language_system_now">Bahasa HP (sekarang %1$s)</string>
     <string name="settings_language_note">Kalau HP memakai bahasa lain, aplikasi tampil dalam bahasa Inggris.</string>
@@ -19,11 +26,8 @@
     <string name="settings_rates_failed">Kurs tidak bisa diambil. Cek koneksi internet.</string>
     <string name="settings_date_format">Format tanggal</string>
     <string name="settings_date_language">Ikuti bahasa (%1$s)</string>
-    <string name="settings_more">Lainnya</string>
     <string name="settings_ai">Pengaturan AI</string>
-    <string name="settings_ai_note">Key dan urutan penyedia AI</string>
     <string name="settings_data">Data &amp; backup</string>
-    <string name="settings_data_note">Backup, pulihkan, export Excel</string>
     <string name="settings_tour">Ulangi tur pengenalan</string>
     <string name="settings_tour_note">Panduan singkat seperti saat pertama membuka aplikasi</string>
     <string name="ai_key_needed">Isi API key dulu.</string>
@@ -40,6 +44,7 @@
     <string name="ai_remove_key_title">Hapus API key %1$s?</string>
     <string name="ai_remove_key_text">%1$s tidak dipakai sampai kamu mengisi key lagi.</string>
     <string name="ai_status_unsaved">Key baru belum disimpan</string>
+    <string name="ai_discard_text">Key dan perubahan yang kamu buat di sini belum disimpan.</string>
     <string name="ai_status_not_set">Belum diatur</string>
     <string name="ai_status_off">Dimatikan</string>
     <string name="ai_status_resting">Kuota habis sampai %1$s</string>
@@ -71,7 +76,7 @@
     <string name="ai_model">Model</string>
     <string name="ai_model_placeholder">nama model</string>
     <string name="ai_note_gemini">Kuota gratis harian dari Google. Kalau satu model sibuk atau kuotanya habis, model Gemini lain dicoba dulu sebelum pindah ke AI berikutnya.</string>
-    <string name="ai_note_groq">Gratis dan sangat cepat (sekitar 1.000 permintaan sehari). Sekali kirim paling banyak 3 foto; foto lainnya tidak ikut.</string>
+    <string name="ai_note_groq">Gratis dan sangat cepat (sekitar 1.000 permintaan sehari). Sekali kirim paling banyak 2 foto (tiap foto dihitung 2.048 token dari paket gratisnya); foto lainnya tidak ikut.</string>
     <string name="ai_note_mistral">Gratis lewat paket Experiment (perlu verifikasi nomor HP). Di paket gratis, foto yang dikirim boleh dipakai Mistral untuk melatih modelnya.</string>
     <string name="ai_note_openrouter">Model gratis: 50 permintaan sehari (1.000 sehari setelah sekali isi kredit $10). Model openrouter/free memilih sendiri model gratis yang bisa membaca foto.</string>
     <string name="ai_custom_key_placeholder">Kosongkan kalau servernya tanpa key</string>

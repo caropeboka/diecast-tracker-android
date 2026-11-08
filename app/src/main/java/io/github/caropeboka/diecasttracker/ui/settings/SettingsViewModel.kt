@@ -22,6 +22,10 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     val dateStyle = prefs.dateStyle
     val rates = prefs.rates
 
+    /** For the summaries on the settings page. */
+    val aiSetup = container.aiSettings.setup
+    val backupTimes = prefs.backupTimes
+
     var refreshing by mutableStateOf(false)
         private set
 

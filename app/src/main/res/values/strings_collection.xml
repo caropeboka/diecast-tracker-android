@@ -8,7 +8,6 @@
     </plurals>
     <string name="collection_show_list">Show as a list</string>
     <string name="collection_show_grid">Show as a grid</string>
-    <string name="collection_more_menu">More options</string>
     <string name="menu_store_check">Store check</string>
     <string name="menu_bulk_scan">Bulk scan</string>
     <string name="collection_search">Search name, series, colour, place…</string>

@@ -12,17 +12,17 @@
     <string name="tour_collection_title">你的收藏</string>
     <string name="tour_collection_text">你拥有、想要或见过的每辆合金车都在这里。可以搜索、筛选和排序；点按一辆即可打开。</string>
     <string name="tour_create_title">添加合金车</string>
-    <string name="tour_create_text">点按 + 可以用 AI 扫描卡片、手动填写，或在店里查一查你是否已经有了。</string>
+    <string name="tour_create_text">点按 + 可以用 AI 扫描卡片、一次批量扫描多张、手动填写，或在店里查一查你是否已经有了。</string>
     <string name="tour_garage_title">车库</string>
     <string name="tour_garage_text">用数字看你的收藏：价值多少、哪些最稀有，还有 3D 展架。</string>
     <string name="tour_map_title">寻车地图</string>
     <string name="tour_map_text">你在哪里、何时购买和发现合金车，让你知道哪些店值得去。</string>
     <string name="tour_dex_title">图鉴</string>
     <string name="tour_dex_text">按年份勾选 Hot Wheels 和 Matchbox 清单，或为任何品牌创建自己的清单。</string>
-    <string name="tour_menu_title">更多</string>
-    <string name="tour_menu_text">批量扫描、备份和设置：语言、货币、日期格式以及 AI。</string>
+    <string name="tour_settings_title">设置</string>
+    <string name="tour_settings_text">语言、货币、日期格式、AI 和备份，都在这里。</string>
     <string name="tour_ready_title">准备出发</string>
-    <string name="tour_ready_text">所有数据都在这台手机上，记得不时备份（⋮ → 数据与备份）。想再看一遍导览，可以在设置中打开。</string>
+    <string name="tour_ready_text">所有数据都在这台手机上，记得不时备份（设置 → 数据与备份）。想再看一遍导览，可以在设置中打开。</string>
     <string name="tour_ai_hint">要使用 AI 扫描，请先填写免费的 API 密钥（Gemini 最简单）。</string>
     <string name="tour_ai_settings">设置 AI</string>
 </resources>

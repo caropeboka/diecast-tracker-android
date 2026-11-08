@@ -2,7 +2,14 @@
 <!-- Generated from i18n/settings.json; edit all three languages together. -->
 <resources>
     <string name="settings_title">设置</string>
-    <string name="settings_menu">设置</string>
+    <string name="settings_general">通用</string>
+    <string name="settings_section_ai">AI</string>
+    <string name="settings_ai_in_use">使用中：%1$s</string>
+    <string name="settings_ai_none">尚未设置：添加免费密钥即可用 AI 扫描</string>
+    <string name="settings_backup_last">上次备份：%1$s</string>
+    <string name="settings_backup_never">从未备份</string>
+    <string name="settings_about">关于 Diecast Tracker</string>
+    <string name="settings_about_summary">版本 %1$s · 开源（MIT 许可证）</string>
     <string name="settings_language">语言</string>
     <string name="settings_language_system_now">跟随手机（当前为%1$s）</string>
     <string name="settings_language_note">如果手机使用其他语言，应用将显示英文。</string>
@@ -19,11 +26,8 @@
     <string name="settings_rates_failed">无法获取汇率，请检查网络连接。</string>
     <string name="settings_date_format">日期格式</string>
     <string name="settings_date_language">跟随语言（%1$s）</string>
-    <string name="settings_more">更多</string>
     <string name="settings_ai">AI 设置</string>
-    <string name="settings_ai_note">AI 服务的密钥和顺序</string>
     <string name="settings_data">数据与备份</string>
-    <string name="settings_data_note">备份、恢复、导出 Excel</string>
     <string name="settings_tour">重新查看导览</string>
     <string name="settings_tour_note">首次打开应用时的简短导览</string>
     <string name="ai_key_needed">请先填写 API 密钥。</string>
@@ -40,6 +44,7 @@
     <string name="ai_remove_key_title">删除 %1$s API 密钥？</string>
     <string name="ai_remove_key_text">在你重新填写密钥之前不会使用 %1$s。</string>
     <string name="ai_status_unsaved">新密钥尚未保存</string>
+    <string name="ai_discard_text">你在这里输入的密钥和更改还没有保存。</string>
     <string name="ai_status_not_set">未设置</string>
     <string name="ai_status_off">已关闭</string>
     <string name="ai_status_resting">配额已用完，直到 %1$s</string>
@@ -71,7 +76,7 @@
     <string name="ai_model">模型</string>
     <string name="ai_model_placeholder">模型名称</string>
     <string name="ai_note_gemini">Google 提供的每日免费配额。某个模型繁忙或配额用完时，会先尝试其他 Gemini 模型，再换到下一个 AI。</string>
-    <string name="ai_note_groq">免费且非常快（每天约 1,000 次请求）。每次最多发送 3 张照片，其余的不会发送。</string>
+    <string name="ai_note_groq">免费且非常快（每天约 1,000 次请求）。每次最多发送 2 张照片（每张照片按免费套餐的 2,048 个 token 计算），其余的不会发送。</string>
     <string name="ai_note_mistral">通过 Experiment 套餐免费（需验证手机号）。免费套餐下，Mistral 可以用你发送的照片训练模型。</string>
     <string name="ai_note_openrouter">免费模型：每天 50 次请求（一次性充值 10 美元后每天 1,000 次）。openrouter/free 模型会自动选择能读取照片的免费模型。</string>
     <string name="ai_custom_key_placeholder">如果服务器不需要密钥请留空</string>

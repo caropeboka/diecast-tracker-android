@@ -86,6 +86,7 @@ class CreateActions(
     val onScan: () -> Unit,
     val onAdd: () -> Unit,
     val onCheck: () -> Unit,
+    val onBulkScan: () -> Unit,
     val menu: CreateMenu,
 )
 
@@ -99,6 +100,9 @@ class CreateMenu {
 val LocalCreateActions = compositionLocalOf<CreateActions?> { null }
 
 private val BAR_HEIGHT = 64.dp
+
+/** How many ways in the centre button's menu has. */
+private const val MENU_OPTIONS = 4
 private val BAR_CORNER = 20.dp
 
 /** The centre button: its size, and how far below the bar's top edge its middle sits. */
@@ -109,8 +113,8 @@ private val BUMP_DROP = 2.dp
 private val CIRCLE = 54.dp
 
 /**
- * Koleksi · Garasi · ＋ · Peta · Dex: the centre button, a circle standing out above the bar, opens scan, add by hand
- * and the in-store check ([CreateMenuOverlay]).
+ * Koleksi · Garasi · ＋ · Peta · Dex: the centre button, a circle standing out above the bar, opens scan, bulk scan,
+ * add by hand and the in-store check ([CreateMenuOverlay]).
  */
 @Composable
 fun MainNavigationBar(current: MainTab, onSelect: (MainTab) -> Unit) {
@@ -248,7 +252,7 @@ private fun CreateButton(modifier: Modifier, onPlaced: (Offset) -> Unit, onClick
 
 /**
  * The centre button's menu, over every screen (Material's FAB menu): the screen dims, the button turns into a ×, and
- * the three ways in rise above it, scan last: closest to the thumb.
+ * the four ways in rise above it, scan last: closest to the thumb.
  */
 @Composable
 fun CreateMenuOverlay(actions: CreateActions) {
@@ -291,15 +295,19 @@ fun CreateMenuOverlay(actions: CreateActions) {
             Modifier.at(above = CIRCLE / 2 + 16.dp).width(IntrinsicSize.Max),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            MenuOption(transition, 2, R.drawable.ic_add, stringResource(R.string.create_manual), button) { choose(actions.onAdd) }
-            MenuOption(transition, 1, R.drawable.ic_search, stringResource(R.string.menu_store_check), button) { choose(actions.onCheck) }
+            val needsKey = if (actions.scanEnabled) null else stringResource(R.string.create_scan_needs_key)
+            MenuOption(transition, 3, R.drawable.ic_add, stringResource(R.string.create_manual), button) { choose(actions.onAdd) }
+            MenuOption(transition, 2, R.drawable.ic_search, stringResource(R.string.menu_store_check), button) { choose(actions.onCheck) }
+            MenuOption(transition, 1, R.drawable.ic_photo_library, stringResource(R.string.menu_bulk_scan), button, note = needsKey) {
+                choose(actions.onBulkScan)
+            }
             MenuOption(
                 transition,
                 0,
                 R.drawable.ic_photo_camera,
                 stringResource(R.string.create_scan),
                 button,
-                note = if (actions.scanEnabled) null else stringResource(R.string.create_scan_needs_key),
+                note = needsKey,
                 primary = true,
             ) { choose(actions.onScan) }
         }
@@ -335,7 +343,7 @@ private fun MenuOption(
     onClick: () -> Unit,
 ) {
     val shown by transition.animateFloat(
-        { if (targetState) tween(220, delayMillis = order * 40, easing = FastOutSlowInEasing) else tween(140, delayMillis = (2 - order) * 30) },
+        { if (targetState) tween(220, delayMillis = order * 40, easing = FastOutSlowInEasing) else tween(140, delayMillis = (MENU_OPTIONS - 1 - order) * 30) },
         label = label,
     ) { if (it) 1f else 0f }
     val shape = RoundedCornerShape(50)

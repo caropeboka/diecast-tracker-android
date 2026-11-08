@@ -45,6 +45,7 @@ import io.github.caropeboka.diecasttracker.ui.explore.ExploreScreen
 import io.github.caropeboka.diecasttracker.ui.garage.GarageScreen
 import io.github.caropeboka.diecasttracker.ui.scan.BulkScanScreen
 import io.github.caropeboka.diecasttracker.ui.settings.AiSettingsScreen
+import io.github.caropeboka.diecasttracker.ui.settings.GeneralSettingsScreen
 import io.github.caropeboka.diecasttracker.ui.settings.SettingsScreen
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -90,8 +91,13 @@ data object DataRoute
 @Serializable
 data class AiSettingsRoute(val fromScan: Boolean = false)
 
+/** Every setting, by category. */
 @Serializable
 data object SettingsRoute
+
+/** Language, currency and date format. */
+@Serializable
+data object GeneralSettingsRoute
 
 /** "Peta jelajah". */
 @Serializable
@@ -173,6 +179,7 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
         onScan = { nav.navigate(if (scanEnabled) DiecastEditRoute(scan = true) else AiSettingsRoute(fromScan = true)) },
         onAdd = { nav.navigate(DiecastEditRoute()) },
         onCheck = { nav.navigate(CheckRoute) },
+        onBulkScan = { nav.navigate(BulkScanRoute) },
         menu = menu,
     )
 
@@ -217,8 +224,6 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                             onOpen = openDiecast,
                             onData = dropUnlessResumed { nav.navigate(DataRoute) },
                             onBulkScan = dropUnlessResumed { nav.navigate(BulkScanRoute) },
-                            onCheck = dropUnlessResumed { nav.navigate(CheckRoute) },
-                            onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
                             onSettings = dropUnlessResumed { nav.navigate(SettingsRoute) },
                         )
                     }
@@ -297,11 +302,15 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                     screen<SettingsRoute> {
                         SettingsScreen(
                             onBack = dropUnlessResumed { nav.popBackStack() },
+                            onGeneral = dropUnlessResumed { nav.navigate(GeneralSettingsRoute) },
                             onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
                             onData = dropUnlessResumed { nav.navigate(DataRoute) },
                             // The tour starts on Koleksi.
                             onTour = dropUnlessResumed { nav.popBackStack<CollectionRoute>(inclusive = false) },
                         )
+                    }
+                    screen<GeneralSettingsRoute> {
+                        GeneralSettingsScreen(onBack = dropUnlessResumed { nav.popBackStack() })
                     }
                     screen<AiSettingsRoute> {
                         AiSettingsScreen(onClose = { nav.popBackStack<AiSettingsRoute>(inclusive = true) })

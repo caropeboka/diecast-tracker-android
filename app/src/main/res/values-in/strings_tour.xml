@@ -12,17 +12,17 @@
     <string name="tour_collection_title">Koleksimu</string>
     <string name="tour_collection_text">Semua diecast yang kamu punya, incar, atau temui ada di sini. Cari, saring, dan urutkan; ketuk satu untuk membukanya.</string>
     <string name="tour_create_title">Tambah diecast</string>
-    <string name="tour_create_text">Ketuk + untuk memindai kartu dengan AI, mengisi manual, atau mengecek di toko apakah kamu sudah punya.</string>
+    <string name="tour_create_text">Ketuk + untuk memindai kartu dengan AI, memindai banyak sekaligus, mengisi manual, atau mengecek di toko apakah kamu sudah punya.</string>
     <string name="tour_garage_title">Garasi</string>
     <string name="tour_garage_text">Koleksimu dalam angka: berapa nilainya, mana yang paling langka, dan rak-rakmu dalam 3D.</string>
     <string name="tour_map_title">Peta jelajah</string>
     <string name="tour_map_text">Di mana dan kapan kamu membeli dan menemukan diecast, jadi kamu tahu toko mana yang layak didatangi.</string>
     <string name="tour_dex_title">Dex</string>
     <string name="tour_dex_text">Centang daftar Hot Wheels dan Matchbox per tahun, atau buat daftar sendiri untuk merek apa saja.</string>
-    <string name="tour_menu_title">Lainnya</string>
-    <string name="tour_menu_text">Scan massal, backup, dan Pengaturan: bahasa, mata uang, format tanggal, dan AI.</string>
+    <string name="tour_settings_title">Pengaturan</string>
+    <string name="tour_settings_text">Bahasa, mata uang, format tanggal, AI, dan backup, semuanya di satu tempat.</string>
     <string name="tour_ready_title">Siap berburu</string>
-    <string name="tour_ready_text">Semua datanya ada di HP ini, jadi backup sesekali (⋮ → Data &amp; backup). Tur ini bisa diulang dari Pengaturan.</string>
+    <string name="tour_ready_text">Semua datanya ada di HP ini, jadi backup sesekali (Pengaturan → Data &amp; backup). Tur ini bisa diulang dari Pengaturan.</string>
     <string name="tour_ai_hint">Untuk scan dengan AI, isi API key gratis dulu (Gemini paling mudah).</string>
     <string name="tour_ai_settings">Atur AI</string>
 </resources>
