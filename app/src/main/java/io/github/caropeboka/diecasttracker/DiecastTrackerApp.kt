@@ -61,9 +61,15 @@ class AppContainer(context: Context) {
     val repository = DiecastRepository(database, photos, texts, dexMatcher = dexMatcher)
     val shelves = ShelfRepository(database, texts)
     val prefs = UserPrefs(context)
-    val backupImporter = BackupImporter(context, database, repository, photos, scope) {
-        if (dex.countMissingImages() > 0) DexWork.downloadImages(context, prefs.dexCellular.first())
-    }
+    val backupImporter = BackupImporter(
+        context,
+        database,
+        repository,
+        photos,
+        scope,
+        onDexRestored = { if (dex.countMissingImages() > 0) DexWork.downloadImages(context, prefs.dexCellular.first()) },
+        laneCards = { prefs.laneCards.first() },
+    )
     val backupExporter = BackupExporter(context, database, photos, scope, onBackup = prefs::setLastBackup)
     val messages = Messages()
 

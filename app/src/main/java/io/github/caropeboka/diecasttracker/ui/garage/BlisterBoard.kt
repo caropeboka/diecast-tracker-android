@@ -33,8 +33,9 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 
-// The user's laser-cut MDF blister boards, traced from their photo: two alike, side by side. A board's own axes: x
-// across from its centre line, y up from the bottom edge, z out of the face; sizes in metres.
+// The user's laser-cut MDF blister boards, traced from their photo: two alike, side by side on the wall above the white
+// desk. A board's own axes: x across from its centre line, y up from the bottom edge, z out of the face; sizes in
+// metres.
 
 private const val BOARD_W = 0.46f
 private const val THICKNESS = 0.006f
@@ -61,11 +62,14 @@ internal const val LEDGE_TOP = 0.02f
 /** The rails come in pieces about a card high. */
 private const val JOINT = 0.17f
 
-/** Leaning back against the wall, its bottom edge on the floor. */
-internal const val LEAN = 4f
-private const val BOARD_Z = 0.037f
+/** Hung flat on the wall (they leaned on it from the floor before the desk came), a little clear of it on the screws. */
+internal const val LEAN = 0f
+private const val BOARD_Z = WALL_Z + 0.004f + THICKNESS / 2
 
-/** The two boards, a finger's width apart, a little right of the middle so the black shelf has room. */
+/** Their bottom edges this high: a hand above the desk, so the lifts and the boxes on it stay clear. */
+internal const val BOARD_Y = DESK_TOP + 0.17f
+
+/** The two boards, a finger's width apart, a little right of the middle so the black shelf has room; the desk under them. */
 internal const val BOARDS = ShelfLayout.BOARDS
 private const val BOARD_GAP = 0.012f
 internal const val BOARDS_X = 0.03f
@@ -108,7 +112,7 @@ internal fun onBoard(board: Int, x: Float, y: Float, z: Float): Position {
     val angle = Math.toRadians(-LEAN.toDouble())
     val c = cos(angle).toFloat()
     val s = sin(angle).toFloat()
-    return Position(boardX(board) + x, y * c - z * s, BOARD_Z + y * s + z * c)
+    return Position(boardX(board) + x, BOARD_Y + y * c - z * s, BOARD_Z + y * s + z * c)
 }
 
 /** The x of a column's centre line. */
@@ -116,7 +120,7 @@ internal fun columnX(column: Int) = (column - (COLUMNS - 1) / 2f) * PITCH
 
 /** The lane under a tap, counted across both boards from the left: where [ray] meets a board's face between the rails. */
 internal fun laneAt(ray: Ray): Int? {
-    val (x, y) = hitTipped(ray, Position(0f, 0f, BOARD_Z), LEAN, FACE_Z) ?: return null
+    val (x, y) = hitTipped(ray, Position(0f, BOARD_Y, BOARD_Z), LEAN, FACE_Z) ?: return null
     if (y !in LEDGE_TOP..RAIL_TOP) return null
     for (board in 0 until BOARDS) {
         val across = x - boardX(board)
@@ -142,7 +146,7 @@ class BoardArt(val face: Bitmap, val mdf: Bitmap) {
 }
 
 /**
- * The boards leaning on the wall: each face cut to the photo's outline with laser-scorched edges, the rails that hold
+ * The boards on the wall: each face cut to the photo's outline with laser-scorched edges, the rails that hold
  * the cards' edges (lip, groove, the slot at the top, the joints between pieces) and the strip they stand on.
  * Tapping one brings the camera to face both.
  */
@@ -162,7 +166,7 @@ fun SceneScope.BlisterBoards(art: BoardArt) {
 
     // Both boards share the meshes: a MeshNode leaves its buffers alone when it goes.
     for (board in 0 until BOARDS) key(board) {
-        Node(position = Position(boardX(board), 0f, BOARD_Z), rotation = Rotation(x = -LEAN, y = 0f, z = 0f)) {
+        Node(position = Position(boardX(board), BOARD_Y, BOARD_Z), rotation = Rotation(x = -LEAN, y = 0f, z = 0f)) {
             MeshNode(PrimitiveType.TRIANGLES, faceMesh.vertexBuffer, faceMesh.indexBuffer, faceMesh.boundingBox, face, apply = { this.name = name })
             MeshNode(PrimitiveType.TRIANGLES, edgeMesh.vertexBuffer, edgeMesh.indexBuffer, edgeMesh.boundingBox, scorched, apply = { this.name = name })
             for (i in 0..COLUMNS) Rail((i - COLUMNS / 2f) * PITCH, mdf, scorched)

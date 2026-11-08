@@ -21,4 +21,9 @@
     <string name="dashboard_no_brand">Tanpa merek</string>
     <string name="place_unnamed">Tanpa nama tempat</string>
     <string name="place_unnamed_spot">Titik tanpa nama</string>
+    <string name="shelf_side_left">kiri</string>
+    <string name="shelf_side_middle">tengah</string>
+    <string name="shelf_side_right">kanan</string>
+    <string name="shelf_label_desk">Meja putih · %1$s</string>
+    <string name="shelf_label_lift">Meja putih · lift %1$s, %2$s</string>
 </resources>

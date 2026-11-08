@@ -21,7 +21,7 @@
     <plurals name="garage_arranged_left">
         <item quantity="other">%d 辆放不下，仍在托盘中。</item>
     </plurals>
-    <string name="garage_lane_full">这一道已满：%1$d 张卡。</string>
+    <string name="garage_lane_full">这一道已满：%1$d 张卡。可以在货架设置（顶部的齿轮）里修改。</string>
     <string name="garage_to_tray_done">%1$s 已放回托盘。</string>
     <string name="garage_boards_cards_only">展板只用于吸塑卡。</string>
     <string name="garage_does_not_fit">那里放不下。</string>
@@ -68,4 +68,14 @@
     <string name="decor_delete_text">该装饰将从车库移除。你的合金车收藏不受影响。</string>
     <string name="garage_case_no_cards">吸塑卡可以挂在展板上或放在黑色角架上。</string>
     <string name="garage_case_small_only">白色收纳柜只能放 1:60 或更小的比例。</string>
+    <string name="garage_focus_desk">矮桌</string>
+    <string name="garage_dog">积木小狗</string>
+    <string name="garage_tap_desk">点一下白色矮桌上的空位。</string>
+    <string name="garage_lifts_small_only">举升机只放 1:60 或更小的裸车。</string>
+    <string name="garage_settings">货架设置</string>
+    <string name="garage_lane_cards">每道卡数</string>
+    <string name="garage_lane_cards_hint">两块挂板的每一道都适用。卡越多挂得越密；放不下的卡回到托盘。</string>
+    <string name="garage_fewer">减少</string>
+    <string name="garage_more">增加</string>
+    <string name="garage_flip">翻转</string>
 </resources>

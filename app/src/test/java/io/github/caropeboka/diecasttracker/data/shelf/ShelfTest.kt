@@ -75,6 +75,12 @@ class ShelfTest {
 
         val full = (1L..ShelfLayout.LANE_CARDS).map { card(it, ShelfSlotEntity(it, Shelf.Boards, 4, it.toInt())) }
         assertEquals(ShelfMove.Full, ShelfPlanner.place(full + card(99), 99, Shelf.Boards, 4))
+        // Unless the collector's lanes take more.
+        assertEquals(
+            mapOf(99L to ShelfSlotEntity(99, Shelf.Boards, 4, ShelfLayout.LANE_CARDS + 1)),
+            done(ShelfPlanner.place(full + card(99), 99, Shelf.Boards, 4, laneCards = 14)),
+        )
+        assertEquals(ShelfMove.Full, ShelfPlanner.place(full + card(99), 99, Shelf.Boards, 4, laneCards = 10))
     }
 
     @Test
@@ -128,6 +134,57 @@ class ShelfTest {
         // On the black shelf it may: the box can't hang on the boards, so it waits in the tray.
         assertEquals(mapOf(1L to ShelfSlotEntity(1, Shelf.Corner, 0, 500), 3L to null), done(ShelfPlanner.swap(listOf(low, boxed), 1, 3)))
         assertEquals(mapOf(9L to ShelfSlotEntity(9, Shelf.Boards, 3, 0), 1L to null), done(ShelfPlanner.swap(listOf(low, card(9)), 9, 1)))
+    }
+
+    @Test
+    fun `the desk takes boxes and loose cars of any size, a lift's level one small loose car`() {
+        assertTrue(ShelfLayout.fits(Shelf.Desk, Packaging.Boxed, "1:18"))
+        assertTrue(ShelfLayout.fits(Shelf.Desk, Packaging.Loose, "1:24"))
+        assertTrue(ShelfLayout.fits(Shelf.Desk, Packaging.Loose, null))
+        assertFalse(ShelfLayout.fits(Shelf.Desk, Packaging.Carded, "1:64"))
+        assertTrue(ShelfLayout.fits(Shelf.Lifts, Packaging.Loose, "1:64"))
+        assertTrue(ShelfLayout.fits(Shelf.Lifts, Packaging.Loose, "1:60"))
+        assertFalse(ShelfLayout.fits(Shelf.Lifts, Packaging.Loose, "1:43"))
+        assertFalse(ShelfLayout.fits(Shelf.Lifts, Packaging.Boxed, "1:64"))
+        assertFalse(ShelfLayout.fits(Shelf.Lifts, Packaging.Carded, "1:64"))
+
+        assertEquals("Meja putih · kiri", ShelfLayout.label(env.texts, Shelf.Desk, 120))
+        assertEquals("Meja putih · tengah", ShelfLayout.label(env.texts, Shelf.Desk, 350))
+        assertEquals("Meja putih · kanan", ShelfLayout.label(env.texts, Shelf.Desk, ShelfLayout.DESK_W_MM))
+        assertEquals("Meja putih · lift kiri, bawah", ShelfLayout.label(env.texts, Shelf.Lifts, 0))
+        assertEquals("Meja putih · lift kiri, atas", ShelfLayout.label(env.texts, Shelf.Lifts, 1))
+        assertEquals("Meja putih · lift kanan, atas", ShelfLayout.label(env.texts, Shelf.Lifts, 3))
+    }
+
+    @Test
+    fun `anywhere on the desk, and a taken lift level swaps like a compartment`() {
+        val all = listOf(box(1, scale = "1:24"), loose(2, ShelfSlotEntity(2, Shelf.Lifts, 1)), loose(3), loose(4, scale = "1:43"))
+        assertEquals(mapOf(1L to ShelfSlotEntity(1, Shelf.Desk, 350, 200)), done(ShelfPlanner.place(all, 1, Shelf.Desk, 350, 200)))
+        assertEquals(ShelfMove.DoesNotFit, ShelfPlanner.place(all, 1, Shelf.Desk, 350, ShelfLayout.DESK_D_MM + 1))
+        assertEquals(ShelfMove.DoesNotFit, ShelfPlanner.place(all, 1, Shelf.Desk, ShelfLayout.DESK_W_MM + 1, 100))
+        assertEquals(ShelfMove.DoesNotFit, ShelfPlanner.place(all, 1, Shelf.Lifts, 0))
+        assertEquals(ShelfMove.DoesNotFit, ShelfPlanner.place(all, 4, Shelf.Lifts, 0))
+        assertEquals(ShelfMove.DoesNotFit, ShelfPlanner.place(all, 3, Shelf.Lifts, ShelfLayout.LIFTS * ShelfLayout.LIFT_LEVELS))
+
+        assertEquals(mapOf(3L to ShelfSlotEntity(3, Shelf.Lifts, 2)), done(ShelfPlanner.place(all, 3, Shelf.Lifts, 2)))
+        // From the tray onto the taken deck: the car there goes to the tray.
+        assertEquals(mapOf(3L to ShelfSlotEntity(3, Shelf.Lifts, 1), 2L to null), done(ShelfPlanner.place(all, 3, Shelf.Lifts, 1)))
+        // From under the other deck: they trade.
+        val under = loose(5, ShelfSlotEntity(5, Shelf.Lifts, 2))
+        assertEquals(
+            mapOf(5L to ShelfSlotEntity(5, Shelf.Lifts, 1), 2L to ShelfSlotEntity(2, Shelf.Lifts, 2)),
+            done(ShelfPlanner.place(all + under, 5, Shelf.Lifts, 1)),
+        )
+    }
+
+    @Test
+    fun `the desk and the lifts write their storage location`() = runBlocking {
+        val box = env.repository.save(DiecastEntity(name = "Porsche 911", packaging = Packaging.Boxed, scale = "1:24"))
+        val car = env.repository.save(DiecastEntity(name = "Datsun 510", packaging = Packaging.Loose))
+        shelves.apply(mapOf(box to ShelfSlotEntity(box, Shelf.Desk, 600, 150), car to ShelfSlotEntity(car, Shelf.Lifts, 1)))
+        assertEquals("Meja putih · kanan", env.db.diecasts().get(box)!!.storageLocation)
+        assertEquals("Meja putih · lift kiri, atas", env.db.diecasts().get(car)!!.storageLocation)
+        assertEquals(ShelfSlotEntity(box, Shelf.Desk, 600, 150), env.db.shelves().get(box))
     }
 
     @Test

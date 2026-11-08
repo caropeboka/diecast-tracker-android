@@ -361,6 +361,22 @@ class BackupExporterTest {
     }
 
     @Test
+    fun `a lift's level and a point on the desk come back too`() = runBlocking {
+        seed()
+        val datsun = byName(env, "'71 Datsun 510").diecast.id
+        val porsche = env.repository.save(DiecastEntity(name = "Porsche 911", packaging = Packaging.Boxed, scale = "1:24"))
+        ShelfRepository(env.db, env.texts).apply(
+            mapOf(datsun to ShelfSlotEntity(datsun, Shelf.Lifts, 3), porsche to ShelfSlotEntity(porsche, Shelf.Desk, 600, 150)),
+        )
+
+        importer.import(backup(), replace = false)
+        val restored = other.db.diecasts().observeShelf().first().associateBy { it.name }
+        assertEquals(Shelf.Lifts to 3, restored.getValue("'71 Datsun 510").slot!!.let { it.shelf to it.spot })
+        val desk = restored.getValue("Porsche 911").slot!!
+        assertEquals(Triple(Shelf.Desk, 600, 150), Triple(desk.shelf, desk.spot, desk.position))
+    }
+
+    @Test
     fun `saving a backup reports what it wrote and restarts the reminder`() = runBlocking {
         seed()
         val file = File(env.root, "saved.zip")

@@ -14,7 +14,13 @@ enum class Shelf(val key: String) {
     Corner("corner"),
 
     /** The white case: compartments for loose cars and small boxes. */
-    Case("case");
+    Case("case"),
+
+    /** The white desk under the boards: boxes and loose cars anywhere on it, at a point in millimetres. */
+    Desk("desk"),
+
+    /** The two car lifts at the desk's back corners: a loose car on each one's deck and one under it. */
+    Lifts("lifts");
 
     companion object {
         fun fromKey(key: String?): Shelf? = entries.find { it.key == key }
@@ -27,8 +33,11 @@ object ShelfLayout {
     const val LANES_PER_BOARD = 4
     const val LANES = BOARDS * LANES_PER_BOARD
 
-    /** As many cards as stack in a lane below the top of its rails. */
+    /** As many cards as stack in a lane below the top of its rails, until the collector sets their own number. */
     const val LANE_CARDS = 12
+
+    /** What the collector may set it to: the more cards, the closer they hang. */
+    val LANE_CARDS_RANGE = 4..40
     const val TIERS = 3
     const val CASE_COLUMNS = 6
     const val CASE_ROWS = 10
@@ -36,27 +45,56 @@ object ShelfLayout {
     /** The largest scale a compartment takes: 1:60 (Tomica), 1:62 (Majorette) and 1:64 still fit. */
     const val CASE_LARGEST = 60
 
-    private val TIER_NAMES = listOf(R.string.shelf_tier_bottom, R.string.shelf_tier_middle, R.string.shelf_tier_top)
+    /** The white desk, measured by the user: 70 × 40 cm, 25 cm high. A spot on it is its x and depth in millimetres. */
+    const val DESK_W_MM = 700
+    const val DESK_D_MM = 400
+    const val DESK_H_MM = 250
 
-    /** Lanes, tiers (lowest first) or compartments (row by row from the top left). */
+    /** Two lifts, left and right, each with a car under its deck and one on it: spot = lift × 2 + level. */
+    const val LIFTS = 2
+    const val LIFT_LEVELS = 2
+
+    private val TIER_NAMES = listOf(R.string.shelf_tier_bottom, R.string.shelf_tier_middle, R.string.shelf_tier_top)
+    private val SIDES = listOf(R.string.shelf_side_left, R.string.shelf_side_middle, R.string.shelf_side_right)
+
+    /**
+     * Lanes, tiers (lowest first), compartments (row by row from the top left), millimetres across the desk from its
+     * left edge, or lift levels.
+     */
     fun spots(shelf: Shelf): Int = when (shelf) {
         Shelf.Boards -> LANES
         Shelf.Corner -> TIERS
         Shelf.Case -> CASE_COLUMNS * CASE_ROWS
+        Shelf.Desk -> DESK_W_MM + 1
+        Shelf.Lifts -> LIFTS * LIFT_LEVELS
     }
 
-    /** Cards hang on the boards; a compartment takes a loose car or a box up to 1:60; the black shelf takes anything. */
+    /**
+     * Cards hang on the boards; a compartment takes a loose car or a box up to 1:60; the black shelf takes anything;
+     * the desk boxes and loose cars of any scale; a lift a loose car up to 1:60.
+     */
     fun fits(shelf: Shelf, packaging: Packaging, scale: String?): Boolean = when (shelf) {
         Shelf.Boards -> packaging == Packaging.Carded
         Shelf.Case -> packaging != Packaging.Carded && scaleRatio(scale) >= CASE_LARGEST
         Shelf.Corner -> true
+        Shelf.Desk -> packaging != Packaging.Carded
+        Shelf.Lifts -> packaging == Packaging.Loose && scaleRatio(scale) >= CASE_LARGEST
     }
 
-    /** Its "Lokasi simpan": "Board 2 · lane 1", "Black shelf · middle tier", "White case · row 3 column 2". */
+    /**
+     * Its "Lokasi simpan": "Board 2 · lane 1", "Black shelf · middle tier", "White case · row 3 column 2", "White desk ·
+     * left" (by thirds), "White desk · right lift, top".
+     */
     fun label(texts: Texts, shelf: Shelf, spot: Int): String = when (shelf) {
         Shelf.Boards -> texts(R.string.shelf_label_board, spot / LANES_PER_BOARD + 1, spot % LANES_PER_BOARD + 1)
         Shelf.Corner -> texts(R.string.shelf_label_corner, texts(TIER_NAMES[spot]))
         Shelf.Case -> texts(R.string.shelf_label_case, spot / CASE_COLUMNS + 1, spot % CASE_COLUMNS + 1)
+        Shelf.Desk -> texts(R.string.shelf_label_desk, texts(SIDES[(spot * 3 / (DESK_W_MM + 1)).coerceIn(0, 2)]))
+        Shelf.Lifts -> texts(
+            R.string.shelf_label_lift,
+            texts(if (spot / LIFT_LEVELS == 0) R.string.shelf_side_left else R.string.shelf_side_right),
+            texts(if (spot % LIFT_LEVELS == 0) R.string.shelf_tier_bottom else R.string.shelf_tier_top),
+        )
     }
 
     fun label(texts: Texts, slot: ShelfSlotEntity): String = label(texts, slot.shelf, slot.spot)
@@ -81,28 +119,32 @@ sealed interface ShelfMove {
 
 /**
  * Where diecasts go when the collector puts them somewhere: anywhere they fit, no order to fill in. Cards slide down
- * their lane onto the ones already there; a compartment holds one, so whatever is in it swaps places.
+ * their lane onto the ones already there; a compartment or a lift's level holds one, so whatever is in it swaps
+ * places. Along a tier and on the desk the place is only where it was put: the 3D garage pushes it clear of the
+ * others (see ui/garage/Placement).
  */
 object ShelfPlanner {
     /**
      * [id] to [spot] of [shelf]: on top of a lane's cards, at [position] along a tier (its angle in tenths of a degree,
-     * 0 along the back wall), into a compartment, swapping with what's in it (see [swap]).
+     * 0 along the back wall), into a compartment or onto a lift, swapping with what's there (see [swap]), at [spot]
+     * millimetres across the desk and [position] deep.
      */
-    fun place(all: List<Shelved>, id: Long, shelf: Shelf, spot: Int, position: Int = 0): ShelfMove {
+    fun place(all: List<Shelved>, id: Long, shelf: Shelf, spot: Int, position: Int = 0, laneCards: Int = ShelfLayout.LANE_CARDS): ShelfMove {
         val mover = all.find { it.id == id } ?: return ShelfMove.DoesNotFit
         if (spot !in 0 until ShelfLayout.spots(shelf) || !ShelfLayout.fits(shelf, mover.packaging, mover.scale)) {
             return ShelfMove.DoesNotFit
         }
+        if (shelf == Shelf.Desk && position !in 0..ShelfLayout.DESK_D_MM) return ShelfMove.DoesNotFit
         val there = all.mapNotNull { other -> other.slot?.takeIf { other.id != id && it.shelf == shelf && it.spot == spot } }
         return when (shelf) {
             Shelf.Boards ->
-                if (there.size >= ShelfLayout.LANE_CARDS) {
+                if (there.size >= laneCards) {
                     ShelfMove.Full
                 } else {
                     ShelfMove.Done(mapOf(id to ShelfSlotEntity(id, shelf, spot, (there.maxOfOrNull { it.position } ?: -1) + 1)))
                 }
-            Shelf.Corner -> ShelfMove.Done(mapOf(id to ShelfSlotEntity(id, shelf, spot, position)))
-            Shelf.Case -> there.firstOrNull()?.let { swap(all, id, it.diecastId) }
+            Shelf.Corner, Shelf.Desk -> ShelfMove.Done(mapOf(id to ShelfSlotEntity(id, shelf, spot, position)))
+            Shelf.Case, Shelf.Lifts -> there.firstOrNull()?.let { swap(all, id, it.diecastId) }
                 ?: ShelfMove.Done(mapOf(id to ShelfSlotEntity(id, shelf, spot)))
         }
     }

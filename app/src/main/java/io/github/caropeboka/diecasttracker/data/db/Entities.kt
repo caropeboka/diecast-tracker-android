@@ -338,9 +338,11 @@ data class ShelfRow(
 
 /**
  * Where an owned diecast stands in the 3D garage; without one it waits in the tray. [spot] is the board lane (left
- * to right across both boards), the black shelf's tier (lowest first) or the case's compartment (row by row from
- * the top left). [position] orders a lane's cards from the bottom, and is the angle along a tier in tenths of a
- * degree (0 along the back wall, 900 along the left one).
+ * to right across both boards), the black shelf's tier (lowest first), the case's compartment (row by row from
+ * the top left), the millimetres across the desk from its left edge to the diecast's middle, or a lift's level (lift
+ * × 2 + level, the left lift and the bottom first). [position] orders a lane's cards from the bottom, is the angle
+ * along a tier in tenths of a degree (0 along the back wall, 900 along the left one), and the millimetres from the
+ * desk's back edge to the diecast's middle.
  */
 @Entity(
     tableName = "shelf_slots",

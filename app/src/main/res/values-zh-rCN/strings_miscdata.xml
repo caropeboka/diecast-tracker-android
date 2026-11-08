@@ -21,4 +21,9 @@
     <string name="dashboard_no_brand">无品牌</string>
     <string name="place_unnamed">无地点名称</string>
     <string name="place_unnamed_spot">未命名地点</string>
+    <string name="shelf_side_left">左侧</string>
+    <string name="shelf_side_middle">中间</string>
+    <string name="shelf_side_right">右侧</string>
+    <string name="shelf_label_desk">白色矮桌 · %1$s</string>
+    <string name="shelf_label_lift">白色矮桌 · %1$s举升机 · %2$s层</string>
 </resources>

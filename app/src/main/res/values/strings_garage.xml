@@ -24,7 +24,7 @@
         <item quantity="one">%d doesn\'t fit and stays in the tray.</item>
         <item quantity="other">%d don\'t fit and stay in the tray.</item>
     </plurals>
-    <string name="garage_lane_full">That lane is full: %1$d cards.</string>
+    <string name="garage_lane_full">That lane is full: %1$d cards. Change that in the shelf settings (the gear at the top).</string>
     <string name="garage_to_tray_done">%1$s went into the tray.</string>
     <string name="garage_boards_cards_only">The boards are for cards (blister) only.</string>
     <string name="garage_does_not_fit">It doesn\'t fit there.</string>
@@ -72,4 +72,14 @@
     <string name="decor_delete_text">The decoration leaves the garage. Your diecast collection doesn\'t change.</string>
     <string name="garage_case_no_cards">Cards (blister) go on the boards or the black shelf.</string>
     <string name="garage_case_small_only">The white case only takes 1:60 or smaller.</string>
+    <string name="garage_focus_desk">Desk</string>
+    <string name="garage_dog">Nanoblock dog</string>
+    <string name="garage_tap_desk">Tap an empty spot on the white desk.</string>
+    <string name="garage_lifts_small_only">The lifts only take loose cars of 1:60 or smaller.</string>
+    <string name="garage_settings">Shelf settings</string>
+    <string name="garage_lane_cards">Cards per lane</string>
+    <string name="garage_lane_cards_hint">Every lane on both boards. The more cards, the closer they hang; cards that no longer fit wait in the tray.</string>
+    <string name="garage_fewer">Fewer</string>
+    <string name="garage_more">More</string>
+    <string name="garage_flip">Flip</string>
 </resources>

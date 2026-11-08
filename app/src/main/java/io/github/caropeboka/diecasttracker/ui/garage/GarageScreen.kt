@@ -18,6 +18,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,10 +30,13 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -77,6 +81,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -129,9 +134,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-// The user's three shelves from their photo with the collection on them, each diecast where the collector put it:
-// any compartment of the white case, any lane of the boards (cards slide down onto the ones there), anywhere along
-// the black shelf's tiers. Sizes in metres; the back wall faces +z, the left wall +x.
+// The user's furniture from their photos with the collection on them, each diecast where the collector put it: any
+// compartment of the white case, any lane of the boards on the wall (cards slide down onto the ones there), anywhere
+// along the black shelf's tiers, anywhere on the white desk under the boards, on or under its two lifts. Sizes in
+// metres; the back wall faces +z, the left wall +x.
 
 /** The walls' faces: the black shelf stands in their corner. */
 internal const val WALL_Z = -0.02f
@@ -182,13 +188,16 @@ private const val LIGHT = 2
 /** What the camera looks at. The shelves' nodes are named after these, so tapping one brings it into view. */
 enum class Focus(@StringRes val label: Int, val eye: Position, val target: Position) {
     /** From a little above, like the photo; seen level, the undersides of the case's shelves show as dark bars. */
-    All(R.string.garage_focus_all, Position(0.08f, 1.87f, 5.6f), Position(0.08f, 0.48f, 0.1f)),
+    All(R.string.garage_focus_all, Position(0.08f, 2.0f, 5.6f), Position(0.08f, 0.58f, 0.1f)),
 
     /** From the front corner of the room, like the photo, so both walls' carving shows. */
     Shelf(R.string.garage_focus_shelf, Position(0.52f, 0.9f, 1.48f), Position(-0.78f, 0.55f, 0.18f)),
 
-    /** Both boards across the screen. */
-    Board(R.string.garage_focus_boards, Position(BOARDS_X, 0.6f, 2.5f), Position(BOARDS_X, 0.4f, 0f)),
+    /** Both boards across the screen, up on the wall. */
+    Board(R.string.garage_focus_boards, Position(BOARDS_X, BOARD_Y + 0.5f, 2.5f), Position(BOARDS_X, BOARD_Y + 0.38f, 0f)),
+
+    /** Down on the desk from in front of it, both lifts in view. */
+    Desk(R.string.garage_focus_desk, Position(DESK_X, 0.98f, 1.72f), Position(DESK_X, DESK_TOP + 0.02f, DESK_BACK + 0.17f)),
     Case(R.string.garage_focus_case, Position(CASE_X, 0.8f, 1.55f), Position(CASE_X, 0.25f, 0.06f)),
     ;
 
@@ -200,6 +209,7 @@ private fun spotAt(focus: Focus, ray: Ray): Spot? = when (focus) {
     Focus.All -> null
     Focus.Shelf -> tierAt(ray)?.let { (tier, angle) -> Spot(Shelf.Corner, tier, angle) }
     Focus.Board -> laneAt(ray)?.let { Spot(Shelf.Boards, it) }
+    Focus.Desk -> liftAt(ray)?.let { Spot(Shelf.Lifts, it) } ?: deskAt(ray)?.let { (x, depth) -> Spot(Shelf.Desk, x, depth = depth) }
     Focus.Case -> cellAt(ray)?.let { Spot(Shelf.Case, it) }
 }
 
@@ -395,6 +405,7 @@ fun GarageScreen(
     var landing by remember { mutableStateOf<Long?>(null) }
     var releasing by remember { mutableStateOf<Long?>(null) }
     var trayOpen by rememberSaveable { mutableStateOf(false) }
+    var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var picking by remember { mutableStateOf<Spot?>(null) }
     // A decoration picked (its bar shows), being moved, changed or deleted.
     var decorHeld by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -403,6 +414,9 @@ fun GarageScreen(
     var decorDeleting by remember { mutableStateOf<Long?>(null) }
     // Where a new decoration goes (tier, angle) while its photo is taken or picked, and the camera's file.
     var decorSpot by rememberSaveable { mutableStateOf<FloatArray?>(null) }
+    // The nanoblock dog picked (its bar shows), or being moved: the next tap on the desk puts it there.
+    var dogHeld by rememberSaveable { mutableStateOf(false) }
+    var dogMoving by rememberSaveable { mutableStateOf(false) }
     var decorCamera by rememberSaveable { mutableStateOf<String?>(null) }
     val draft by viewModel.draft.collectAsStateWithLifecycle()
     val decorProgress by viewModel.progress.collectAsStateWithLifecycle()
@@ -447,6 +461,7 @@ fun GarageScreen(
         if (current.layout.placed.none { it.item.id == pulled }) pulled = null
         if (current.decor.none { it.id == decorHeld }) decorHeld = null
         if (current.decor.none { it.id == decorMoving }) decorMoving = null
+        if (current.layout.dog == null) dogHeld = false
         landing = null
         releasing = null
     }
@@ -478,6 +493,9 @@ fun GarageScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { settingsOpen = true }) {
+                        Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.garage_settings))
+                    }
                     // G0: to compare how the phone copes with each.
                     TextButton(onClick = { quality = (quality + 1) % QUALITIES.size }) { Text(stringResource(QUALITIES[quality])) }
                 },
@@ -574,6 +592,28 @@ fun GarageScreen(
                         val moving = carrying
                         val tapped = name.takeIf { it.startsWith(ITEM) }?.removePrefix(ITEM)?.toLongOrNull()
                         val tappedDecor = name.takeIf { it.startsWith(DECOR) }?.removePrefix(DECOR)?.toLongOrNull()
+                        if (name == DOG) {
+                            when {
+                                dogMoving -> dogMoving = false
+                                moving != null || decorMoving != null -> viewModel.say(texts(R.string.garage_decor_there))
+                                else -> {
+                                    pulled = null
+                                    decorHeld = null
+                                    dogHeld = !dogHeld
+                                }
+                            }
+                            return@onTap
+                        }
+                        dogHeld = false
+                        if (dogMoving) {
+                            val spot = view.motionEventToRay(event)?.let { spotAt(focus, it) }
+                            when {
+                                spot?.shelf == Shelf.Desk -> scope.launch { if (viewModel.placeDog(spot)) dogMoving = false }
+                                spot != null || tapped != null || tappedDecor != null -> viewModel.say(texts(R.string.garage_tap_desk))
+                                name.startsWith(FOCUS) -> Focus.valueOf(name.removePrefix(FOCUS)).takeIf { it != focus }?.let(::look)
+                            }
+                            return@onTap
+                        }
                         if (tappedDecor != null) {
                             when {
                                 decorMoving == tappedDecor -> decorMoving = null
@@ -640,6 +680,9 @@ fun GarageScreen(
                     CornerShelf(it.wood)
                 }
                 LooseCase()
+                Desk()
+                CarLifts()
+                scene?.layout?.dog?.let { NanoDog(it, lifted = dogHeld || dogMoving) }
                 scene?.layout?.placed?.forEach { placed ->
                     val id = placed.item.id
                     key(id) {
@@ -703,7 +746,20 @@ fun GarageScreen(
                 val holding = pulled?.let { scene?.row(it) }
                 val decorMoved = decorMoving?.let { scene?.decoration(it) }
                 val decorPicked = decorHeld?.let { scene?.decoration(it) }
+                val dogAt = scene?.layout?.dog
                 when {
+                    dogMoving -> DogBar(stringResource(R.string.garage_dog), stringResource(R.string.garage_tap_desk)) {
+                        TextButton(onClick = { dogMoving = false }) { Text(stringResource(R.string.cancel)) }
+                    }
+                    dogHeld && dogAt != null -> DogBar(stringResource(R.string.garage_dog), ShelfLayout.label(texts, Shelf.Desk, dogAt.x)) {
+                        TextButton(
+                            onClick = {
+                                dogMoving = true
+                                dogHeld = false
+                                if (focus != Focus.Desk) look(Focus.Desk)
+                            },
+                        ) { Text(stringResource(R.string.garage_move)) }
+                    }
                     decorMoved != null -> DecorBar(decorMoved, stringResource(R.string.garage_tap_corner)) {
                         TextButton(onClick = { decorMoving = null }) { Text(stringResource(R.string.cancel)) }
                     }
@@ -729,6 +785,10 @@ fun GarageScreen(
                         }
                     }
                     holding != null -> HeldCard(holding, holding.slot?.let { ShelfLayout.label(texts, it) } ?: stringResource(R.string.garage_in_tray), onOpen = { open(holding.id) }) {
+                        // A loose car's photo may face either way; on the shelf the collector picks.
+                        if (holding.packaging == Packaging.Loose) {
+                            TextButton(onClick = { viewModel.flip(holding.id) }) { Text(stringResource(R.string.garage_flip)) }
+                        }
                         TextButton(
                             onClick = {
                                 carrying = holding.id
@@ -745,7 +805,7 @@ fun GarageScreen(
                         TextButton(onClick = { open(holding.id) }) { Text(stringResource(R.string.garage_details)) }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Focus.entries.forEach { option ->
                         FilterChip(
                             selected = option == focus,
@@ -767,6 +827,9 @@ fun GarageScreen(
     }
 
     val current = scene
+    if (settingsOpen && current != null) {
+        ShelfSettingsSheet(laneCards = current.laneCards, onLaneCards = viewModel::setLaneCards, onDismiss = { settingsOpen = false })
+    }
     if (trayOpen && current != null) {
         TraySheet(
             title = stringResource(R.string.garage_unplaced),
@@ -959,6 +1022,44 @@ private fun HeldCard(row: ShelfRow, place: String, onOpen: () -> Unit, actions: 
             }
         }
         Row(Modifier.align(Alignment.End)) { actions() }
+    }
+}
+
+/** The collector's own numbers for the furniture: for now how many cards a lane of the boards takes. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ShelfSettingsSheet(laneCards: Int, onLaneCards: (Int) -> Unit, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Garage.Card) {
+        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp).navigationBarsPadding()) {
+            SubHeading(stringResource(R.string.garage_settings))
+            Row(Modifier.padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.garage_lane_cards), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                FilledTonalIconButton(
+                    onClick = { onLaneCards(laneCards - 1) },
+                    enabled = laneCards > ShelfLayout.LANE_CARDS_RANGE.first,
+                ) {
+                    Icon(painterResource(R.drawable.ic_remove), contentDescription = stringResource(R.string.garage_fewer))
+                }
+                Text(
+                    laneCards.toString(),
+                    Modifier.widthIn(min = 48.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                )
+                FilledTonalIconButton(
+                    onClick = { onLaneCards(laneCards + 1) },
+                    enabled = laneCards < ShelfLayout.LANE_CARDS_RANGE.last,
+                ) {
+                    Icon(painterResource(R.drawable.ic_add), contentDescription = stringResource(R.string.garage_more))
+                }
+            }
+            Text(
+                stringResource(R.string.garage_lane_cards_hint),
+                Modifier.padding(top = 8.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = Garage.MutedForeground,
+            )
+        }
     }
 }
 

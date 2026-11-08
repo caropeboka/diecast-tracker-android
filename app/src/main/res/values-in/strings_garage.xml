@@ -21,7 +21,7 @@
     <plurals name="garage_arranged_left">
         <item quantity="other">%d tidak muat dan masih di nampan.</item>
     </plurals>
-    <string name="garage_lane_full">Jalur itu sudah penuh: %1$d kartu.</string>
+    <string name="garage_lane_full">Jalur itu sudah penuh: %1$d kartu. Batasnya bisa diubah di pengaturan rak (ikon roda gigi di atas).</string>
     <string name="garage_to_tray_done">%1$s masuk nampan.</string>
     <string name="garage_boards_cards_only">Papan hanya untuk kartu (blister).</string>
     <string name="garage_does_not_fit">Tidak muat di sana.</string>
@@ -68,4 +68,14 @@
     <string name="decor_delete_text">Hiasan ini hilang dari garasi. Koleksi diecast-mu tidak berubah.</string>
     <string name="garage_case_no_cards">Kartu (blister) tempatnya di papan atau laci hitam.</string>
     <string name="garage_case_small_only">Rak putih hanya muat skala 1:60 atau lebih kecil.</string>
+    <string name="garage_focus_desk">Meja</string>
+    <string name="garage_dog">Anjing nanoblok</string>
+    <string name="garage_tap_desk">Ketuk tempat kosong di meja putih.</string>
+    <string name="garage_lifts_small_only">Lift hanya muat mobil loose 1:60 atau lebih kecil.</string>
+    <string name="garage_settings">Pengaturan rak</string>
+    <string name="garage_lane_cards">Kartu per jalur</string>
+    <string name="garage_lane_cards_hint">Berlaku untuk semua jalur di kedua papan. Makin banyak, makin rapat kartunya; yang tidak muat lagi menunggu di nampan.</string>
+    <string name="garage_fewer">Kurangi</string>
+    <string name="garage_more">Tambah</string>
+    <string name="garage_flip">Balik</string>
 </resources>

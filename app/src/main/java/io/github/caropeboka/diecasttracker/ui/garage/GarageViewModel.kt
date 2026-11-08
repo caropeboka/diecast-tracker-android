@@ -2,6 +2,7 @@ package io.github.caropeboka.diecasttracker.ui.garage
 
 import android.content.res.AssetManager
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
@@ -16,6 +17,7 @@ import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.PhotoStore
+import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.db.DecorationEntity
 import io.github.caropeboka.diecasttracker.data.db.ShelfRow
 import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
@@ -56,13 +58,18 @@ class GarageArt(val board: BoardArt, val wood: Bitmap)
 
 /**
  * The owned diecasts that have a photo ([rows]), those drawn where they were put, and the rest in the tray: never put
- * anywhere, or with no room left where they were (see [Layout]). [withoutPhoto] can't be shown at all.
+ * anywhere, or with no room left where they were (see [Layout]). [withoutPhoto] can't be shown at all. The [dog]
+ * stands where it was last put on the desk (millimetres across and in); a lane of the boards takes [laneCards]. The
+ * loose cars in [flipped] face the other way than in their photo.
  */
 class GarageScene internal constructor(
     val rows: List<ShelfRow>,
     internal val layout: Layout,
     val withoutPhoto: Int,
     val decor: List<DecorItem> = emptyList(),
+    internal val dog: Pair<Int, Int> = DOG_HOME,
+    val laneCards: Int = ShelfLayout.LANE_CARDS,
+    val flipped: Set<Long> = emptySet(),
 ) {
     private val drawn = layout.placed.map { it.item.id }.toSet()
 
@@ -70,9 +77,9 @@ class GarageScene internal constructor(
 
     fun row(id: Long): ShelfRow? = rows.find { it.id == id }
 
-    /** What stands in a compartment. */
+    /** What stands in a compartment or on a lift's level. */
     fun occupant(spot: Spot): Long? = rows.firstOrNull { row ->
-        row.id in drawn && row.slot?.let { it.shelf == Shelf.Case && spot.shelf == Shelf.Case && it.spot == spot.spot } == true
+        row.id in drawn && row.slot?.let { it.shelf == spot.shelf && it.shelf in ONE_EACH && it.spot == spot.spot } == true
     }?.id
 
     fun decoration(id: Long): DecorItem? = decor.find { it.id == id }
@@ -91,6 +98,7 @@ class GarageViewModel(
     private val decorations: DecorRepository,
     private val decorStore: DecorStore,
     private val decorMaker: DecorMaker,
+    private val prefs: UserPrefs,
     private val messages: Messages,
     private val texts: Texts,
     assets: AssetManager,
@@ -101,12 +109,21 @@ class GarageViewModel(
     /** Each decoration's cut-out decoded once, by file. */
     private val cutouts = ConcurrentHashMap<String, Bitmap>()
 
-    val scene: StateFlow<GarageScene?> = combine(repository.observeShelf(), decorations.observe()) { rows, decorated ->
+    val scene: StateFlow<GarageScene?> = combine(
+        repository.observeShelf(),
+        decorations.observe(),
+        prefs.garageDog,
+        prefs.laneCards,
+        prefs.garageFlipped,
+    ) { rows, decorated, dogAt, laneCards, flipped ->
         val shown = rows.filter { it.coverFile != null }
-        val items = items(shown.filter { it.slot != null })
-        decoded.keys.retainAll(shown.map(::key).toSet())
+        val items = items(shown.filter { it.slot != null }, flipped)
+        decoded.keys.retainAll(shown.map { key(it, it.id in flipped) }.toSet())
         val decor = decor(decorated)
-        withContext(Dispatchers.Default) { GarageScene(shown, layOut(shown, items, decor), rows.size - shown.size, decor) }
+        val dog = dogAt ?: DOG_HOME
+        withContext(Dispatchers.Default) {
+            GarageScene(shown, layOut(shown, items, decor, dog, laneCards = laneCards), rows.size - shown.size, decor, dog, laneCards, flipped)
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** A decoration being made for [spot]: its photo cut out and cleaned ([cutout], null while that runs), or why not. */
@@ -182,7 +199,7 @@ class GarageViewModel(
         val position = (spot.angle * 10).roundToInt()
         val moved = scene.decor.map { if (it.id == id) DecorItem(it.id, it.name, it.image, it.heightMm, spot.spot, position) else it }
         val items = items(scene.rows.filter { it.slot != null })
-        val after = withContext(Dispatchers.Default) { layOut(scene.rows, items, moved) }
+        val after = withContext(Dispatchers.Default) { layOut(scene.rows, items, moved, scene.dog, laneCards = scene.laneCards) }
         val angle = after.decorAngles[id]
         if (angle == null || (after.overflow - scene.layout.overflow).isNotEmpty()) {
             messages.show(texts(R.string.garage_no_room))
@@ -223,7 +240,24 @@ class GarageViewModel(
     /** [id] to [spot]; false, with a message why, when it can't go there. */
     suspend fun place(id: Long, spot: Spot): Boolean {
         val scene = scene.value ?: return false
-        return carryOut(scene, id, spot.shelf, ShelfPlanner.place(scene.shelved(), id, spot.shelf, spot.spot, (spot.angle * 10).roundToInt()))
+        return carryOut(scene, id, spot.shelf, ShelfPlanner.place(scene.shelved(), id, spot.shelf, spot.spot, spot.position, scene.laneCards))
+    }
+
+    /** The dog to [spot] on the desk, or the free point nearest it; false, with a message, when there's no room. */
+    suspend fun placeDog(spot: Spot): Boolean {
+        val scene = scene.value ?: return false
+        if (spot.shelf != Shelf.Desk) return false.also { messages.show(texts(R.string.garage_tap_desk)) }
+        val items = items(scene.rows.filter { it.slot != null })
+        val after = withContext(Dispatchers.Default) {
+            layOut(scene.rows, items, scene.decor, spot.spot to spot.depth, dogSettling = true, laneCards = scene.laneCards)
+        }
+        val at = after.dog
+        if (at == null || (after.overflow - scene.layout.overflow).isNotEmpty()) {
+            messages.show(texts(R.string.garage_no_room))
+            return false
+        }
+        prefs.setGarageDog(at.x, at.depth)
+        return true
     }
 
     /** [id] takes [other]'s place, and [other] its old one if it fits there (else the tray). */
@@ -245,7 +279,7 @@ class GarageViewModel(
             val waitingIds = waiting.map { it.id }.toSet()
             // Cards too: with the lanes full they stand on the black shelf.
             val items = items(scene.rows.filter { it.slot != null && it.id !in waitingIds } + waiting)
-            val moves = withContext(Dispatchers.Default) { arrange(scene.rows, waiting, items, scene.decor) }
+            val moves = withContext(Dispatchers.Default) { arrange(scene.rows, waiting, items, scene.decor, scene.dog, scene.laneCards) }
             shelves.apply(moves)
             val left = waiting.size - moves.size
             messages.show(
@@ -260,10 +294,20 @@ class GarageViewModel(
 
     fun say(message: String) = messages.show(message)
 
+    /** [id] (a loose car) faces the other way in the garage; its photo stays as it is. */
+    fun flip(id: Long) {
+        viewModelScope.launch { prefs.setGarageFlipped(id, id !in scene.value?.flipped.orEmpty()) }
+    }
+
+    /** How many cards every lane of the boards takes; what no longer fits waits in the tray again. */
+    fun setLaneCards(cards: Int) {
+        viewModelScope.launch { prefs.setLaneCards(cards) }
+    }
+
     private suspend fun carryOut(scene: GarageScene, id: Long, shelf: Shelf, move: ShelfMove): Boolean {
         val row = scene.row(id) ?: return false
         val moves = when (move) {
-            ShelfMove.Full -> null.also { messages.show(texts(R.string.garage_lane_full, ShelfLayout.LANE_CARDS)) }
+            ShelfMove.Full -> null.also { messages.show(texts(R.string.garage_lane_full, scene.laneCards)) }
             ShelfMove.DoesNotFit -> null.also { messages.show(texts(doesNotFit(row, shelf))) }
             is ShelfMove.Done -> settle(scene, move.moves).also { if (it == null) messages.show(texts(R.string.garage_no_room)) }
         } ?: return false
@@ -273,39 +317,46 @@ class GarageViewModel(
     }
 
     /**
-     * [moves] with the black shelf's angles where things really end up, pushed aside by their neighbours; null when
-     * that leaves anything without room.
+     * [moves] with the black shelf's angles and the desk's points where things really end up, pushed aside by their
+     * neighbours; null when that leaves anything without room.
      */
     private suspend fun settle(scene: GarageScene, moves: Map<Long, ShelfSlotEntity?>): Map<Long, ShelfSlotEntity?>? {
         val rows = scene.rows.map { row -> if (row.id in moves) row.placed(moves[row.id]) else row }
         val items = items(rows.filter { it.slot != null })
         return withContext(Dispatchers.Default) {
-            val after = layOut(rows, items, scene.decor)
+            val after = layOut(rows, items, scene.decor, scene.dog, settling = moves.keys, laneCards = scene.laneCards)
             val stuck = moves.any { (id, slot) -> slot != null && id in after.overflow }
             if (stuck || (after.overflow - scene.layout.overflow).isNotEmpty()) return@withContext null
             moves.mapValues { (id, slot) ->
                 val angle = after.angles[id]
-                if (slot?.shelf == Shelf.Corner && angle != null) slot.copy(position = (angle * 10).roundToInt()) else slot
+                val point = after.desk[id]
+                when {
+                    slot?.shelf == Shelf.Corner && angle != null -> slot.copy(position = (angle * 10).roundToInt())
+                    slot?.shelf == Shelf.Desk && point != null -> slot.copy(spot = point.first, position = point.second)
+                    else -> slot
+                }
             }
         }
     }
 
-    private suspend fun items(rows: List<ShelfRow>): Map<Long, ShelfItem> = withContext(Dispatchers.IO) {
-        rows.mapNotNull { row ->
-            val key = key(row)
-            val item = decoded[key] ?: runCatching { shelfItem(row, photos) }.getOrNull()?.also { decoded[key] = it }
-            item?.let { row.id to it }
-        }.toMap()
-    }
+    private suspend fun items(rows: List<ShelfRow>, flipped: Set<Long> = scene.value?.flipped.orEmpty()): Map<Long, ShelfItem> =
+        withContext(Dispatchers.IO) {
+            rows.mapNotNull { row ->
+                val flip = row.id in flipped
+                val key = key(row, flip)
+                val item = decoded[key] ?: runCatching { shelfItem(row, photos, flip) }.getOrNull()?.also { decoded[key] = it }
+                item?.let { row.id to it }
+            }.toMap()
+        }
 
-    private fun key(row: ShelfRow) = "${row.id}/${row.coverFile}/${row.packaging.key}/${row.scale}"
+    private fun key(row: ShelfRow, flip: Boolean) = "${row.id}/${row.coverFile}/${row.packaging.key}/${row.scale}/$flip"
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 with(app.container) {
-                    GarageViewModel(repository, shelves, photos, decorations, decorStore, decorMaker, messages, texts, app.assets)
+                    GarageViewModel(repository, shelves, photos, decorations, decorStore, decorMaker, prefs, messages, texts, app.assets)
                 }
             }
         }
@@ -317,17 +368,26 @@ private fun doesNotFit(row: ShelfRow, shelf: Shelf) = when {
     row.packaging == Packaging.Carded -> R.string.garage_case_no_cards
     shelf == Shelf.Boards -> R.string.garage_boards_cards_only
     shelf == Shelf.Case -> R.string.garage_case_small_only
+    shelf == Shelf.Lifts -> R.string.garage_lifts_small_only
     else -> R.string.garage_does_not_fit
 }
 
-private fun shelfItem(row: ShelfRow, photos: PhotoStore): ShelfItem {
+/** The places that hold one diecast each: whatever is there swaps with the one put in. */
+private val ONE_EACH = setOf(Shelf.Case, Shelf.Lifts)
+
+/** [flip]: a loose car the other way round (cards and boxes have print on them, which would read backwards). */
+private fun shelfItem(row: ShelfRow, photos: PhotoStore, flip: Boolean): ShelfItem {
     val photo = trimWhite(photos.bitmap(row.coverFile!!, 512))
     return when (row.packaging) {
         Packaging.Carded -> ShelfItem(row.id, row.packaging, row.scale, photo, Color.White)
         Packaging.Boxed -> ShelfItem(row.id, row.packaging, row.scale, photo, borderColour(photo))
-        Packaging.Loose -> ShelfItem(row.id, row.packaging, row.scale, cutOut(photo), Color.White)
+        Packaging.Loose -> ShelfItem(row.id, row.packaging, row.scale, cutOut(photo).let { if (flip) mirrored(it) else it }, Color.White)
     }
 }
+
+/** [image] as in a mirror: left and right swapped. */
+internal fun mirrored(image: Bitmap): Bitmap =
+    Bitmap.createBitmap(image, 0, 0, image.width, image.height, Matrix().apply { preScale(-1f, 1f) }, false)
 
 /** The studio photo's white backdrop cut away, so the card fills the texture. */
 private fun trimWhite(image: Bitmap): Bitmap {

@@ -4,20 +4,25 @@ import android.app.Application
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import dev.romainguy.kotlin.math.Float2
 import dev.romainguy.kotlin.math.Float3
 import dev.romainguy.kotlin.math.Ray
 import io.github.caropeboka.diecasttracker.data.Packaging
 import io.github.caropeboka.diecasttracker.data.db.ShelfRow
 import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
 import io.github.caropeboka.diecasttracker.data.shelf.Shelf
+import io.github.caropeboka.diecasttracker.data.shelf.ShelfLayout
 import io.github.sceneview.math.Position
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -196,5 +201,133 @@ class GarageGeometryTest {
         val big = moves.getValue(5)
         assertEquals(Shelf.Corner to FILL_ORDER.first(), big.shelf to big.spot)
         assertTrue(big.position in 130..770)
+    }
+
+    @Test
+    fun `a tap on the desk finds the point under it, and on a lift the level it comes in at`() {
+        val eye = Focus.Desk.eye
+        assertEquals(350 to 250, deskAt(ray(eye, onDesk(0.35f, 0.25f))))
+        assertEquals(10 to 390, deskAt(ray(eye, onDesk(0.01f, 0.39f))))
+        assertNull(deskAt(ray(eye, onDesk(-0.03f, 0.2f))))
+        assertNull(deskAt(ray(eye, onDesk(0.35f, DESK_D + 0.02f))))
+
+        val (left, right) = LIFT_CENTRES
+        assertEquals(0, liftAt(ray(eye, onDesk(left.x, left.y, 0.01f))))
+        assertEquals(1, liftAt(ray(eye, onDesk(left.x, left.y, LIFT_DECK + 0.01f))))
+        assertEquals(2, liftAt(ray(eye, onDesk(right.x, right.y, 0.01f))))
+        assertEquals(3, liftAt(ray(eye, onDesk(right.x, right.y, LIFT_DECK + 0.01f))))
+        assertNull(liftAt(ray(eye, onDesk(0.35f, 0.25f))))
+    }
+
+    @Test
+    fun `on the desk a thing stays where it was put, or goes to the free point nearest it`() {
+        assertEquals(Float2(0.35f, 0.2f), deskSpot(0.35f, 0.2f, 0.1f, 0.05f, emptyList()))
+        // Past the edge it stays on the desk.
+        val corner = deskSpot(-0.2f, 0.9f, 0.1f, 0.05f, emptyList())!!
+        assertEquals(0.053f, corner.x, 1e-4f)
+        assertEquals(DESK_D - 0.028f, corner.y, 1e-4f)
+        assertNull(deskSpot(0.3f, 0.2f, DESK_W, 0.05f, emptyList()))
+
+        val there = Footprint(0.35f, 0.2f, 0.05f, 0.025f)
+        val next = deskSpot(0.36f, 0.2f, 0.1f, 0.05f, listOf(there))!!
+        assertTrue(!there.overlaps(next.x, next.y, 0.05f, 0.025f))
+        assertTrue(abs(next.x - 0.36f) + abs(next.y - 0.2f) < 0.07f)
+
+        // In rows from the back, left to right: beside the left lift.
+        val first = deskSpot(0.6f, 0.3f, 0.1f, 0.05f, LIFT_FOOTPRINTS, rows = true)!!
+        assertEquals(0.028f, first.y, 1e-4f)
+        assertTrue(first.x in 0.19f..0.2f)
+    }
+
+    @Test
+    fun `the desk makes room for what's put there now, and a lift's level takes one car`() {
+        val rows = listOf(
+            row(1, Packaging.Boxed, "1:43", slot = ShelfSlotEntity(1, Shelf.Desk, 350, 200)),
+            row(2, Packaging.Loose, slot = ShelfSlotEntity(2, Shelf.Desk, 350, 200)),
+            row(3, Packaging.Loose, slot = ShelfSlotEntity(3, Shelf.Lifts, 1)),
+            row(4, Packaging.Loose, slot = ShelfSlotEntity(4, Shelf.Lifts, 1)),
+            row(5, Packaging.Loose, "1:43", slot = ShelfSlotEntity(5, Shelf.Lifts, 0)),
+            row(6, Packaging.Carded, slot = ShelfSlotEntity(6, Shelf.Desk, 100, 300)),
+            row(7, Packaging.Loose, slot = ShelfSlotEntity(7, Shelf.Desk, DOG_HOME.first, DOG_HOME.second)),
+        )
+        val items = rows.associate { it.id to item(it) }
+        val layout = layOut(rows, items)
+        assertEquals(setOf(4L, 5L, 6L), layout.overflow)
+        assertEquals(350 to 200, layout.desk[1])
+        assertNotEquals(350 to 200, layout.desk[2])
+        // The dog stands where it was; the car put on it stands beside it.
+        assertEquals(DOG_HOME, layout.dog!!.x to layout.dog.depth)
+        assertNotEquals(DOG_HOME, layout.desk[7])
+        val onLift = layout.placed.first { it.item.id == 3L }.rest.position
+        assertTrue(onLift.y > DESK_TOP + LIFT_DECK)
+
+        // Put down just now, the box is the one that moves aside.
+        val settled = layOut(rows, items, settling = setOf(1))
+        assertEquals(350 to 200, settled.desk[2])
+        assertNotEquals(350 to 200, settled.desk[1])
+        // And the dog, put on the box, stands beside it.
+        val dog = layOut(rows, items, dog = 350 to 200, dogSettling = true).dog
+        assertNotNull(dog)
+        assertNotEquals(350 to 200, dog!!.x to dog.depth)
+    }
+
+    @Test
+    fun `with the case full, small loose cars go onto the lifts, and big boxes onto the desk when the tiers are full`() {
+        val inCase = (1L..60L).map { row(it, Packaging.Loose, slot = ShelfSlotEntity(it, Shelf.Case, (it - 1).toInt())) }
+        val cars = (101L..103L).map { row(it, Packaging.Loose) }
+        val boxes = (201L..220L).map { row(it, Packaging.Boxed, "1:18") }
+        val rows = inCase + cars + boxes
+        val items = rows.associate { it.id to item(it) }
+        val moves = arrange(rows, cars + boxes, items)
+
+        assertEquals(ShelfSlotEntity(101, Shelf.Lifts, 0), moves[101])
+        assertEquals(ShelfSlotEntity(102, Shelf.Lifts, 2), moves[102])
+        assertEquals(ShelfSlotEntity(103, Shelf.Lifts, 1), moves[103])
+        val onDesk = moves.values.filter { it.shelf == Shelf.Desk }
+        assertTrue(onDesk.isNotEmpty())
+        assertTrue(moves.values.any { it.shelf == Shelf.Corner })
+        // Each where it was stored, none on another.
+        val after = layOut(rows.map { row -> moves[row.id]?.let(row::placed) ?: row }, items)
+        assertTrue(moves.keys.none { it in after.overflow })
+        onDesk.forEach { assertEquals(it.spot to it.position, after.desk[it.diecastId]) }
+        assertTrue(onDesk.first().position <= onDesk.last().position)
+    }
+
+    @Test
+    fun `a lane that takes more cards hangs them closer, still under the rails' top`() {
+        val rows = (1L..16L).map { row(it, Packaging.Carded, slot = ShelfSlotEntity(it, Shelf.Boards, 6, it.toInt())) }
+        val items = rows.associate { it.id to item(it) }
+
+        assertEquals(4, layOut(rows, items).overflow.size)
+        val roomy = layOut(rows, items, laneCards = 16)
+        assertTrue(roomy.overflow.isEmpty())
+        val heights = roomy.placed.sortedBy { it.item.id }.map { it.rest.position.y }
+        assertTrue(heights.zipWithNext().all { (a, b) -> b > a })
+        // The top card's top: the rails' top at most.
+        val top = onBoard(1, 0f, RAIL_TOP, FACE_Z).y
+        assertTrue(heights.last() + 0.165f / 2 <= top + 1e-4f)
+
+        assertEquals(laneStep(4), laneStep(ShelfLayout.LANE_CARDS), 1e-6f)
+        assertTrue(laneStep(16) < laneStep(ShelfLayout.LANE_CARDS))
+        // Fewer than are there: the rest wait in the tray again, the ones put there first stay.
+        assertEquals((11L..16L).toSet(), layOut(rows, items, laneCards = 10).overflow)
+    }
+
+    @Test
+    fun `a flipped loose car is its picture as in a mirror`() {
+        val red = android.graphics.Color.RED
+        val blue = android.graphics.Color.BLUE
+        val picture = Bitmap.createBitmap(3, 2, Bitmap.Config.ARGB_8888).apply {
+            for (y in 0 until 2) {
+                setPixel(0, y, red)
+                setPixel(1, y, android.graphics.Color.TRANSPARENT)
+                setPixel(2, y, blue)
+            }
+        }
+        val flipped = mirrored(picture)
+        assertEquals(3 to 2, flipped.width to flipped.height)
+        assertEquals(blue, flipped.getPixel(0, 1))
+        assertEquals(android.graphics.Color.TRANSPARENT, flipped.getPixel(1, 0))
+        assertEquals(red, flipped.getPixel(2, 0))
     }
 }

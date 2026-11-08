@@ -21,4 +21,9 @@
     <string name="dashboard_no_brand">No brand</string>
     <string name="place_unnamed">No place name</string>
     <string name="place_unnamed_spot">Unnamed spot</string>
+    <string name="shelf_side_left">left</string>
+    <string name="shelf_side_middle">middle</string>
+    <string name="shelf_side_right">right</string>
+    <string name="shelf_label_desk">White desk · %1$s</string>
+    <string name="shelf_label_lift">White desk · %1$s lift, %2$s</string>
 </resources>
