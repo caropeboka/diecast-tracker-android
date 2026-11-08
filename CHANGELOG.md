@@ -4,6 +4,42 @@ All notable changes to Diecast Tracker for Android. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 Releases with an APK are on the [Releases page](https://github.com/caropeboka/diecast-tracker-android/releases).
 
+## [0.12.0] - 2026-11-08
+
+### Added
+- One Settings page (the gear on the collection) with General (language, currency, date format), AI, Data & backup,
+  the tour and About, each showing what it is set to now.
+- Ask AI can suggest the purchase price, market value or wishlist target price, applied with one tap like the rest.
+- A quick question in Ask AI for a car bought long ago: what it cost at Indomaret or Alfamart in its release year,
+  suggested as the purchase price (an estimate when the exact price can't be found).
+- Leaving the AI settings with a key typed but not saved asks first.
+- 3D garage: a low white desk (70 × 40 × 25 cm) under the boards. Boxes and loose cars stand anywhere on it; what is
+  put on something else moves to the nearest free spot. "Place all automatically" fills it from the back when the
+  rest is full.
+- 3D garage: two car lifts on the desk's back corners, each holding a loose car on its deck and one under it, and a
+  nanoblock dog that can be moved around the desk. A "Desk" view looks down on them.
+- 3D garage: shelf settings (the gear at the top) set how many cards a lane of the boards takes, 4 to 40 instead of
+  a fixed 12. More cards hang closer together; cards that no longer fit wait in the tray.
+- 3D garage: "Flip" on a picked-up loose car turns it to face the other way. Its photo in the collection stays as
+  it is.
+
+### Changed
+- Bulk scan moved into the ＋ menu. The collection's ⋮ menu is gone: the store check is in ＋ and everything else in
+  Settings.
+- Deleting a diecast moved into a ⋮ menu on its page, away from Ask AI.
+- 3D garage: the blister boards hang flat on the wall above the desk instead of leaning against it.
+- Groq gets 2 photos per request instead of 3. Each photo counts as 2048 tokens whatever its size, so 3 photos and
+  the prompt went over the free plan's tokens a minute.
+
+### Fixed
+- A request over a provider's token limit is sent again with fewer photos, instead of smaller ones that count the
+  same, and only then fails over to the next AI.
+- Ask AI no longer shows a raw ```suggest block when the AI names a field the form doesn't have, or is cut off.
+- Ask AI's conversation no longer blinks at the end of the list, and flinging to the top doesn't close it.
+- After "Save & add another", Ask AI starts a fresh conversation for the next diecast.
+- Dex sync with the phone in a language that writes other digits (Arabic, for example) asked the wiki for the wrong
+  page.
+
 ## [0.11.0] - 2026-11-07
 
 ### Added
@@ -66,4 +102,5 @@ The first complete version: the collection with photos and backup import (phase 
 and the hunting map (3), the Dex with wiki sync and own lists (4), and backup and Excel export, the Garage dashboard,
 market prices from screenshots, the bulk scan and the in-store check (5).
 
+[0.12.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.12.0
 [0.11.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.11.0

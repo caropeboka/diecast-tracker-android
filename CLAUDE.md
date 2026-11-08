@@ -8,7 +8,7 @@ behaviour and logic**. It keeps working on the laptop until the Android app catc
 rather than re-inventing; its feature tests (`tests/Feature/*`) describe the expected behaviour and contain
 real-world fixtures.
 
-## Status (2026-11-07)
+## Status (2026-11-08)
 
 Every planned phase (1–4, 5a–5e) is committed and pushed to `github.com/caropeboka/diecast-tracker-android`
 (`main`) as version 0.5.4. Phase 5 order, agreed with the user: 5a backup/export → 5b dashboard → 5c market value from
@@ -40,7 +40,14 @@ Matchbox, Tomica (Premium and the regular lineup), Bburago, Maisto, Moto Cross, 
 is committed and pushed. **Open source** (2026-11-08): MIT `LICENSE`, the README rewritten for other collectors
 (badges, screenshots from the user's phone in `docs/screenshots`, install guide, the AI providers, privacy, building,
 architecture, contributing), `CHANGELOG.md`, `docs/icon.svg` (the launcher icon as SVG), and the first GitHub release
-v0.11.0 (see "Public releases" under "Build, test, run"). The
+v0.11.0 (see "Public releases" under "Build, test, run"). **0.12.0** (the user's list from the phone on 2026-11-08,
+see "From the phone after 0.11.0"): one Settings page, bulk scan in ＋, delete in a ⋮ on the diecast page, Groq with
+fewer photos, Ask AI fixes (raw suggest blocks, price suggestions, the blink at the end of the list), the Indomaret
+quick question, fixes from a bug check, and in the garage the boards on the wall over a white desk with two car lifts
+and a nanoblock dog, the cards per lane set by the collector, and loose cars flipped to face the other way (see "3D
+garage"); covered by tests (264 pass, no lint errors). A first 0.12.0 build is on the
+phone since 2026-11-08 to try the blink fix (no report yet); the desk build followed the same day (it renders in
+"Normal", a tap on the desk offers what fits, the dog shows its bar; placing not tried there yet). The
 phone got 0.7.0 and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57). Next: try the new pieces on the phone (Tanya AI, the web estimate and the web list with
 the real Gemini key; the regions lookup; the store check's batch; the new wikis' sync); the user adds the other
 providers' keys and tries a scan with Gemini's quota used up (or Gemini switched off); the user tries the garage on the
@@ -107,7 +114,7 @@ against the median; "Pakai Rp X sebagai harga pasaran" saves it at once (source 
 older checks (5 in view) and delete. Screenshots are not kept (the user's choice), only what was read. Price checks
 travel in phone backups. Room schema v4 (`price_checks`, with migration).
 
-Phase 5d delivered: "Scan massal" (⋮ menu in Koleksi; a banner in Koleksi and Garasi while the queue holds photos) —
+Phase 5d delivered: "Scan massal" (⋮ menu in Koleksi, the ＋ menu since 0.12.0; a banner in Koleksi and Garasi while the queue holds photos) —
 many photos from the gallery or a back-to-back camera (it reopens after each shot until Back), one diecast each; the
 AI reads them one by one **in the background** (WorkManager, also with the app closed; waits out quota/busy/no
 connection; Jeda/Lanjutkan); review cards with confidence, "Mirip koleksimu" and its matches, quick fields (name,
@@ -116,7 +123,7 @@ Isi manual; shared fields (save as Dimiliki/Wishlist/Ditemui, date, place with t
 yang yakin". Room schema v5 (`scan_items`, with migration).
 
 Phase 5e delivered: "Cek di toko" — from the launcher shortcut (long-press the app icon), the bottom bar's centre
-button (a "Cek" button in Koleksi before 0.6.0), or the ⋮ menu; the camera opens straight away when the AI is on. The AI reads the photo at once
+button (a "Cek" button in Koleksi before 0.6.0), or the ⋮ menu (until 0.12.0); the camera opens straight away when the AI is on. The AI reads the photo at once
 and the collection is searched: Sudah punya / Ada di wishlist / Pernah kamu temui / Belum punya / Tidak terbaca (with
 "Coba lagi"), each with its icon and colour, the store field (map picker), and the last 10 checks (older ones folded
 since 0.7.3, see "After the phases").
@@ -396,7 +403,7 @@ Matches get +1 (owned) or "Dapat" (wishlist/spotted → owned today, "Beli di" =
 ## AI providers (0.8.0)
 
 The user wanted more free AIs than Gemini, with an automatic switch when Gemini's free quota runs out. Researched
-(2026-11): Groq (free, fast, vision model `qwen/qwen3.8-27b`, 3 images, ~1K requests/day), Mistral (free "Experiment"
+(2026-11): Groq (free, fast, vision model `qwen/qwen3.8-27b`, 3 images (the app sends 2), ~1K requests/day), Mistral (free "Experiment"
 plan, phone verification, data may be used for training; vision in Small/Medium/Large 3, Ministral 3), OpenRouter
 (free models: 50/day, 1000/day after a one-time $10; the `openrouter/free` router), NVIDIA NIM (trial) and Cloudflare
 Workers AI (10k neurons/day) through the custom slot (their own providers since 0.10.0); Cerebras was left out (no free tier since 2026-07, text only).
@@ -417,8 +424,11 @@ The user chose Groq, Mistral, OpenRouter and a free "OpenAI-compatible" slot, sw
 - `OpenAiClient`: chat completions with the photos as `image_url` data URLs before the text, the JSON Schema in the
   system prompt and `response_format: json_object` (asked again without it on a 400 that names `response_format`);
   the answer's JSON is found past `<think>` blocks and code fences (`jsonObjectIn`). Per-provider limits in
-  `AiProvider` (Groq: `maxImages` 3, `maxRequestBytes` 4 MB with base64's third and 64 KB of prompt counted): extra
-  photos are left off the end (`AiEvent.Trimmed`). OpenRouter's in-200 `error` becomes its code; `X-Title` is sent.
+  `AiProvider` (Groq: `maxImages` 2 since 0.12.0, `maxRequestBytes` 4 MB with base64's third and 64 KB of prompt counted,
+  `imageTokens` 2048): extra photos are left off the end (`AiEvent.Trimmed`). Groq's vision model counts every photo
+  as 2048 tokens whatever its size, and a request over the plan's tokens a minute (6–8K) gets a 413 "Request too large
+  … (TPM): Limit 6000, Requested 6900": `photosWithinTokens` drops as many photos as the excess needs (at least one
+  stays) and sends again; a 413 without a token limit shrinks the photos once, then sends the first alone. OpenRouter's in-200 `error` becomes its code; `X-Title` is sent.
   Model lists for "Tes key": OpenRouter `openrouter/free` + ids ending `:free` with "image" in
   `architecture.input_modalities`; Mistral `capabilities.vision`; the others everything but audio/guard/embedding.
   `AiHttp.kt` holds what both clients share (`fetch`, `ProgressBody`, `withTimeout`).
@@ -465,11 +475,13 @@ the tour as a spotlight on the real screens, starting with the language.
   as a fallback, rates per USD; refreshed when another currency is in use and the last ones are over 12 h old, kept
   in `UserPrefs` for offline use; "Perbarui kurs" in Settings forces it. `DateStyle`: like the language, yyyy-MM-dd,
   dd-MM-yyyy, dd/MM/yyyy, MM/dd/yyyy. Indonesian groups thousands with dots, English and Chinese with commas.
-- Settings (`ui/settings/SettingsScreen.kt`, ⋮ → Pengaturan): language, currency (with the current rates and their
-  source), date format, links to the AI settings and "Data & backup", and "Ulangi tur".
-- Tour (`ui/Tour.kt`): `TourStep` Welcome (with the language chips) → Koleksi tab → ＋ → Garasi → Peta → Dex → ⋮ →
+- Settings (`ui/settings/SettingsScreen.kt`, the gear on Koleksi since 0.12.0, ⋮ → Pengaturan before): a page of
+  categories, each with what it is set to now: Umum (`GeneralSettingsScreen`: language, currency with the current
+  rates and their source, date format), AI (the AI settings), Data & backup (the last backup), "Ulangi tur", and
+  Tentang (version, opens the GitHub repo).
+- Tour (`ui/Tour.kt`): `TourStep` Welcome (with the language chips) → Koleksi tab → ＋ → Garasi → Peta → Dex → ⚙ →
   Ready (with "Atur AI" when no AI is set up). Pieces register their bounds with `Modifier.tourTarget(LocalTour.current,
-  TourTarget.X)` (tabs and ＋ in `MainNavigation`, ⋮ in `CollectionScreen`); `TourOverlay`, drawn by the root over
+  TourTarget.X)` (tabs and ＋ in `MainNavigation`, the gear in `CollectionScreen`); `TourOverlay`, drawn by the root over
   everything, dims the screen with a hole (`BlendMode.Clear` in an offscreen layer) that glides between targets, a
   pulsing ring, and a card above or below the target. It swallows taps (a tap on the spot = Next); Back goes a step
   back. It starts on Koleksi while `UserPrefs.tourDone` is false (finished or skipped sets it); the step is saveable,
@@ -587,11 +599,34 @@ the other brands in their collection. Their choices in brackets.
   the collection (Bburago, Maisto, Moto Cross, Roll Speed) have no usable wiki list (no Bburago wiki; Maisto's "Fresh
   Metal" page lists no releases): "Cari daftarnya di web (AI)". `WikiBrandsTest`.
 
+## From the phone after 0.11.0 (0.12.0)
+
+The user's list from 2026-11-08 and what a bug check found. Their choices in brackets.
+
+- **Settings** ("Daftar kategori"): see "Languages, money, dates and the tour". The ⋮ menu on Koleksi is gone (store
+  check in ＋, bulk scan moved to ＋, the rest in Settings), so a gear opens Settings and the tour's step points at it.
+- **Delete** ("Menu ⋮ di pojok"): on a saved diecast's page "Tanya AI" stands alone; delete is in a ⋮ menu next to it.
+- **Tanya AI**: the form is shown to the AI with `purchase_price`, `market_value`, `target_price` (whole Rupiah), and
+  those are suggestions too (only for the statuses whose form shows them; "Rp 50.000", "50,000 – 70,000" → 50000; a
+  "_idr" ending and "number"/"release_year" are taken as the field). A ```suggest block never shows as text, even with
+  no usable field or cut off. The blink at the end of a long chat (the user: "ketika scroll bawah mentok dia kaya
+  ngeblink"; not reproduced, the phone only): the list has no overscroll stretch and keeps its leftover flings
+  (`KeepFlings`), so the sheet neither jolts at the bottom nor closes at the top; dragging down from the top still
+  pulls it. After "Simpan & tambah lagi" the next diecast gets its own chat (`DiecastEditViewModel.round` in the key).
+  A quick question "Harga di Indomaret dulu?" (the user's own prompt, tuned: for diecasts bought long ago whose price
+  is forgotten) asks the minimarket price in the release year, or an estimate, as the purchase price; a chip has a
+  short label and may send a longer question (`QuickQuestion`).
+- **AI settings**: Back with a key typed or anything changed asks first (`isDirty`; Simpan / Buang).
+- **Bug check**: wiki page names are formatted with `Locale.ROOT` (a phone in Arabic wrote the year in other digits);
+  deleting a diecast that fails shows a message instead of crashing.
+- Lint once crashed analysing `DexWork.kt` ("Error during resolving call", a lint bug); running it again passed.
+
 ## 3D garage (G0 0.6.7–0.6.8, G1 0.7.0)
 
 The user's real furniture from their photos, in 3D, with the owned diecasts on it: left the black carved corner shelf
 (they call it "laci hitam"; three quarter-round tiers), in the middle **two** laser-cut MDF blister boards (4 lanes
-each, ~12 cards per lane), right the white case (6 × 10 compartments). Opens from "Rak 3D" on the Garasi dashboard
+each, ~12 cards per lane) on the wall over a low white desk with two car lifts and a nanoblock dog (0.12.0), right the
+white case (6 × 10 compartments). Opens from "Rak 3D" on the Garasi dashboard
 (`GarageRoute`). Stages agreed: G0 technical trial, G1 shelves + placement, G2 realism, G3 shelf settings.
 
 - Rendering: SceneView (Compose) on Filament; furniture built in code (`ui/garage/Meshes.kt`: lathe, extruded
@@ -599,7 +634,7 @@ each, ~12 cards per lane), right the white case (6 × 10 compartments). Opens fr
   keyholes, T-rails with a groove, the logo), `CornerShelf.kt` (tiers, turned posts, carved galleries, crest),
   `LooseCase.kt`. Diecasts are pictures: a card is its studio photo with the white cut away, a loose car its photo with
   the backdrop flooded away (`GarageViewModel.cutOut`), a box a block in its border colour with the photo in front.
-  Sizes follow the scale (`scaleRatio`). Camera: `Focus` (Semua · Laci · Papan · Rak putih) glides, tapping furniture
+  Sizes follow the scale (`scaleRatio`). Camera: `Focus` (Semua · Laci · Papan · Meja · Rak putih; the chips scroll on a narrow screen) glides, tapping furniture
   in the overview focuses it, tapping the chosen chip again brings the camera back. Gestures are our own
   `ShelfCamera` (0.7.1; the user couldn't look at a board's sides or bottom: SceneView's manipulator always zooms to
   the screen's centre and its two-finger pan only starts when the fingers keep their distance): one finger orbits
@@ -666,6 +701,38 @@ each, ~12 cards per lane), right the white case (6 × 10 compartments). Opens fr
   `decorations` (name, photo, height_mm, tier, position in tenths of a degree like the slots, created_at); cut-outs
   as PNG in `files/decor` (`DecorStore`, unused ones pruned at start-up). Phone backups carry `decor.json` and
   `decor/` (`DecorBackup`, only when there are any; "replace" swaps them). `DecorTest` and `MigrationTest` cover it.
+- **Desk, lifts and the dog (0.12.0; the user's four photos: the boards hang on the wall, a low white desk under
+  them).** Their choices: anywhere on the desk ("Bebas di mana saja"), 70 × 40 × 25 cm, the dog modelled from blocks,
+  the boards side by side over the desk. The boards stand flat (`LEAN` 0) at `BOARD_Y` (desk top + 0.17 m).
+  `ui/garage/Desk.kt`: the desk (`ShelfLayout.DESK_*_MM`) under the boards (`DESK_X = BOARDS_X`, a finger from the
+  wall), a rounded top on four round legs, and the two 3D-printed car lifts in its back corners (`LIFT_CENTRES`; red
+  posts, black ramps on the desk and on the deck, `LIFT_DECK` 4 cm of head room). `Shelf.Desk`: spot = mm from the
+  desk's left edge to the item's middle, position = mm from its back edge; boxes and loose cars of any scale, no
+  cards. What stands where it was put keeps its place; what is put there now (`layOut(settling)`) moves to the
+  nearest free point (`deskSpot`: a 5 mm grid, 4 mm apart, the lifts' footprints taken; a stored point gets 1.1 mm
+  of slack for its rounding) and `settle` stores where it really ended up. `Shelf.Lifts`: spot = lift × 2 + level
+  (0 under the deck, 1 on it), one loose car of 1:60 or smaller each; a taken level swaps like a compartment. "Taruh
+  semua otomatis": small loose cars onto the lifts once the case is full (under both decks first, `LIFT_ORDER`),
+  then the tiers, then the desk in rows from the back (`layOut(packing)`). Taps with the "Meja" focus: `liftAt`
+  (the box a lift fills; the level by where the ray comes in) before `deskAt`. Labels "Meja putih · kanan" (thirds of
+  the width), "Meja putih · lift kiri, atas". The dog (`NanoDog.kt`): voxel layers (white, a black saddle and eye
+  patches, a red collar) on a green plate with studs, turned 35°, a `Footprint` on the desk like the diecasts (it
+  stands first, so what is put on it moves aside; put on something itself, it moves); tap → Pindahkan, then a spot on
+  the desk. Its place is `UserPrefs.garageDog` ("x,z" in mm, `DOG_HOME` when unset), **not** in backups. No schema
+  change (shelf keys are text). `ShelfTest`, `GarageGeometryTest` and `BackupExporterTest` cover it.
+- **Cards per lane (0.12.0; the user: a lane full at 12 in the app still took more cards for real, "mau dibuat
+  modular", the same for every lane).** `UserPrefs.laneCards` (`garage_lane_cards`, 4–40, `ShelfLayout.LANE_CARDS`
+  12 when unset), set with − / + in the garage's ⚙ sheet "Pengaturan rak" (`ShelfSettingsSheet`, the first of G3's
+  shelf settings). `ShelfPlanner.place`, `layOut`, `arrange` and the restore (`BackupImporter.laneCards`) take it;
+  `laneStep` hangs the cards closer (top card's top at the rails' top at most) once 4.4 cm per card no longer fits;
+  lowering it sends a lane's top cards to the tray, but their slots stay, so raising it again brings them back. Not
+  in backups. The "lane full" message points at the sheet.
+- **Flip (0.12.0; the user: a loose car's photo faces one way, on the desk they sometimes want the other).** "Balik"
+  on a picked-up loose car's card (`HeldCard`) toggles its id in `UserPrefs.garageFlipped` (`garage_flipped`, a
+  string set); `shelfItem` mirrors the cut-out (`mirrored`) and the decoded cache's key carries the flip. Only the
+  3D picture changes, not the photo; cards and boxes can't flip (their print would read backwards). Not in backups.
+  Loose photos for the garage: a side profile at the car's height on a plain light background, then "Foto studio"
+  (the garage's own cut-out only clears light, plain backdrops; a photo from above stands too tall and slanted).
 - Render quality switch at the top right ("Normal" / "Polos" without post-processing / "Hemat" without shadows, AO,
   bloom), kept from G0 until the phone shows which works ("Normal" does, on the phone's Mali-G57 with OpenGL ES 3.2;
   Filament runs at feature level 1 there). **The emulator (SwiftShader) can't show "Normal"** (all
@@ -694,10 +761,10 @@ each, ~12 cards per lane), right the white case (6 × 10 compartments). Opens fr
 | Data | Room (SQLite) on the device. Photos in app-private storage. |
 | Network | OkHttp + kotlinx.serialization (Gemini, OpenAI-style AI providers, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
 | Location / map | Fused Location Provider; **MapLibre** with **OpenFreeMap**'s dark style (OpenStreetMap data, no API key). osmdroid was dropped: archived Nov 2024. Nominatim for place names. |
-| Navigation | Bottom bar: Koleksi · Garasi (dashboard) · ＋ · Peta · Dex; the app opens on Koleksi. The centre ＋ opens Cek di toko / Isi manual / Scan dengan AI (since 0.6.0, replacing the Koleksi FABs) as a FAB menu rising above it (since 0.7.2, replacing a bottom sheet). Other screens open from the ⋮ menu. A screen opened by a tap grows out of what was tapped (0.7.3). Every number on Garasi opens Koleksi filtered to what it counted, the filter shown as a removable chip (0.11.0). |
+| Navigation | Bottom bar: Koleksi · Garasi (dashboard) · ＋ · Peta · Dex; the app opens on Koleksi. The centre ＋ opens Isi manual / Cek di toko / Scan massal / Scan dengan AI (since 0.6.0, replacing the Koleksi FABs; Scan massal since 0.12.0) as a FAB menu rising above it (since 0.7.2, replacing a bottom sheet). Koleksi's gear opens Settings, which leads to everything else (0.12.0; a ⋮ menu before). A screen opened by a tap grows out of what was tapped (0.7.3). Every number on Garasi opens Koleksi filtered to what it counted, the filter shown as a removable chip (0.11.0). |
 | AI scan flow (0.6.0) | Photos first (camera back-to-back for a new diecast, a guide of the sides to shoot), the AI reads only on "Pindai dengan AI". While any AI request runs, its steps are shown as a log (not just a spinner). |
 | Foto studio (0.6.1) | On the phone only (ML Kit segmentation; corners by hand for cards and boxes), free and offline after the first download; the original photo stays. No generative AI editing (it can change printed details). |
-| 3D garage (0.6.7+) | SceneView/Filament, furniture modelled in code after the user's photos (black corner shelf, two MDF blister boards, white 6 × 10 case). Owned diecasts only, one place each whatever the quantity. Free placement with a tray of unplaced ones; the place writes "Lokasi simpan". The trademarked logo stays out of git. Decorations (the user's figures) on the black shelf, cut out on the phone and optionally cleaned (0.7.3). |
+| 3D garage (0.6.7+) | SceneView/Filament, furniture modelled in code after the user's photos (black corner shelf, two MDF blister boards on the wall, a white desk 70 × 40 × 25 cm with two car lifts under them since 0.12.0, white 6 × 10 case). Owned diecasts only, one place each whatever the quantity. Free placement with a tray of unplaced ones; the place writes "Lokasi simpan". The trademarked logo stays out of git. Decorations (the user's figures) on the black shelf, cut out on the phone and optionally cleaned (0.7.3). How many cards a lane takes is the collector's setting (0.12.0). |
 | Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). Since 0.10.0: Hot Wheels from 1989, Matchbox from 2000, Mini GT (with Kaido House) 2018–2022 and Tomica's regular lineup from their wikis; other lines through the AI's web search into own dexes, reviewed first. Since 0.11.0: Tomica Premium per release year; the Dex tab shows a card per brand, which opens that brand's page with its lists. The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. Own dexes: the AI's checklist rows are reviewed before they're added; entries can be edited (both unlike the web). |
 | Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
@@ -705,8 +772,8 @@ each, ~12 cards per lane), right the white case (6 × 10 compartments). Opens fr
 | AI provider | Gemini, Groq, Mistral, OpenRouter and one OpenAI-compatible server (0.8.0; Gemini only before), plus Cloudflare Workers AI, NVIDIA NIM, Z.ai and OVHcloud (no key, off by default) since 0.10.0, tried in the user's order: on quota, busy, timeout or a refused key the same request goes to the next; one out of quota rests until it is back. Cerebras left out (no free tier). Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
 | Existing data | Import the web app's **backup zip** (see below). |
-| In-store check (phase 5e) | Opened from a launcher shortcut, the bottom bar's centre button and the ⋮ menu; the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). Since 0.10.0 many photos in a row, read one at a time. |
-| Bulk scan (phase 5d) | Reads in the background with WorkManager (not only while the screen is open, unlike the web). Camera is back-to-back. Entry: ⋮ menu in Koleksi, banners in Koleksi and Garasi. Saved items leave the queue (no "saved" history). |
+| In-store check (phase 5e) | Opened from a launcher shortcut and the bottom bar's centre button (the ⋮ menu too until 0.12.0); the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). Since 0.10.0 many photos in a row, read one at a time. |
+| Bulk scan (phase 5d) | Reads in the background with WorkManager (not only while the screen is open, unlike the web). Camera is back-to-back. Entry: the ＋ menu (the ⋮ menu in Koleksi until 0.12.0), banners in Koleksi and Garasi. Saved items leave the queue (no "saved" history). |
 | Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. Since 0.10.0 also other keywords, Bukalapak/Lazada/Facebook/eBay sold, prices abroad at today's rate, a rough AI estimate from the web (source `ai_estimate`) and the collector's own records. |
 | Tanya AI (0.10.0) | A chat in the diecast form that sees its photos and fields; suggested changes applied with "Pakai"; Gemini searches the web and shows its sources. |
 | Map regions (0.10.0) | Provinsi → kabupaten/kota → kecamatan → desa from OpenStreetMap's admin levels per point, looked up while Peta is open and cached a year; a drill-down chart that also filters the page. |

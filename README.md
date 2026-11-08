@@ -108,10 +108,11 @@ each other's backups.
   brand, rarity, car manufacturer, release year and scale. Every number opens the cars behind it.
 
 ### 🧱 3D garage
-- Real furniture modelled in code after photos: a carved corner shelf, two laser-cut blister boards and a 6 × 10
-  case, rendered with Filament.
-- Owned cars appear as their photos: cards hang on the boards, loose cars sit in the compartments. Place them anywhere
-  they fit (that fills in their storage location); the rest wait in a tray, or "Place all automatically".
+- Real furniture modelled in code after photos: a carved corner shelf, two laser-cut blister boards on the wall, a
+  low desk under them with two car lifts, and a 6 × 10 case, rendered with Filament.
+- Owned cars appear as their photos: cards hang on the boards, loose cars sit in the compartments, on the lifts or
+  anywhere on the desk. Place them anywhere they fit (that fills in their storage location); the rest wait in a
+  tray, or "Place all automatically". How many cards a lane takes is yours to set.
 - A map-like camera, cars that glide between places, and decorations: photograph a figure and the app cuts it out (and
   can clean off the dust) to stand on the shelf.
 
@@ -164,24 +165,24 @@ The release APK contains no trademarked artwork: the blister boards show a drawn
 
 ## Getting started
 
-1. **Pick a language** on the first screen of the tour (change it later in **⋮ → Settings**).
-2. **Add a car:** tap the orange **＋** → *Scan with AI* or *Fill in by hand*. Shoot the front and the back of the
-   card; the camera reopens after each shot.
-3. **Set up an AI** (optional, free): **⋮ → AI settings**, see below. Everything else works without it.
+1. **Pick a language** on the first screen of the tour (change it later in **⚙ Settings → General**).
+2. **Add a car:** tap the orange **＋** → *Scan with AI* or *Fill in by hand* (*Bulk scan* and *Store check* are
+   there too). Shoot the front and the back of the card; the camera reopens after each shot.
+3. **Set up an AI** (optional, free): **⚙ Settings → AI**, see below. Everything else works without it.
 4. **Sync the Dex:** open the **Dex** tab, pick a brand and the years you collect, and sync. Your cars are linked
    to the lists as soon as it finishes.
-5. **Coming from the web app?** **⋮ → Data & backup → Restore from a backup** takes the web app's backup zip.
+5. **Coming from the web app?** **⚙ Settings → Data & backup → Restore from a backup** takes the web app's backup zip.
 
 ## Setting up the AI
 
-Every provider below has a free tier. Create a key, then open **⋮ → AI settings**, paste it and tap **Test key** to
+Every provider below has a free tier. Create a key, then open **⚙ Settings → AI**, paste it and tap **Test key** to
 check it and choose a model. Use ↑ / ↓ to set the order they're tried in; one that's out of quota rests until its
 quota is back.
 
 | Provider | Free tier (checked November 2026) | Get a key |
 | --- | --- | --- |
 | Google Gemini | a daily quota; the only one that can search the web | [aistudio.google.com](https://aistudio.google.com/apikey) |
-| Groq | very fast, about 1,000 requests a day, 3 photos per request | [console.groq.com](https://console.groq.com/keys) |
+| Groq | very fast, about 1,000 requests a day, 2 photos per request | [console.groq.com](https://console.groq.com/keys) |
 | Mistral | "Experiment" plan (phone check; photos may be used for training) | [console.mistral.ai](https://console.mistral.ai/api-keys) |
 | OpenRouter | free models: 50 requests a day (1,000 after a one-time $10 top-up) | [openrouter.ai](https://openrouter.ai/keys) |
 | Cloudflare Workers AI | 10,000 neurons a day; needs your account ID too | [dash.cloudflare.com](https://dash.cloudflare.com/profile/api-tokens) |
@@ -280,7 +281,7 @@ every Room migration is tested from each older schema.
 This is a personal project shaped by one collector's habits, but issues and pull requests are welcome.
 
 - **Bugs and ideas:** [open an issue](https://github.com/caropeboka/diecast-tracker-android/issues) with your phone,
-  Android version and the app version (⋮ → Settings).
+  Android version and the app version (⚙ Settings → About).
 - **Pull requests:** keep `./gradlew :app:testDebugUnitTest :app:lintDebug` passing and add tests for new logic.
   New texts go into all three languages. A database change needs a Room migration (never a destructive fallback)
   and a step in `MigrationTest`. Commit messages follow [Conventional Commits](https://www.conventionalcommits.org).
