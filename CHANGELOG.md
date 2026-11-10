@@ -4,6 +4,21 @@ All notable changes to Diecast Tracker for Android. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 Releases with an APK are on the [Releases page](https://github.com/caropeboka/diecast-tracker-android/releases).
 
+## [0.13.0] - 2026-11-10
+
+### Added
+- Price check: Google Shopping, OLX (its hobby category), Carousell, and sold listings on Yahoo! Auctions Japan and
+  Mercari Japan, whose prices in yen are converted like the others. The search buttons are grouped into new from
+  shops, second-hand and sold abroad.
+- Price check: "Search the photo with Google Lens" sends the cover photo to Google Lens, for a car its name doesn't
+  find.
+- The AI's other keywords include one in Japanese for Tomica and other Japanese lines.
+- A quick question in Ask AI for the current market price, suggested as the market value.
+
+### Removed
+- Bukalapak from the price check search buttons: it stopped selling physical goods in February 2025, so its product
+  search no longer opens.
+
 ## [0.12.0] - 2026-11-08
 
 ### Added
@@ -102,5 +117,6 @@ The first complete version: the collection with photos and backup import (phase 
 and the hunting map (3), the Dex with wiki sync and own lists (4), and backup and Excel export, the Garage dashboard,
 market prices from screenshots, the bulk scan and the in-store check (5).
 
+[0.13.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.13.0
 [0.12.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.12.0
 [0.11.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.11.0

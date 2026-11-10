@@ -36,8 +36,8 @@ on the phone since 2026-11-07 (it starts, the 64 diecasts intact) but **its new 
 **0.11.0** (the user's first look at 0.10.0, see "From the phone after 0.10.0"): every number on Garasi opens Koleksi
 filtered, the map's stats and history days open, the Dex tab per brand with a page each, Tomica Premium per year;
 covered by tests (252 pass), on the phone since 2026-11-07 (it starts, the 64 diecasts intact), not tried there yet. The collection's brands (read from the phone 2026-11-07): Hot Wheels,
-Matchbox, Tomica (Premium and the regular lineup), Bburago, Maisto, Moto Cross, Roll Speed. Everything up to 0.11.0
-is committed and pushed. **Open source** (2026-11-08): MIT `LICENSE`, the README rewritten for other collectors
+Matchbox, Tomica (Premium and the regular lineup), Bburago, Maisto, Moto Cross, Roll Speed. Everything up to 0.12.0
+is committed and pushed (tags v0.11.0, v0.12.0; 0.13.0 given to the user to commit on 2026-11-10). **Open source** (2026-11-08): MIT `LICENSE`, the README rewritten for other collectors
 (badges, screenshots from the user's phone in `docs/screenshots`, install guide, the AI providers, privacy, building,
 architecture, contributing), `CHANGELOG.md`, `docs/icon.svg` (the launcher icon as SVG), and the first GitHub release
 v0.11.0 (see "Public releases" under "Build, test, run"). **0.12.0** (the user's list from the phone on 2026-11-08,
@@ -45,7 +45,10 @@ see "From the phone after 0.11.0"): one Settings page, bulk scan in ＋, delete 
 fewer photos, Ask AI fixes (raw suggest blocks, price suggestions, the blink at the end of the list), the Indomaret
 quick question, fixes from a bug check, and in the garage the boards on the wall over a white desk with two car lifts
 and a nanoblock dog, the cards per lane set by the collector, and loose cars flipped to face the other way (see "3D
-garage"); covered by tests (264 pass, no lint errors). A first 0.12.0 build is on the
+garage"); covered by tests (264 pass, no lint errors). **0.13.0** (the user on 2026-11-10, see "From the phone after
+0.12.0"): Bukalapak out of the price check, Google Shopping, OLX, Carousell, Yahoo! Auctions and Mercari Japan in, Google
+Lens with the cover photo, and an Ask AI quick question for the market price; covered by tests (264 pass), on the phone since
+2026-11-10 (Lens and OLX tried there). A first 0.12.0 build is on the
 phone since 2026-11-08 to try the blink fix (no report yet); the desk build followed the same day (it renders in
 "Normal", a tap on the desk offers what fits, the dog shows its bar; placing not tried there yet). The
 phone got 0.7.0 and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57). Next: try the new pieces on the phone (Tanya AI, the web estimate and the web list with
@@ -550,8 +553,8 @@ The features from the same list, each with the option the user picked.
   saved state; a question cut off by the process dying shows as interrupted. `AiVision.chat` shares the provider
   switching with `extract` (`firstAnswer`). `DiecastChatTest`, `DiecastFormTest`.
 - **Price check beyond Tokopedia/Shopee** (all four): other keywords (`PriceChecker.keywordVariants` at once,
-  `keywords` from the AI without photos); more places to search (`Marketplace`: Bukalapak, Lazada, Facebook, eBay
-  sold); listings in other currencies converted at today's rate (`ExchangeRates.others`: EUR, GBP, JPY, AUD, CAD, SGD,
+  `keywords` from the AI without photos); more places to search (`Marketplace`: Lazada, Facebook, eBay sold;
+  Bukalapak until 0.12.0, gone since it stopped selling physical goods in February 2025; more in 0.13.0); listings in other currencies converted at today's rate (`ExchangeRates.others`: EUR, GBP, JPY, AUD, CAD, SGD,
   MYR, HKD from Frankfurter; without a rate a listing doesn't count; a tip that shipping isn't included); a rough AI
   estimate from the web (`PriceChecker.estimate`, a ```estimate block; "Pakai" stores it as `ValueSource.AiEstimate`,
   `ai_estimate`); the collector's own records (`OwnPriceFinder`: purchase and shelf prices of this diecast and its
@@ -620,6 +623,34 @@ The user's list from 2026-11-08 and what a bug check found. Their choices in bra
 - **Bug check**: wiki page names are formatted with `Locale.ROOT` (a phone in Arabic wrote the year in other digits);
   deleting a diecast that fails shows a message instead of crashing.
 - Lint once crashed analysing `DexWork.kt` ("Error during resolving call", a lint bug); running it again passed.
+
+## From the phone after 0.12.0 (0.13.0)
+
+The user on 2026-11-10: Bukalapak's button opened "Halaman ini gak bisa diakses", a quick question for the market
+price, and other places to look up prices. Their choice: all four of Google Shopping, Google Lens, local second-hand
+sites and Japan.
+
+- **Bukalapak** stopped selling physical goods in February 2025 (only pulsa, tokens and the like since), so its
+  product search is dead: out of `Marketplace` and the prompts. Older checks still name it (`MARKETPLACE_NAMES`).
+- **More places** (`Marketplace`, grouped by `MarketGroup`: new from shops / second-hand / sold abroad, a label over
+  each row of buttons): Google Shopping (`udm=28&gl=id`, prices from many shops, Blibli too), OLX (only its "Koleksi &
+  Mainan Hobi" category `c221`, as a plain search there is mostly real cars; the words lower case and joined by
+  dashes, `q-hot-wheels-gt-r`), Carousell Indonesia (`id.carousell.com/search/<words with %20>`), Yahoo! Auctions
+  Japan's ended auctions (`closedsearch`) and Mercari Japan's sold items (`status=sold_out`), in yen, converted like
+  other currencies. `Words` says how the keywords go into each address. OLX doesn't answer the laptop's curl (bot
+  protection): its address format comes from its own pages and works on the phone, but it has few diecasts, so a
+  full name often finds nothing ("hot wheels" does), and it narrows to a city by itself. TikTok Shop shows through Tokopedia since 2024.
+- The AI reading the screenshots knows the new pages (`MARKETPLACE_KEYS`: google, olx, carousell, yahoo_auctions,
+  mercari; Google's shop is the store named with the price; a sold price without shipping); the keyword helper adds a
+  Japanese set for Japanese lines (Tomica…) and the web estimate looks at the Japanese sites for them.
+- **Google Lens** (`ui/edit/GoogleLens.kt`): "Search the photo with Google Lens" under the buttons when the form has
+  a photo. The cover is copied to `cache/exports/lens.<ext>` (cleared with the exports) and sent as `ACTION_SEND` to
+  the Google app's Lens share target (`LensShareEntryPointActivity`; the package alone would ask, as the app also
+  takes pictures to save them), then the package, then the share sheet. On the phone it opens Lens at once and
+  recognised the card; prices show under "Visual matches" as tags on the pictures ("IDR 200,000*", the shop under
+  it), which the reading prompt and the hint mention.
+- **Ask AI**: "Market price now?" sends the user's own prompt "Give me your estimate of current market price." and
+  asks for it as the market value, so "Pakai" can apply it.
 
 ## 3D garage (G0 0.6.7–0.6.8, G1 0.7.0)
 
@@ -774,7 +805,7 @@ white case (6 × 10 compartments). Opens from "Rak 3D" on the Garasi dashboard
 | Existing data | Import the web app's **backup zip** (see below). |
 | In-store check (phase 5e) | Opened from a launcher shortcut and the bottom bar's centre button (the ⋮ menu too until 0.12.0); the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). Since 0.10.0 many photos in a row, read one at a time. |
 | Bulk scan (phase 5d) | Reads in the background with WorkManager (not only while the screen is open, unlike the web). Camera is back-to-back. Entry: the ＋ menu (the ⋮ menu in Koleksi until 0.12.0), banners in Koleksi and Garasi. Saved items leave the queue (no "saved" history). |
-| Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. Since 0.10.0 also other keywords, Bukalapak/Lazada/Facebook/eBay sold, prices abroad at today's rate, a rough AI estimate from the web (source `ai_estimate`) and the collector's own records. |
+| Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. Since 0.10.0 also other keywords, Lazada/Facebook/eBay sold (Bukalapak until 0.12.0: it closed its marketplace), since 0.13.0 Google Shopping, OLX, Carousell, Yahoo! Auctions and Mercari Japan sold and Google Lens with the cover photo, prices abroad at today's rate, a rough AI estimate from the web (source `ai_estimate`) and the collector's own records. |
 | Tanya AI (0.10.0) | A chat in the diecast form that sees its photos and fields; suggested changes applied with "Pakai"; Gemini searches the web and shows its sources. |
 | Map regions (0.10.0) | Provinsi → kabupaten/kota → kecamatan → desa from OpenStreetMap's admin levels per point, looked up while Peta is open and cached a year; a drill-down chart that also filters the page. |
 | Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |

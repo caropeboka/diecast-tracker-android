@@ -100,7 +100,8 @@ each other's backups.
   AI, looked up on the web by the AI (reviewed before they're added), or built from your collection.
 
 ### 💰 Prices and stats
-- **Market price check:** screenshots of Tokopedia, Shopee, Bukalapak, Lazada, Facebook or eBay sold listings; the AI
+- **Market price check:** screenshots of Tokopedia, Shopee, Lazada, Google Shopping, Facebook, OLX, Carousell, or
+  sold listings on eBay, Yahoo! Auctions Japan or Mercari Japan, and Google Lens for a car its name doesn't find; the AI
   reads every listing, outliers are dropped, and you get the median, a fair range, a suggested price and how much to
   trust it. Prices abroad are converted at the day's rate. Also a rough AI estimate from the web, and what you paid
   for look-alikes before.
