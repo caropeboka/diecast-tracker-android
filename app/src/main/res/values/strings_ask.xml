@@ -14,6 +14,8 @@
     <string name="ask_quick_year">Is the release year right?</string>
     <string name="ask_quick_price">Price at Indomaret back then?</string>
     <string name="ask_quick_price_question">I don\'t remember what I paid for this one. What did it usually cost at an Indonesian minimarket (Indomaret or Alfamart) in its release year? If the release year isn\'t filled in, work it out first. If this line isn\'t sold at minimarkets, use its usual price at Indonesian toy shops. If you can\'t find the exact price, give your best estimate and say it\'s an estimate. Suggest it as the purchase price.</string>
+    <string name="ask_quick_market">Market price now?</string>
+    <string name="ask_quick_market_question">Give me your estimate of current market price. Suggest it as the market value.</string>
     <string name="ask_quick_rarity">Is it a TH or STH?</string>
     <string name="ask_quick_series">Which series and number is it?</string>
     <string name="ask_quick_versions">How do I tell its versions apart?</string>

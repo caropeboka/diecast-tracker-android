@@ -196,6 +196,7 @@ private val QUICK_QUESTIONS = listOf(
     QuickQuestion(R.string.ask_quick_year),
     // For a diecast bought long ago whose price is forgotten: what it cost at the minimarket when it came out.
     QuickQuestion(R.string.ask_quick_price, R.string.ask_quick_price_question),
+    QuickQuestion(R.string.ask_quick_market, R.string.ask_quick_market_question),
     QuickQuestion(R.string.ask_quick_rarity),
     QuickQuestion(R.string.ask_quick_series),
     QuickQuestion(R.string.ask_quick_versions),
