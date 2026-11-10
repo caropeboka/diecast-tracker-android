@@ -235,7 +235,7 @@ fun DiecastEditScreen(
             OwnershipSection(viewModel, suggestions)
             viewModel.existing?.let { existing ->
                 SightingsCard(viewModel.sightings, viewModel::openSighting, viewModel::deleteSighting)
-                PriceCheckPanel(existing, viewModel.sightings, viewModel::marketValueApplied, onAiSettings)
+                PriceCheckPanel(existing, viewModel.sightings, viewModel.form.photos.firstOrNull(), viewModel::marketValueApplied, onAiSettings)
             }
         }
     }

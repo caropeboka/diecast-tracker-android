@@ -19,6 +19,7 @@ import io.github.caropeboka.diecasttracker.util.string
 import java.net.URLEncoder
 import java.time.Instant
 import java.time.ZoneId
+import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -37,19 +38,66 @@ import kotlinx.serialization.json.Json
 /** Screenshots read per check (web: `PriceChecker::MAX_SCREENSHOTS`). */
 const val MAX_PRICE_SCREENSHOTS = 6
 
+/** How the search buttons are grouped: new from shops, second-hand, and what really sold abroad. */
+enum class MarketGroup(@StringRes val label: Int) {
+    Shops(R.string.price_group_shops),
+    Preloved(R.string.price_group_preloved),
+    SoldAbroad(R.string.price_group_sold),
+}
+
+/** How the keywords go into a marketplace's address. */
+private enum class Words {
+    /** A query parameter: spaces become "+". */
+    Query,
+
+    /** A path segment: spaces become "%20". */
+    Path,
+
+    /** OLX's "q-hot-wheels-skyline": lower case, words joined by dashes. */
+    Slug,
+}
+
 /** Where a diecast can be looked up; [search] opens its results for some keywords. */
-enum class Marketplace(val label: String, private val url: String, @StringRes val labelRes: Int? = null) {
-    Tokopedia("Tokopedia", "https://www.tokopedia.com/search?st=product&q={q}"),
-    Shopee("Shopee", "https://shopee.co.id/search?keyword={q}"),
-    Bukalapak("Bukalapak", "https://www.bukalapak.com/products?search%5Bkeywords%5D={q}"),
-    Lazada("Lazada", "https://www.lazada.co.id/catalog/?q={q}"),
-    Facebook("Facebook", "https://www.facebook.com/marketplace/search/?query={q}"),
+enum class Marketplace(
+    val label: String,
+    private val url: String,
+    val group: MarketGroup,
+    @StringRes val labelRes: Int? = null,
+    private val words: Words = Words.Query,
+) {
+    Tokopedia("Tokopedia", "https://www.tokopedia.com/search?st=product&q={q}", MarketGroup.Shops),
+    Shopee("Shopee", "https://shopee.co.id/search?keyword={q}", MarketGroup.Shops),
+    Lazada("Lazada", "https://www.lazada.co.id/catalog/?q={q}", MarketGroup.Shops),
+
+    /** Google's Shopping tab: prices from many shops (Blibli and other web shops too) on one page. */
+    GoogleShopping("Google Shopping", "https://www.google.com/search?udm=28&gl=id&q={q}", MarketGroup.Shops),
+    Facebook("Facebook", "https://www.facebook.com/marketplace/search/?query={q}", MarketGroup.Preloved),
+
+    /** Only OLX's "Koleksi & Mainan Hobi": a plain search there is mostly real cars. */
+    Olx("OLX", "https://www.olx.co.id/koleksi-mainan-hobi_c221/q-{q}", MarketGroup.Preloved, words = Words.Slug),
+    Carousell("Carousell", "https://id.carousell.com/search/{q}", MarketGroup.Preloved, words = Words.Path),
 
     /** Sold listings only: what collectors abroad really paid. */
-    EbaySold("eBay", "https://www.ebay.com/sch/i.html?_nkw={q}&LH_Sold=1&LH_Complete=1", R.string.price_ebay_sold),
+    EbaySold("eBay", "https://www.ebay.com/sch/i.html?_nkw={q}&LH_Sold=1&LH_Complete=1", MarketGroup.SoldAbroad, R.string.price_ebay_sold),
+
+    /** Japanese auctions that ended in a sale, and Mercari's sold items: Tomica and other Japanese lines, in yen. */
+    YahooAuctionsSold("Yahoo! Auctions", "https://auctions.yahoo.co.jp/closedsearch/closedsearch?p={q}", MarketGroup.SoldAbroad, R.string.price_yahoo_sold),
+    MercariSold("Mercari", "https://jp.mercari.com/search?keyword={q}&status=sold_out", MarketGroup.SoldAbroad, R.string.price_mercari_sold),
     ;
 
-    fun search(query: String): String = url.replace("{q}", URLEncoder.encode(query.trim(), "UTF-8"))
+    fun search(query: String): String {
+        val text = query.trim()
+        val encoded = when (words) {
+            Words.Query -> URLEncoder.encode(text, "UTF-8")
+            Words.Path -> URLEncoder.encode(text, "UTF-8").replace("+", "%20")
+            Words.Slug -> text.lowercase(Locale.ROOT).split(WHITESPACE).filter { it.isNotEmpty() }.joinToString("-") { URLEncoder.encode(it, "UTF-8") }
+        }
+        return url.replace("{q}", encoded)
+    }
+
+    private companion object {
+        val WHITESPACE = Regex("[\\s\\p{Z}]+")
+    }
 }
 
 /**
@@ -251,6 +299,9 @@ class PriceChecker(
         }
 
         const val MAX_KEYWORDS = 6
+
+        /** What the AI may say a listing came from; "bukalapak" stays readable in older checks, not offered any more. */
+        val MARKETPLACE_KEYS = listOf("tokopedia", "shopee", "lazada", "google", "facebook", "olx", "carousell", "ebay", "yahoo_auctions", "mercari", "other")
         private const val IDR = "IDR"
         private val CURRENCY = Regex("^[A-Z]{3}$")
         private val MODEL_CODE = Regex("\\b[A-Z]{2,5}\\d{3,}\\b")
@@ -258,9 +309,11 @@ class PriceChecker(
 
         private val KEYWORDS_PROMPT = """
             You help an Indonesian diecast collector find one diecast for sale online. Suggest up to $MAX_KEYWORDS search
-            keyword sets for Tokopedia, Shopee and eBay that would find it when the obvious search doesn't: shorter or
-            broader ones, other names the casting is sold under (English or Japanese), the model code, the car's
-            chassis code (e.g. "R34", "AE86", "FD3S"), the series. Each set 1 to 6 words, the most promising first.
+            keyword sets for Indonesian marketplaces, Google Shopping and eBay that would find it when the obvious search
+            doesn't: shorter or broader ones, other names the casting is sold under (English or Japanese), the model code,
+            the car's chassis code (e.g. "R34", "AE86", "FD3S"), the series. For a Japanese line (Tomica, Tomica Premium,
+            Kyosho…) include one set in Japanese (e.g. "トミカ スカイライン") for Yahoo! Auctions and Mercari Japan. Each
+            set 1 to 6 words, the most promising first.
         """.trimIndent()
 
         private val KEYWORDS_SCHEMA: JsonObject = buildJsonObject {
@@ -277,8 +330,8 @@ class PriceChecker(
 
         private val ESTIMATE_PROMPT = """
             You help an Indonesian diecast collector estimate what one diecast is worth now. Search the web if you can:
-            Indonesian marketplaces (Tokopedia, Shopee, Bukalapak), eBay sold listings, collector forums and price
-            guides. Answer in {language} in three to six short sentences or bullets: the prices you found (where, carded
+            Indonesian marketplaces (Tokopedia, Shopee, Lazada), eBay sold listings, Yahoo! Auctions and Mercari Japan
+            for Japanese lines, collector forums and price guides. Answer in {language} in three to six short sentences or bullets: the prices you found (where, carded
             or loose, sold or asking), and how sure the estimate is. Never invent prices; if you found nothing reliable,
             say so.
 
@@ -292,8 +345,9 @@ class PriceChecker(
 
         private val SYSTEM_PROMPT = """
             You help an Indonesian diecast collector estimate market prices. You are given screenshots of marketplace
-            search results or product pages (usually Tokopedia, sometimes Shopee, Bukalapak, Lazada, Facebook
-            Marketplace or eBay's sold listings) and a description of the diecast being priced.
+            search results or product pages (usually Tokopedia, sometimes Shopee, Lazada, Google Shopping or Google Lens,
+            Facebook Marketplace, OLX, Carousell, or sold listings on eBay, Yahoo! Auctions Japan or Mercari Japan) and a
+            description of the diecast being priced.
 
             Extract EVERY product listing visible in the screenshots — also the ones that are not this diecast — exactly
             as shown. Never invent listings or guess prices that aren't visible. If the same listing appears in two
@@ -304,12 +358,17 @@ class PriceChecker(
             - price: the price a buyer pays now, as a plain number in the currency shown ("Rp45.000" → 45000,
               "Rp1,2jt" → 1200000, "$12.50" → 12.5). If a discount is shown, use the discounted price, not the
               struck-through one. If a price range is shown ("Rp35.000 - Rp60.000"), use the lowest price and set
-              is_price_range to true. On eBay's sold results use the price it sold for, without shipping.
-            - currency: the price's ISO currency code: IDR for rupiah, USD for "$" or "US $" (eBay.com), EUR, GBP, JPY…
-            - shop: the shop / seller name if visible, else null. location: the city if visible, else null.
+              is_price_range to true. Google Lens puts the price as a tag on the picture ("IDR 200,000*"); a
+              picture without a price tag is not a listing. On sold results (eBay, Yahoo! Auctions' ended auctions, Mercari's SOLD items) use
+              the price it sold for, without shipping.
+            - currency: the price's ISO currency code: IDR for rupiah, USD for "$" or "US $" (eBay.com), JPY for "円" or
+              "¥" (Yahoo! Auctions, Mercari), EUR, GBP…
+            - shop: the shop / seller name if visible (on Google Shopping and Google Lens, the store named with the
+              price), else null. location: the city if visible, else null.
             - sold: how many sold as an integer ("10+ terjual" → 10, "1rb+ terjual" → 1000, "250 terjual" → 250), null if not shown.
             - rating: the rating number if shown, else null. is_ad: true if marked as an ad ("Ad", "Iklan").
-            - marketplace: tokopedia, shopee, bukalapak, lazada, facebook, ebay or other.
+            - marketplace: tokopedia, shopee, lazada, google (Google Shopping or Google Lens results), facebook, olx,
+              carousell, ebay, yahoo_auctions, mercari or other.
             - match — compare with the target diecast:
               "match": the same casting and the same variant, in the same condition (carded vs loose) as the target.
               "different_variant": same casting but another variant — e.g. Super Treasure Hunt vs regular, another color,
@@ -349,7 +408,7 @@ class PriceChecker(
                 "sold" to nullable("integer"),
                 "rating" to nullable("number"),
                 "is_ad" to type("boolean"),
-                "marketplace" to choice(listOf("tokopedia", "shopee", "bukalapak", "lazada", "facebook", "ebay", "other")),
+                "marketplace" to choice(MARKETPLACE_KEYS),
                 "match" to choice(ListingMatch.entries.map { it.key }),
                 "reason" to type("string"),
             )

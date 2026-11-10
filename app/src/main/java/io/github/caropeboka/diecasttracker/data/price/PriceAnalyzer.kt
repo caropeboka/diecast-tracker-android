@@ -46,7 +46,7 @@ data class PriceListing(
     val sold: Int? = null,
     val rating: Double? = null,
     @SerialName("is_ad") val isAd: Boolean = false,
-    /** tokopedia, shopee, bukalapak, lazada, facebook, ebay or other. */
+    /** One of [PriceChecker.MARKETPLACE_KEYS] (or "bukalapak" in checks from before 0.13.0). */
     val marketplace: String = "other",
     val match: ListingMatch = ListingMatch.Unclear,
     /** The AI's few words on [match]. */

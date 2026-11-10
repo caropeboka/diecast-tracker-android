@@ -199,6 +199,15 @@
     <string name="dex_use_year">Use %1$d</string>
     <string name="price_intro">Search for this diecast on Tokopedia, Shopee, eBay and more, take screenshots of the results, and the AI reads every listing and works out its market price. Not listed anywhere? Ask the AI for a rough estimate from the web, or look at the prices in your own records.</string>
     <string name="price_ebay_sold">eBay sold</string>
+    <string name="price_group_shops">New, from shops</string>
+    <string name="price_group_preloved">Second-hand</string>
+    <string name="price_group_sold">Sold abroad: what buyers paid</string>
+    <string name="price_group_photo">The name doesn\'t find it?</string>
+    <string name="price_yahoo_sold">Yahoo! JP sold</string>
+    <string name="price_mercari_sold">Mercari JP sold</string>
+    <string name="price_lens">Search the photo with Google Lens</string>
+    <string name="price_lens_hint">Sends the cover photo to Google Lens. Scroll down to Visual matches: the prices are tags on the pictures. Screenshot them like the others.</string>
+    <string name="price_lens_failed">Couldn\'t open Google Lens. Is the Google app installed?</string>
     <string name="price_tip_abroad">Prices from abroad (eBay) are converted at today\'s rate and leave out shipping and import costs.</string>
     <string name="price_no_rate">no exchange rate for %1$s</string>
     <string name="price_other_keywords">Other keywords — tap one to use it</string>

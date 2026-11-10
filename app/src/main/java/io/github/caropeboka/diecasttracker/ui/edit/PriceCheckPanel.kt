@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -99,6 +100,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import io.github.caropeboka.diecasttracker.data.price.MarketGroup
+import java.io.File
+import io.github.caropeboka.diecasttracker.ui.components.rememberTexts
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
@@ -160,6 +165,9 @@ class PriceCheckViewModel(
     /** Prices from the collector's own records; null until read. */
     var own by mutableStateOf<OwnPrices?>(null)
         private set
+
+    /** The file behind a photo of the form, saved or still pending. */
+    fun photoFile(name: String): File = photos.file(name)
 
     fun loadOwn(diecast: DiecastEntity) {
         viewModelScope.launch { own = ownPrices.find(diecast) }
@@ -330,10 +338,11 @@ class PriceCheckViewModel(
  * "Cek harga pasaran" (web: `price-check-panel.tsx`): search the diecast on Tokopedia, Shopee, eBay…, screenshot the
  * results, and the AI reads every listing; the app works out the median. For a diecast no marketplace lists, the AI's
  * rough estimate from the web and the prices in the collector's own records. Only for saved diecasts. [records]
- * changes when the sightings do, so their shelf prices are read again.
+ * changes when the sightings do, so their shelf prices are read again; [cover] (the form's first photo) goes to Google
+ * Lens.
  */
 @Composable
-fun PriceCheckPanel(diecast: DiecastEntity, records: Any?, onApplied: (DiecastEntity) -> Unit, onAiSettings: () -> Unit) {
+fun PriceCheckPanel(diecast: DiecastEntity, records: Any?, cover: String?, onApplied: (DiecastEntity) -> Unit, onAiSettings: () -> Unit) {
     val viewModel: PriceCheckViewModel = viewModel(key = "price-check-${diecast.id}", factory = PriceCheckViewModel.factory(diecast.id))
     LaunchedEffect(diecast, records) { viewModel.loadOwn(diecast) }
     val checks by viewModel.checks.collectAsStateWithLifecycle()
@@ -355,7 +364,7 @@ fun PriceCheckPanel(diecast: DiecastEntity, records: Any?, onApplied: (DiecastEn
                 Hint(stringResource(R.string.price_needs_ai))
                 OutlinedButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_sparkles, stringResource(R.string.settings_ai)) }
             }
-            open -> Steps(viewModel, diecast)
+            open -> Steps(viewModel, diecast, cover)
             all.isEmpty() -> Hint(
                 stringResource(R.string.price_intro),
             )
@@ -490,6 +499,26 @@ private fun OwnPricesBlock(own: OwnPrices) {
 
 private const val OWN_SHOWN = 5
 
+/** Sends the cover photo to Google Lens, with a line on what it is for. */
+@Composable
+private fun LensButton(photo: File) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val texts = rememberTexts()
+    var failed by rememberSaveable { mutableStateOf(false) }
+    Text(stringResource(R.string.price_group_photo), style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
+    OutlinedButton(
+        onClick = { scope.launch { failed = !GoogleLens.search(context, photo, texts(R.string.price_lens)) } },
+        shape = MaterialTheme.shapes.medium,
+        contentPadding = PaddingValues(horizontal = 12.dp),
+    ) { IconLabel(R.drawable.ic_photo_library, stringResource(R.string.price_lens)) }
+    Text(
+        stringResource(if (failed) R.string.price_lens_failed else R.string.price_lens_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = if (failed) Garage.Loss else Garage.MutedForeground,
+    )
+}
+
 @Composable
 private fun Hint(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
@@ -497,7 +526,7 @@ private fun Hint(text: String) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
+private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity, cover: String?) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val picked by viewModel.picked.collectAsStateWithLifecycle()
     val keywords by viewModel.keywords.collectAsStateWithLifecycle()
@@ -536,13 +565,18 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity) {
                 },
             )
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Marketplace.entries.forEach { market ->
-                OutlinedButton(onClick = { open(market.search(text)) }, shape = MaterialTheme.shapes.medium, contentPadding = PaddingValues(horizontal = 12.dp)) {
-                    IconLabel(R.drawable.ic_open_in_new, market.labelRes?.let { stringResource(it) } ?: market.label)
+        MarketGroup.entries.forEach { group ->
+            Text(stringResource(group.label), style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Marketplace.entries.filter { it.group == group }.forEach { market ->
+                    OutlinedButton(onClick = { open(market.search(text)) }, shape = MaterialTheme.shapes.medium, contentPadding = PaddingValues(horizontal = 12.dp)) {
+                        IconLabel(R.drawable.ic_open_in_new, market.labelRes?.let { stringResource(it) } ?: market.label)
+                    }
                 }
             }
         }
+        // Lens searches with the photo instead of words: for a diecast whose name doesn't find it.
+        if (cover != null) LensButton(viewModel.photoFile(cover))
         Text(
             stringResource(R.string.price_tip_screens),
             style = MaterialTheme.typography.bodySmall,
@@ -613,8 +647,13 @@ private val MARKETPLACE_NAMES = mapOf(
     "shopee" to "Shopee",
     "bukalapak" to "Bukalapak",
     "lazada" to "Lazada",
+    "google" to "Google",
     "facebook" to "Facebook",
+    "olx" to "OLX",
+    "carousell" to "Carousell",
     "ebay" to "eBay",
+    "yahoo_auctions" to "Yahoo! Auctions",
+    "mercari" to "Mercari",
 )
 
 private fun PriceAccuracy.color() = when (this) {

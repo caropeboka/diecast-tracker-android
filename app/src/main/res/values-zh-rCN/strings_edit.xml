@@ -194,6 +194,15 @@
     <string name="dex_use_year">使用 %1$d</string>
     <string name="price_intro">在 Tokopedia、Shopee、eBay 等平台搜索这辆合金车并截图，AI 会读取所有商品并计算市场价。哪里都没有卖？可以让 AI 从网上粗略估价，或看看你自己记录的价格。</string>
     <string name="price_ebay_sold">eBay 已售</string>
+    <string name="price_group_shops">店铺新品</string>
+    <string name="price_group_preloved">二手</string>
+    <string name="price_group_sold">海外成交：买家实付价格</string>
+    <string name="price_group_photo">按名字搜不到？</string>
+    <string name="price_yahoo_sold">Yahoo! 日本已成交</string>
+    <string name="price_mercari_sold">Mercari 日本已售</string>
+    <string name="price_lens">用 Google Lens 搜照片</string>
+    <string name="price_lens_hint">把封面照片发到 Google Lens。向下滑到“Visual matches（视觉匹配）”：价格标在图片上。然后像其他页面一样截图。</string>
+    <string name="price_lens_failed">无法打开 Google Lens。手机上装了 Google 应用吗？</string>
     <string name="price_tip_abroad">国外价格（eBay）按今日汇率换算，不含运费和进口费用。</string>
     <string name="price_no_rate">没有 %1$s 的汇率</string>
     <string name="price_other_keywords">其他关键词——点一下即可使用</string>

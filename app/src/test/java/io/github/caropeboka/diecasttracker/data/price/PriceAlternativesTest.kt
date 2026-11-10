@@ -104,7 +104,17 @@ class PriceAlternativesTest {
         assertFalse("inline_data" in fake.bodies.last())
 
         assertEquals("https://www.ebay.com/sch/i.html?_nkw=mini+gt+r34&LH_Sold=1&LH_Complete=1", Marketplace.EbaySold.search(" mini gt r34 "))
-        assertEquals("https://www.bukalapak.com/products?search%5Bkeywords%5D=R34+%26+AE86", Marketplace.Bukalapak.search("R34 & AE86"))
+        assertEquals("https://www.lazada.co.id/catalog/?q=R34+%26+AE86", Marketplace.Lazada.search("R34 & AE86"))
+        assertEquals("https://www.google.com/search?udm=28&gl=id&q=mini+gt+r34", Marketplace.GoogleShopping.search("mini gt r34"))
+        // OLX wants its words in the path, lower case and joined by dashes, inside the hobby category.
+        assertEquals("https://www.olx.co.id/koleksi-mainan-hobi_c221/q-hot-wheels-gt-r", Marketplace.Olx.search(" Hot Wheels  GT-R "))
+        assertEquals("https://id.carousell.com/search/mini%20gt%20r34", Marketplace.Carousell.search("mini gt r34"))
+        assertEquals(
+            "https://auctions.yahoo.co.jp/closedsearch/closedsearch?p=%E3%83%88%E3%83%9F%E3%82%AB+R34",
+            Marketplace.YahooAuctionsSold.search("トミカ R34"),
+        )
+        assertEquals("https://jp.mercari.com/search?keyword=tomica+r34&status=sold_out", Marketplace.MercariSold.search("tomica r34"))
+        assertEquals(listOf(MarketGroup.Shops, MarketGroup.Preloved, MarketGroup.SoldAbroad), Marketplace.entries.map { it.group }.distinct())
     }
 
     @Test

@@ -194,6 +194,15 @@
     <string name="dex_use_year">Pakai %1$d</string>
     <string name="price_intro">Cari diecast ini di Tokopedia, Shopee, eBay dan lainnya, screenshot hasilnya, lalu AI akan membaca semua listing dan menghitung harga pasarannya. Tidak dijual di mana-mana? Minta perkiraan kasar AI dari web, atau lihat harga di catatanmu sendiri.</string>
     <string name="price_ebay_sold">eBay terjual</string>
+    <string name="price_group_shops">Baru, dari toko</string>
+    <string name="price_group_preloved">Bekas (preloved)</string>
+    <string name="price_group_sold">Terjual di luar negeri: harga yang dibayar pembeli</string>
+    <string name="price_group_photo">Namanya tidak ketemu?</string>
+    <string name="price_yahoo_sold">Yahoo! JP terjual</string>
+    <string name="price_mercari_sold">Mercari JP terjual</string>
+    <string name="price_lens">Cari fotonya di Google Lens</string>
+    <string name="price_lens_hint">Foto sampul dikirim ke Google Lens. Scroll ke bagian Visual matches (Kecocokan visual): harganya tertempel di gambar. Screenshot seperti yang lain.</string>
+    <string name="price_lens_failed">Google Lens tidak bisa dibuka. Aplikasi Google sudah terpasang?</string>
     <string name="price_tip_abroad">Harga luar negeri (eBay) dikonversi dengan kurs hari ini, belum termasuk ongkir dan biaya impor.</string>
     <string name="price_no_rate">tidak ada kurs untuk %1$s</string>
     <string name="price_other_keywords">Kata kunci lain — ketuk untuk memakainya</string>
