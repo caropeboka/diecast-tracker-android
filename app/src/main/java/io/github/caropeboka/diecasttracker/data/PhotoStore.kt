@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ImageDecoder
+import android.graphics.Matrix
 import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
@@ -85,6 +86,19 @@ class PhotoStore(private val context: Context, root: File = context.filesDir) {
             image.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, it)
         }
         return name
+    }
+
+    /**
+     * A copy of a photo turned a quarter to the right [quarters] times, mirrored left to right first when [mirror], as
+     * a pending photo; returns its name. The photo itself stays as it is.
+     */
+    fun turned(name: String, quarters: Int, mirror: Boolean): String {
+        val image = bitmap(name)
+        val matrix = Matrix().apply {
+            if (mirror) postScale(-1f, 1f)
+            postRotate(90f * quarters)
+        }
+        return addBitmap(Bitmap.createBitmap(image, 0, 0, image.width, image.height, matrix, true))
     }
 
     /** Moves a pending photo into permanent storage. */
