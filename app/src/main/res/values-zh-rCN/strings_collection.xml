@@ -32,6 +32,9 @@
     <string name="collection_reset_filter">重置筛选</string>
     <string name="card_price_from">%1$s 起</string>
     <string name="card_spotted_times">见过 %1$d 次</string>
+    <string name="gain_up">比购入价上涨 %1$s</string>
+    <string name="gain_down">比购入价下跌 %1$s</string>
+    <string name="gain_even">与购入价相同</string>
     <string name="collection_selected">已选择</string>
     <string name="collection_rare">稀有（非普通）</string>
     <string name="collection_no_scale">无比例</string>

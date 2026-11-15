@@ -34,6 +34,9 @@
     <string name="collection_reset_filter">Reset filters</string>
     <string name="card_price_from">from %1$s</string>
     <string name="card_spotted_times">Spotted %1$d×</string>
+    <string name="gain_up">Up %1$s on the purchase price</string>
+    <string name="gain_down">Down %1$s on the purchase price</string>
+    <string name="gain_even">Same as the purchase price</string>
     <string name="collection_selected">Selected</string>
     <string name="collection_rare">Rare (not regular)</string>
     <string name="collection_no_scale">No scale</string>

@@ -33,6 +33,8 @@ import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
+import io.github.caropeboka.diecasttracker.ui.components.Gain
+import io.github.caropeboka.diecasttracker.ui.components.GainPercent
 import io.github.caropeboka.diecasttracker.ui.components.QuantityBadge
 import io.github.caropeboka.diecasttracker.ui.components.RarityBadge
 import io.github.caropeboka.diecasttracker.ui.components.StatusBadge
@@ -40,14 +42,17 @@ import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import io.github.caropeboka.diecasttracker.util.formatMoneyCompact
 import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 
-/** Price line of a card: lowest asking price when spotted, target when wished for, else market value. */
-private data class PriceLabel(val text: String, val emphasized: Boolean)
+/**
+ * Price line of a card: lowest asking price when spotted, target when wished for, else market value with its [gain]
+ * on the purchase price.
+ */
+private data class PriceLabel(val text: String, val emphasized: Boolean, val gain: Gain? = null)
 
 @Composable
 private fun DiecastListItem.priceLabel(): PriceLabel? = when (status) {
     DiecastStatus.Spotted -> sightingsMinPrice?.let { PriceLabel(stringResource(R.string.card_price_from, formatMoneyCompact(it)), true) }
     DiecastStatus.Wishlist -> targetPrice?.let { PriceLabel("≤ ${formatMoneyCompact(it)}", false) }
-    else -> marketValue?.let { PriceLabel(formatMoneyCompact(it), true) }
+    else -> marketValue?.let { PriceLabel(formatMoneyCompact(it), true, Gain.of(purchasePrice, it)) }
 }
 
 @Composable
@@ -139,6 +144,7 @@ fun DiecastCard(item: DiecastListItem, onClick: () -> Unit, modifier: Modifier =
                         color = if (price.emphasized) Garage.Brand else Garage.MutedForeground,
                         maxLines = 1,
                     )
+                    price.gain?.let { GainPercent(it, MaterialTheme.typography.labelSmall) }
                 }
             }
         }
@@ -189,12 +195,15 @@ fun DiecastRow(item: DiecastListItem, onClick: () -> Unit, modifier: Modifier = 
             }
             item.priceLabel()?.let { price ->
                 Spacer(Modifier.width(12.dp))
-                Text(
-                    price.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (price.emphasized) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (price.emphasized) Garage.Brand else Garage.MutedForeground,
-                )
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        price.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (price.emphasized) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (price.emphasized) Garage.Brand else Garage.MutedForeground,
+                    )
+                    price.gain?.let { GainPercent(it, MaterialTheme.typography.bodySmall) }
+                }
             }
         }
     }

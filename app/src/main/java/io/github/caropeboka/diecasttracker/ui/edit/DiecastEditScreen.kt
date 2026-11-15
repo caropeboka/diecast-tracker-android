@@ -101,6 +101,8 @@ import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.DateInput
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
+import io.github.caropeboka.diecasttracker.ui.components.Gain
+import io.github.caropeboka.diecasttracker.ui.components.GainLine
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
@@ -837,6 +839,7 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
                     placeholder = stringResource(R.string.optional), error = errors[Field.MarketValue],
                     highlighted = Field.MarketValue in viewModel.aiFields,
                 )
+                Gain.of(form.purchasePrice.toLongOrNull(), form.marketValue.toLongOrNull())?.let { GainLine(it) }
                 val existing = viewModel.existing
                 if (existing?.marketValueSource != null && existing.marketValueSource != ValueSource.Manual && form.marketValue == existing.marketValue?.toString()) {
                     Text(

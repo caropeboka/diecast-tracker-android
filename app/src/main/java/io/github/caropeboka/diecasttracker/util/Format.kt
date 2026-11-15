@@ -132,6 +132,12 @@ private fun number(value: Double, decimals: Int): String {
     return groupThousands(cents / 100) + decimalMark + (cents % 100).toString().padStart(2, '0')
 }
 
+/** "25%", "2,5%" (a decimal under 10 when it isn't whole), "1.150%"; no sign. */
+fun formatPercent(percent: Double): String {
+    val tenths = (abs(percent) * 10).roundToLong()
+    return if (tenths < 100 && tenths % 10 != 0L) "${tenths / 10}$decimalMark${tenths % 10}%" else groupThousands(abs(percent).roundToLong()) + "%"
+}
+
 /** "850 KB", "12,3 MB" (1 KB = 1024 bytes). */
 fun formatBytes(bytes: Long): String {
     if (bytes < 1024) return "$bytes B"

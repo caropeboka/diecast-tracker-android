@@ -32,6 +32,9 @@
     <string name="collection_reset_filter">Reset filter</string>
     <string name="card_price_from">mulai %1$s</string>
     <string name="card_spotted_times">Ditemui %1$d×</string>
+    <string name="gain_up">Naik %1$s dari harga beli</string>
+    <string name="gain_down">Turun %1$s dari harga beli</string>
+    <string name="gain_even">Sama dengan harga beli</string>
     <string name="collection_selected">Dipilih</string>
     <string name="collection_rare">Langka (bukan regular)</string>
     <string name="collection_no_scale">Tanpa skala</string>

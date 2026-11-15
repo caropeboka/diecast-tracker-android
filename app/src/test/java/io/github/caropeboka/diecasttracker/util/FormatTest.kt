@@ -96,6 +96,16 @@ class FormatTest {
     }
 
     @Test
+    fun `percents get a decimal only when small and not whole`() {
+        assertEquals(
+            listOf("25%", "2,5%", "3%", "0%", "0,1%", "10%", "1.150%"),
+            listOf(24.6, 2.54, 3.0, 0.04, 0.05, 9.96, 1150.0).map(::formatPercent),
+        )
+        Formats.locale = Locale.ENGLISH
+        assertEquals("2.5%", formatPercent(-2.5))
+    }
+
+    @Test
     fun `file sizes use a decimal comma`() {
         assertEquals(
             listOf("512 B", "1 KB", "850 KB", "12,3 MB", "250 MB", "1,5 GB"),
