@@ -4,6 +4,43 @@ All notable changes to Diecast Tracker for Android. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 Releases with an APK are on the [Releases page](https://github.com/caropeboka/diecast-tracker-android/releases).
 
+## [0.15.0] - 2026-11-15
+
+### Added
+- Automatic price check: with a free SerpApi key, "Check automatically on Google Shopping" in the price check searches
+  Google Shopping in Indonesia for the keywords, no screenshots needed. The AI picks the listings that are the same
+  car from their titles, and the median, fair range and accuracy are worked out as for screenshots. Afterwards it
+  says how many SerpApi searches are left.
+- Settings → Automatic price check: save, test and remove the SerpApi key. The test shows the plan and the searches
+  left. Only the keywords and the key go to SerpApi, never photos, and the key stays out of backups.
+- Listings found by the automatic check open in the browser from the check's result.
+- Logos: the price check's search buttons, its listings and past checks show the shop's logo; the AI settings, the
+  steps of every AI request and "filled in by" labels show the AI's; the SerpApi page and its Settings row show
+  SerpApi's; and the Dex, the Garage's brand panel, the brand filter and the collection's cards show the diecast
+  brand's (initials for a brand without one). The Garage's car manufacturers and the collection filtered by one show
+  the car maker's emblem (over a hundred makers, cars and motorcycles). A car's page shows the brand's logo and the
+  maker's emblem in their fields; the Garage's Dex, most valuable, price gainers and wishlist rows and the map's
+  history show the brand's logo; Treasure Hunts and Super Treasure Hunts carry their circle-flame in the Garage's
+  rarity panel and the rarity filter.
+- The collection can be filtered by car manufacturer (with the maker's emblem), and a car's page suggests the makers
+  already in the collection.
+- Gain or loss against the purchase price, as a trading app shows it: "▲ 25%" in green or "▼ 8%" in red beside the
+  market value on the collection's cards, and the amount with the percentage under the market value on a car's page.
+- Receipts with the shop's address: the AI reads the branch's address and the app looks it up on OpenStreetMap, so
+  "Bought at" gets the shop's point on the map as well as its name (only when the street or the shop itself is
+  found; the collector's own pin of the same shop nearby wins). The receipt card shows the address and whether it
+  was found. Head-office addresses and online orders are left out. A street must carry the name that was searched,
+  and when OpenStreetMap lacks the street, the shop itself is searched in its kelurahan and kecamatan (only one may
+  come back).
+- "Find the store on the map" on a receipt whose store has no point yet (one read before addresses were): the AI
+  reads it again and "Bought at" gets the point, keeping the name typed there.
+
+### Changed
+- A car's page: "Another photo", "Gallery" and "Scan with AI" sit in one row, each icon over its label, with how many
+  photos the AI reads under its own.
+- The Dex panel's "Confirmed · Change · Unlink" row is centred.
+- A scale written with a slash or spaces ("1/60", "1 : 60") is saved as "1:60", so it doesn't count as another scale.
+
 ## [0.14.0] - 2026-11-14
 
 ### Added
@@ -146,6 +183,7 @@ The first complete version: the collection with photos and backup import (phase 
 and the hunting map (3), the Dex with wiki sync and own lists (4), and backup and Excel export, the Garage dashboard,
 market prices from screenshots, the bulk scan and the in-store check (5).
 
+[0.15.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.15.0
 [0.14.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.14.0
 [0.13.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.13.0
 [0.12.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.12.0

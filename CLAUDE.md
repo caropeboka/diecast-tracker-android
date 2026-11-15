@@ -8,7 +8,7 @@ behaviour and logic**. It keeps working on the laptop until the Android app catc
 rather than re-inventing; its feature tests (`tests/Feature/*`) describe the expected behaviour and contain
 real-world fixtures.
 
-## Status (2026-11-08)
+## Status (2026-11-15)
 
 Every planned phase (1–4, 5a–5e) is committed and pushed to `github.com/caropeboka/diecast-tracker-android`
 (`main`) as version 0.5.4. Phase 5 order, agreed with the user: 5a backup/export → 5b dashboard → 5c market value from
@@ -57,9 +57,38 @@ older photo" bug was one diecast on the phone (BATMOBILE, the blue 2026 Batman c
 gold one logged through the store check: fixed in 0.14.0 with the number rule and "Pindahkan ke…" on sightings. On
 2026-11-15 the phone's data was tidied with it (through the UI over adb, after a backup): the gold "THE DARK KNIGHT
 BATMOBILE" (51/250 · 2/5) and the light purple "Ghoul Mobile" (48/250 · 2/5) became their own Ditemui diecasts with
-their sightings; four '69 Chevelle entries (137/250 twice) were pointed out to the user, not changed. Still open: an
-automatic price check (no open diecast price API exists; options offered: SerpApi Google Shopping, eBay Browse API,
-a WebView). A first 0.12.0 build is on the
+their sightings; four '69 Chevelle entries (137/250 twice) were pointed out to the user, not changed. **0.15.0**
+(the user on 2026-11-15 picked option A of three for an automatic price check, as no open diecast price API exists:
+SerpApi Google Shopping, over the eBay Browse API and a WebView; see "Automatic price check (0.15.0)"): one tap
+searches Google Shopping through SerpApi and the AI sorts the listings; covered by tests (287 pass, no lint errors),
+on the phone since 2026-11-15 (the Settings row, its page and the price panel's setup link checked there; no SerpApi
+key yet, so a real search not tried). Not built yet: a monthly refresh of every diecast's price (offered as a
+follow-up). With it, from the user's look at the form: the photo buttons and "Pindai dengan AI" in one row, the Dex
+panel's Terkonfirmasi · Ganti · Lepas row centred, and the receipt button beside the purchase price (folded into
+0.14.0, not committed yet then); seen on the phone. Also in 0.15.0 (the user the same night): logos of the shops,
+the AIs, SerpApi and the diecast brands wherever the app names them (see "Logos (0.15.0)"); built and covered by tests
+(291 pass, no lint errors), on the phone since 2026-11-15 (Collection cards, the Garage brand panel with initials for
+Roll Speed, Leyi Toys and Takara Tomy, the Dex brand cards, Settings and the AI page checked there). Then (the user:
+"logo brand yang masih belum ada / lalu manufacturer juga perlu logo"): Takara Tomy's and Roll Speed's logos (Leyi
+Toys has none to find: initials) and car makers' emblems on the Garage's manufacturers panel and the make chip;
+built and covered by tests (297 pass, no lint errors), on the phone since 2026-11-15 (the manufacturers panel with
+"Show all", Roll Speed's badge and Leyi Toys' initials in the brand panel, and the Chevrolet chip in Koleksi checked
+there; the phone's data writes "Citroen" and "Citroën" as two makes and one scale as "1/60", pointed out to the
+user, not changed). Then the user's next list (logos in the form, the Garage's Dex, most valuable and rarity panels
+and on the map, a car maker filter in Koleksi, "rapikan citroen, lalu rapikan skala", the receipt of the diecast
+open on the phone linked to the map, and gain/loss beside the market value "kaya di trading"): built and covered by
+tests (304 pass, no lint errors; see "More logos, the make filter and gains" under "Logos (0.15.0)" and "Store
+address" under "Receipts"), on the phone since 2026-11-15: the gains in Koleksi, the make chip, the form's logos and
+the Garage's logos and Treasure Hunt symbol checked there; "Cari tokonya di peta" on the 1995 MAZDA RX-7's Indomaret
+receipt (Gemini read the address, the point landed on the Indomaret in Pangkalan, Teluknaga, saved); and through the
+UI the one "Citroen" became "Citroën", the one "1/60" became "1:60" and, at the user's word, the one "Hot Wheels
+Original" make (FUNNY SIDE UP) became "Hot Wheels"; the map's brand logos (history days, a place's sheet) seen there
+too. And (the user: "beberapa struk
+punya informasi alamat toko juga, jadi bisa buat ngisi bought at"): a receipt's store address put on the map for
+"Beli di" (Room **v10**, see "Receipts and photo turns (0.14.0)"); built and covered by tests (295 pass, no lint
+errors), on the phone since 2026-11-15: a made-up receipt (a toy shop on Jl. Tegar Beriman, Cibinong) read by Gemini
+gave the address, "On the map", and with "Beli di" emptied the store and a pin on Jalan Tegar Beriman; a "Beli di"
+already filled (the remembered place) was kept. Not tried with a real receipt yet. A first 0.12.0 build is on the
 phone since 2026-11-08 to try the blink fix (no report yet); the desk build followed the same day (it renders in
 "Normal", a tap on the desk offers what fits, the dog shows its bar; placing not tried there yet). The
 phone got 0.7.0 and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57). Next: try the new pieces on the phone (Tanya AI, the web estimate and the web list with
@@ -171,7 +200,7 @@ Matches get +1 (owned) or "Dapat" (wishlist/spotted → owned today, "Beli di" =
   "advanced flow" (developer options, a restart, a one-day wait) unless the app is registered in the Android Developer
   Console ($25 and an ID; or a free limited-distribution account, 20 devices at most). Not registered yet.
 - **Public releases** (GitHub Releases, from 0.11.0; the user publishes them on github.com, the APK is MIT-licensed
-  code without the trademarked logo): move `assets/brand/hot_wheels_logo.png` out, `:app:assembleRelease`, copy the
+  code without the board's Hot Wheels logo; the small logos of shops, AIs and brands stay in, README "Logos"): move `assets/brand/hot_wheels_logo.png` out, `:app:assembleRelease`, copy the
   APK to `build/github-release/diecast-tracker.apk` (the asset name never changes: the README links
   `releases/latest/download/diecast-tracker.apk`), put the logo back and build again for the phone. Check the copy
   with `unzip -l` (no `assets/brand/`) and `apksigner verify --print-certs` (the user's key, SHA-256 `15:DE:A3:46…`).
@@ -355,8 +384,11 @@ Matches get +1 (owned) or "Dapat" (wishlist/spotted → owned today, "Beli di" =
 - **Photos first, the AI on request** (the user: shoot every side, then scan, for more to go on). A new diecast's
   camera reopens after each shot until Back or 8 photos (`onCameraResult`, like the bulk scan); nothing is read
   automatically any more. The form shows `ShotGuide` (Blister / Box / Loose chips that set the packaging field, and the
-  sides ticked off by photo count: depan + belakang, or depan, samping, atas, bawah) and a big "Pindai dengan AI (n
-  foto)" (only the first 4 are sent: `MAX_SCAN_PHOTOS`); after a scan it is "Pindai ulang dengan AI".
+  sides ticked off by photo count: depan + belakang, or depan, samping, atas, bawah) and "Pindai dengan AI" (only the
+  first 4 are sent: `MAX_SCAN_PHOTOS`); after a scan it is "Pindai ulang dengan AI". Since 0.15.0 (the user: in one
+  row) it is the third of three tiles with "Foto lagi" and "Galeri" (`PhotoAction`: icon over label, "3 foto" /
+  "4 foto pertama" under the AI's), filled before the first scan and the camera filled after; without the AI or a
+  photo the camera and the gallery stay two wide buttons.
 - **One centre button in the bottom bar** (Koleksi · Garasi · ＋ · Peta · Dex, the user's idea): Cek di toko, Isi
   manual, Scan dengan AI (last, nearest the thumb). The Koleksi FABs are gone. `CreateActions` comes from
   `DiecastTrackerRoot` through `LocalCreateActions`, so every tab's `MainNavigationBar` has it. Since 0.7.2 a FAB menu
@@ -696,6 +728,30 @@ when empty, the date and store.
   `ReceiptMatchSheet` shows each photo with the AI's line (or "Tidak ada di struk ini") to change before "Pakai";
   `BulkScanViewModel.applyReceipt` writes price, receipt and line into each photo's `QuickEdits`, the date when the
   shared one is blank or today, the store when blank; `queuedForm` carries them. A "Struk" pill on the cards.
+- **Store address (0.15.0, Room v10**: `receipts.address`, `latitude`, `longitude`; the user's idea, built without
+  asking: the point is filled automatically). The AI reads `address` (the branch's, as printed; null for an online
+  order or when only a head office's or tax address is printed: Indomaret's PT Indomarco Prima, Alfamart's PT Sumber
+  Alfaria Trijaya) and `map_queries` (up to 3 searches for OpenStreetMap, most precise first: a mall with its city,
+  then the street with its kelurahan and kecamatan; abbreviations written out, no house numbers, RT/RW, floors or
+  postal codes), because Nominatim finds nothing for a full Indonesian address ("Jl. Raya Bogor No.43, Pakansari, …
+  16915" → none, "Jalan Raya Bogor, Cibinong, Kabupaten Bogor" → the street; "Indomaret, Jalan Raya Bogor, Cibinong"
+  → Indomarets on other streets, so the shop's name stays out; checked 2026-11-15). `ReceiptReader.locate` (a step
+  "Mencari tokonya di peta" in the log, 25 s at most) → `PlaceLookup.locate`: the first query whose first result
+  of `place_rank` ≥ 26 (street, building, shop; a kelurahan is 16) **named like the query's first part** gives the
+  point (`searchedName`: "jalan", "jl", "raya", "gang"… dropped, words joined, `CollectionMatcher.similarity` ≥ 80;
+  Nominatim answered "Jalan Raya Teluk Naga", which it lacks, with other "Jalan Raya …" in Teluknaga), else
+  `shop_query` (the chain's name alone with its kelurahan, kecamatan and kabupaten, "Indomaret, Pangkalan,
+  Teluknaga, Kabupaten Tangerang") when exactly one shop (rank ≥ 30) of that name comes back; moved onto the
+  collector's own pin of the same name within 1 km. `ReceiptEntity.place` (store, else the address, with the point) fills "Beli
+  di" when it is blank, or when it holds the same name without a point; the bulk scan's shared place the same when
+  blank. The receipt card and the lines sheet show the address with "Ada di peta" / "Tidak ketemu di peta …".
+  Backups carry the three. `ReceiptTest`, `PlaceLookupTest` (`FakeNominatim.onSearch`), `MigrationTest`.
+  **"Cari tokonya di peta"** (the user: the diecast open on the phone, an Indomaret receipt read before addresses
+  were, "link kan dong"): on the attached receipt's card while it has no point and an AI is on. `ReceiptViewModel
+  .findOnMap` reads the photo again (one AI request), looks it up, `ReceiptRepository.setPlace` keeps what the new
+  reading found (`ReceiptDao.setPlace`), and `DiecastEditViewModel.applyReceiptPlace` →
+  `DiecastForm.withReceiptPoint`: "Beli di" takes the point under the name typed there (the store's when empty), a
+  place with its own point stays; the form then needs saving. No address printed: a message.
 - **Clean-up and backups**: `ReceiptRepository.housekeeping` at start-up deletes receipts no diecast points at after a
   day (an abandoned form's) and photos no receipt holds. Phone backups carry `"receipt"` per record (the entity plus
   its line and `receipts/<uuid>.jpg`, `RECEIPT_ENTRY`); a receipt shared by several records comes back once; replace
@@ -712,6 +768,106 @@ when empty, the date and store.
   .splitSighting`: a Ditemui diecast named and filed like the old one, number/colour/year left empty, the sighting's
   photo copied as its cover, then opened) or the look-alikes by name (`moveSighting`). `CollectionMatcherTest`,
   `StoreCheckTest`, `DiecastRepositoryTest`.
+
+## Automatic price check (0.15.0)
+
+The user's open wish from 0.14.0: a market price without screenshots. Researched (2026-11-15): no open diecast price
+API exists; offered SerpApi Google Shopping (A), the eBay Browse API (B, asking prices abroad only; sold prices need
+the restricted Marketplace Insights API) and a WebView that reads the marketplaces' pages (C, fragile, against their
+terms). The user picked A ("coba dulu A deh"), per diecast on a button; a monthly refresh of all was offered for later.
+
+- `data/price/ShoppingSearch`: `GET https://serpapi.com/search.json?engine=google_shopping&q=…&gl=id&hl=id&api_key=…`
+  (OkHttp `fetch`, 60 s). Reads `shopping_results`, `inline_shopping_results` and `categorized_shopping_results[]
+  .shopping_results`, keeps those with a title and `extracted_price` (deduped on title/source/price, 40 at most);
+  `source` → shop, `product_link`/`link` → link, `second_hand_condition` → condition. The currency comes from the
+  `price` text (`currencyOf`: Rp/IDR, then **US$ before S$** — "US$" holds "S$", a bug the tests caught — A$, HK$,
+  C$, RM, CN¥, ¥/円, €, £, $; Rupiah when it says nothing). Errors (`ShoppingSearchException`, localized): 401/403 key
+  rejected, 429 quota or hourly limit, `UnknownHostException` offline, others with SerpApi's `error` text. An `error`
+  saying "hasn't returned any results" (HTTP 200, not counted by SerpApi) is an empty list. `account()` reads the free
+  account API (`account.json`: `plan_name`, `searches_per_month`, `total_searches_left`), with a typed key or the
+  saved one. SerpApi facts (its docs, 2026-11-15): free plan 250 searches a month, 50 an hour; cached (same search
+  within an hour), errored and failed searches aren't counted; about 40 results, `start` is ignored.
+- `PriceChecker.checkOnline(diecast, query, onFound, onEvent)`: the search, then a **text-only** `vision.extract`
+  (no photos: `MATCH_PROMPT` with the numbered listings "0. title — shop: … · price: IDR 45000 · condition: …",
+  `MATCH_SCHEMA` `{listings: [{index, match, reason}], note, search_hint}`); a listing the AI skipped is Unclear.
+  Listings are `marketplace = "google"` with `PriceListing.link` (new, defaulted: older checks and backups read as
+  before), other currencies at today's rate as for screenshots. `PriceAnalyzer.analyze(…, screenshots = false)` drops
+  the tips about screenshots and "Best selling" (Google Shopping shows no sales, so the sold bonus never applies) and
+  says "check again" instead of "new screenshots"; the check adds `price_tip_asking` (asking prices, not sold). Stored
+  as a `PriceCheckEntity` with **`screenshots = 0`** = automatic (no schema change); the result's header says so
+  (`price_checked_auto`). Nothing found throws and records nothing, without asking the AI. `searchesLeft()` after a
+  check, shown as a snackbar (best effort, null on any failure).
+- UI: in the price panel's steps, under the keywords, "Check automatically on Google Shopping" (its own progress log
+  and error there, `checkingOnline`; the screenshot steps follow under "Or search yourself…"); without a key a link
+  "Check without screenshots? Set up the automatic check →" (`onPriceSettings`, through `DiecastEditScreen`).
+  Listing rows with a link open it (↗). Settings: a row "Automatic price check" (`ic_sell`, "SerpApi · ••••1234" or
+  not set up) opens `PriceSearchSettingsScreen` (`PriceSearchSettingsRoute`; its own view model): intro, plan, key
+  field, Test key (plan and searches left), Save, Remove (confirm), "Get a key at serpapi.com ↗"
+  (`serpapi.com/manage-api-key`), the privacy note; Back with a typed key asks (as the AI settings).
+- The key: `AiSettings.serpApiKey` / `setSerpApiKey` (`serpapi_api_key` in the `ai` DataStore, so out of cloud
+  backup with the AI keys; not in the app's backups). The automatic check needs an AI as well (the panel asks for one
+  first). Strings in their own `strings_shopping.xml` (three languages). `ShoppingSearchTest` (FakeGemini routes
+  `serpapi.com/search.json` and `account.json`; `FakeGemini.urls` records whole addresses).
+
+## Logos (0.15.0)
+
+The user on 2026-11-15: logos on Tokopedia, Shopee and the other search buttons, on the AI providers and SerpApi,
+then "di dex dan tempat tempat lain juga". Their choices: the logos **in git and in the public APK** with a note in
+the README ("Logos": their owners' trademarks, not MIT), diecast brands too, "tapi di papan kayu ga masuk" (the
+board's big Hot Wheels logo stays git-ignored), and all four places offered: the Garage's brand panel and the brand
+filter, the price check's results, the AI log and "read by" labels, the collection's cards.
+
+- Files: services as 96 px square tiles `res/drawable-nodpi/logo_<name>.png` (from Google's favicon service at
+  128 px, eBay from its 60 px apple-touch icon), Shopee, NVIDIA and Google Lens as vectors from Simple Icons 16.35
+  (CC0; a white square with the mark in its colour, `res/drawable/logo_*.xml`); a transparent icon sits on white
+  with padding, a full-bleed one fills the tile. Diecast brands as 160 × 80 tiles of their wordmark (Wikipedia's
+  logos for Hot Wheels, Matchbox, Maisto, Bburago and Tomica's ja.wikipedia text logo, minigt.com's favicon, Kaido
+  House's header logo, white on black). Made with PowerShell's System.Drawing (gotcha: its variables ignore case, so
+  `$W` and `$w` are one). No OpenAI logo: the custom slot is any OpenAI-compatible server, so it shows a ✦ tile.
+- Code: `ui/components/Logos.kt`. `Logos.of(Marketplace)`, `ofMarket(key)` (a listing's key; "bukalapak" and
+  "other" have none and are written out), `of(AiProvider)` (null for Custom), `ofProvider(name)` (a label or title,
+  as the log and `readBy` carry them), `ofBrand(brand)` (lower case, letters and digits only, by prefix: "Tomica
+  Premium", "MINI-GT", "Burago"). `LogoTile` (square, corners 22 %), `LogoLabel` (in a button, like `IconLabel`),
+  `BrandLogo` (2:1; initials in a plain tile when `fallback`, nothing otherwise).
+- Where: the price panel's search buttons, Lens and the automatic check; a listing's meta line (its name dropped when
+  there is a logo) and a check's header (up to 6); the estimate's and Ask AI's by-lines; `AiStep.provider` (set by
+  `AiProgressLog` for steps about an AI, carried by the waiting step) with a logo in every step; the scan's ✦ note
+  and the bulk scan's pill; the AI settings' cards (the logo with the order number on a badge); Settings' SerpApi
+  row (`Category(logo = true)`) and its page; the Dex tab's brand cards (`SectionCard(leading)`), a brand's page
+  and a list's top bar, the wiki sync's source chips; the Garage's brand panel (`BarRow.leading`); Koleksi's brand
+  filter (chip and menu: `MenuChip(leading, optionLeading)`) and the grid and list cards (no initials there). The
+  receipt sheet's "read by" was left as text (a 0.14.0 file). `LogosTest`, `AiProgressLogTest`.
+- **More brands and car makers** (the user the same day: the brands still without a logo, and "manufacturer juga
+  perlu logo"). Takara Tomy from Wikimedia Commons ("TAKARA TOMY logo.svg"); Roll Speed's badge (red box, white rim,
+  "RS" over "ROLL SPEED") redrawn with System.Drawing after its card, as no logo of it is online; Leyi Toys' two
+  zebras are too small on its box to use, so it keeps its initials. Car makers as 96 px square tiles
+  `res/drawable-nodpi/make_<name>.png` (the emblem trimmed of its margin, on white, 12 px padding; faint silver ones
+  darkened, greys only, white kept) from the car-logos-dataset (GitHub filippofilip95, MIT code, logos their owners'),
+  Kawasaki, IndyCar, Yamaha and Ducati from Commons, Hot Wheels (its own castings) from the brand's wordmark, and
+  Chrysler, IVECO and Red Bull as Simple Icons vectors (`make_*.xml`). Over a hundred: the collection's makes and
+  the usual ones in diecast lines; none for made-up cars (Batmobile), Monster High, Cirrus or "unknown".
+  `Logos.ofMake` (accents dropped, words joined, the first three, two, then one tried as one key, so "Land Rover
+  Defender" finds Land Rover and "Man" never matches "Mansory"; aliases: Chevy, VW, Mercedes/Benz, AMG, Range Rover,
+  DeLorean, Alfa, American Motors, Red Bull Racing, DS Automobiles). `MakeLogo` (square, initials when `fallback`)
+  on the Garage's "Car manufacturers" rows (`CountBars(leading)`) and Koleksi's make chip (`LinkChip(logo)`).
+  `LogosTest` also checks that every `make_` drawable is found by its own name.
+- **More logos, the make filter and gains** (the user's next list the same day; built without asking where it was
+  plain). The form: the brand's logo in its field and the make as a `SuggestInput` (`Suggestions.makes` from
+  `DiecastDao.observeMakes`) with the maker's emblem (`SuggestInput(trailing)`). Koleksi: a car maker menu chip
+  after the brands (`collection_all_makes`, `CollectionViewModel.setMake`, emblems in the menu; it moves to the
+  front when a dashboard link set it, replacing the old link chip). The Garage: the Dex panel's rows with the brand's
+  logo, `Subtitle` (brand logo + "brand · series") in most valuable and `MiniList` (gainers, wishlist, recent), and
+  `RarityMark` in the rarity panel: Treasure Hunt / Super Treasure Hunt circle-flames (`logo_treasure_hunt`,
+  `logo_super_treasure_hunt`: the Hot Wheels Wiki's "HW LP Treasure Hunt Symbol" recoloured silver #8C939C and gold
+  #C79A2E on white, `Logos.of(Rarity)`), a dot in the rarity's colour for the rest; the rarity filter shows them
+  too. The map's event rows (place sheet, history) carry the brand's logo. **Gains** (the user: "kaya di trading
+  gitu ada + berapa atau - berapa, enaknya persen atau rupiah"; answered: percent on cards, both on the page):
+  `ui/components/Gain.kt` (`Gain.of(purchase, market)`, null without both, no percent when it was free),
+  `GainPercent` "▲ 25%" / "▼ 8%" (green/red, arrows so not colour alone, the amount when free) under the list row's
+  value and beside the grid card's, owned and sold only; `GainLine` "▲ +Rp 9.500 (+25%) dibanding harga beli" under
+  the form's market value. `formatPercent` (a decimal under 10 when not whole). **Scales** saved the usual way:
+  `DiecastForm.toEntity` → `cleanScale` ("1/60", "1 : 60" → "1:60"). `GainTest`, `FormatTest`, `LogosTest`,
+  `DiecastFormTest`.
 
 ## 3D garage (G0 0.6.7–0.6.8, G1 0.7.0)
 
@@ -754,7 +910,8 @@ floor leaning back before 0.14.0). Opens from "Rak 3D" on the Garasi dashboard
   the page shrinks back into a transparent box with `sharedDiecastCard` exactly over the diecast still in hand.
   Picking a focus (`look`) drops the kept camera.
 - The Hot Wheels logo (`assets/brand/hot_wheels_logo.png`, from Wikipedia) is **git-ignored** (Mattel's trademark,
-  public repo); without it the board draws a hand-made flame, so a clone still builds.
+  public repo); without it the board draws a hand-made flame, so a clone still builds. The small `logo_hot_wheels`
+  tile for lists is in git since 0.15.0 (see "Logos (0.15.0)"): only the board's stays out.
 - Placement (G1, the user's choices): free placement on all three — any compartment of the case, a lane of the boards
   (a card goes on top of the ones there and they stack from the bottom), any tier and spot along it on the black
   shelf. Tap an empty spot → a sheet of the diecasts that fit ("Taruh di sini"); tap a diecast → Pindahkan (then tap
@@ -864,7 +1021,7 @@ floor leaning back before 0.14.0). Opens from "Rak 3D" on the Garasi dashboard
 | Language / UI | Kotlin, Jetpack Compose, Material 3 with the "Garage" dark theme (below). UI text in **English** by default, **Bahasa Indonesia** and **Simplified Chinese** too, following the phone unless chosen in Settings (0.9.0; Indonesian only before). Money stored in whole **Rupiah**; shown in Rupiah, USD or CNY at daily rates as chosen. Date format chosen in Settings. |
 | First run (0.9.0) | A spotlight tour on the real screens, language first, Skip/Next, replayable from Settings. |
 | Data | Room (SQLite) on the device. Photos in app-private storage. |
-| Network | OkHttp + kotlinx.serialization (Gemini, OpenAI-style AI providers, Hot Wheels/Matchbox wikis, Nominatim). Coil for images. |
+| Network | OkHttp + kotlinx.serialization (Gemini, OpenAI-style AI providers, Hot Wheels/Matchbox wikis, Nominatim, SerpApi since 0.15.0). Coil for images. |
 | Location / map | Fused Location Provider; **MapLibre** with **OpenFreeMap**'s dark style (OpenStreetMap data, no API key). osmdroid was dropped: archived Nov 2024. Nominatim for place names. |
 | Navigation | Bottom bar: Koleksi · Garasi (dashboard) · ＋ · Peta · Dex; the app opens on Koleksi. The centre ＋ opens Isi manual / Cek di toko / Scan massal / Scan dengan AI (since 0.6.0, replacing the Koleksi FABs; Scan massal since 0.12.0) as a FAB menu rising above it (since 0.7.2, replacing a bottom sheet). Koleksi's gear opens Settings, which leads to everything else (0.12.0; a ⋮ menu before). A screen opened by a tap grows out of what was tapped (0.7.3). Every number on Garasi opens Koleksi filtered to what it counted, the filter shown as a removable chip (0.11.0). |
 | AI scan flow (0.6.0) | Photos first (camera back-to-back for a new diecast, a guide of the sides to shoot), the AI reads only on "Pindai dengan AI". While any AI request runs, its steps are shown as a log (not just a spinner). |
@@ -873,14 +1030,15 @@ floor leaning back before 0.14.0). Opens from "Rak 3D" on the Garasi dashboard
 | Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). Since 0.10.0: Hot Wheels from 1989, Matchbox from 2000, Mini GT (with Kaido House) 2018–2022 and Tomica's regular lineup from their wikis; other lines through the AI's web search into own dexes, reviewed first. Since 0.11.0: Tomica Premium per release year; the Dex tab shows a card per brand, which opens that brand's page with its lists. The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. Own dexes: the AI's checklist rows are reviewed before they're added; entries can be edited (both unlike the web). |
 | Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
-| Settings | DataStore (every AI provider's key, model, on/off and order; the custom server's URL and name). |
+| Settings | DataStore (every AI provider's key, model, on/off and order; the custom server's URL and name; the SerpApi key since 0.15.0). |
 | AI provider | Gemini, Groq, Mistral, OpenRouter and one OpenAI-compatible server (0.8.0; Gemini only before), plus Cloudflare Workers AI, NVIDIA NIM, Z.ai and OVHcloud (no key, off by default) since 0.10.0, tried in the user's order: on quota, busy, timeout or a refused key the same request goes to the next; one out of quota rests until it is back. Cerebras left out (no free tier). Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
 | Existing data | Import the web app's **backup zip** (see below). |
 | In-store check (phase 5e) | Opened from a launcher shortcut and the bottom bar's centre button (the ⋮ menu too until 0.12.0); the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). Since 0.10.0 many photos in a row, read one at a time. |
 | Bulk scan (phase 5d) | Reads in the background with WorkManager (not only while the screen is open, unlike the web). Camera is back-to-back. Entry: the ＋ menu (the ⋮ menu in Koleksi until 0.12.0), banners in Koleksi and Garasi. Saved items leave the queue (no "saved" history). |
-| Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. Since 0.10.0 also other keywords, Lazada/Facebook/eBay sold (Bukalapak until 0.12.0: it closed its marketplace), since 0.13.0 Google Shopping, OLX, Carousell, Yahoo! Auctions and Mercari Japan sold and Google Lens with the cover photo, prices abroad at today's rate, a rough AI estimate from the web (source `ai_estimate`) and the collector's own records. |
-| Receipts (0.14.0) | A receipt's photo read by the AI fills the purchase price (date and store only when empty); one receipt covers several diecasts (form and bulk scan), each picking its line. Kept as proof apart from the car photos, in phone backups; unused ones go after a day. |
+| Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. Since 0.10.0 also other keywords, Lazada/Facebook/eBay sold (Bukalapak until 0.12.0: it closed its marketplace), since 0.13.0 Google Shopping, OLX, Carousell, Yahoo! Auctions and Mercari Japan sold and Google Lens with the cover photo, prices abroad at today's rate, a rough AI estimate from the web (source `ai_estimate`) and the collector's own records. Since 0.15.0 an automatic check with the collector's own SerpApi key: Google Shopping searched per diecast on a button, the AI sorting the listings by their titles (option A of three; a monthly refresh not built). |
+| Logos (0.15.0) | The logos of shops, AI services, SerpApi, diecast brands and car makers label buttons, lists and the AI's steps, in git and the public APK with a README note (their owners' trademarks, not MIT). The 3D board's big Hot Wheels logo stays out of git. |
+| Receipts (0.14.0) | A receipt's photo read by the AI fills the purchase price (date and store only when empty; since 0.15.0 the store's point on the map from its printed address, street level or closer); one receipt covers several diecasts (form and bulk scan), each picking its line. Kept as proof apart from the car photos, in phone backups; unused ones go after a day. |
 | Tanya AI (0.10.0) | A chat in the diecast form that sees its photos and fields; suggested changes applied with "Pakai"; Gemini searches the web and shows its sources. |
 | Map regions (0.10.0) | Provinsi → kabupaten/kota → kecamatan → desa from OpenStreetMap's admin levels per point, looked up while Peta is open and cached a year; a drill-down chart that also filters the page. |
 | Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |

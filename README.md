@@ -69,8 +69,8 @@ each other's backups.
   out the wrong way.
 - Owned, wishlist, spotted and sold, with packaging, condition, scale, prices, storage location and tags.
 - **Receipts:** photograph the receipt and the AI fills in the purchase price (and the date and shop when they're
-  empty). One receipt can cover several cars, each picking its line, also in the bulk scan; the receipt is kept as
-  proof with the car.
+  empty, with the shop's point on the map when its address is printed). One receipt can cover several cars, each
+  picking its line, also in the bulk scan; the receipt is kept as proof with the car.
 - **Studio photo:** turns a photo into a clean cover on white, entirely on the phone. Loose cars are cut out with
   ML Kit; for cards and boxes you place four corners and the app squares the card up, rounds its corners and clears
   the hang hole.
@@ -109,6 +109,11 @@ each other's backups.
   reads every listing, outliers are dropped, and you get the median, a fair range, a suggested price and how much to
   trust it. Prices abroad are converted at the day's rate. Also a rough AI estimate from the web, and what you paid
   for look-alikes before.
+- **Automatic price check (optional):** with a free [SerpApi](https://serpapi.com) key, one tap searches Google
+  Shopping in Indonesia instead of the screenshots; the AI picks the listings that are the same car from their titles
+  and the sums are the same. Each listing opens from the result.
+- **Gain or loss per car**, as a trading app shows it: "▲ 25%" or "▼ 8%" against what you paid, beside the market
+  value on every card, and the amount on the car's page.
 - **Garage dashboard:** the collection's value and gain, the most valuable cars, Dex progress, and breakdowns by
   brand, rarity, car manufacturer, release year and scale. Every number opens the cars behind it.
 
@@ -167,7 +172,8 @@ because its developer isn't verified, either turn on Android's one-time "advance
 restart and a one-day wait) or install it from a computer with `adb install diecast-tracker.apk`.
 </details>
 
-The release APK contains no trademarked artwork: the blister boards show a drawn flame instead of a brand logo.
+The release APK leaves out the big Hot Wheels logo of the 3D garage's blister boards, which show a drawn flame
+instead. The small logos that label shops, AI services and diecast brands are included (see [Logos](#logos)).
 
 ## Getting started
 
@@ -199,6 +205,11 @@ quota is back.
 
 Free tiers change often. The settings screen notes each provider's terms.
 
+**Automatic price check:** not an AI, but also a free key. Sign up at [serpapi.com](https://serpapi.com/manage-api-key)
+(250 searches a month, 50 an hour), then paste the key under **⚙ Settings → Automatic price check** and tap
+**Test key**: it shows the searches left. Each automatic check uses one search; the same search again within an hour
+is free. It needs an AI set up too, which sorts out the listings.
+
 ## Privacy
 
 - **No backend, no account, no analytics, no ads.** The collection and its photos live in the app's private storage.
@@ -206,9 +217,11 @@ Free tiers change often. The settings screen notes each provider's terms.
   receipts), and only to the providers you set up. Price-check screenshots are read and then discarded; receipts are
   kept on the phone as proof of purchase (and travel in backups).
 - Other network use: the fan wikis on Fandom for the Dex; OpenStreetMap's [Nominatim](https://nominatim.org) for
-  place names and regions; [OpenFreeMap](https://openfreemap.org) for map tiles; Google Play services for location
+  place names and regions (and a shop's address read from a receipt, to put it on the map); [OpenFreeMap](https://openfreemap.org) for map tiles; Google Play services for location
   and the ML Kit model download; and, only when prices are shown in another currency or a listing abroad is
-  converted, [Frankfurter](https://frankfurter.dev) or [open.er-api.com](https://open.er-api.com) for exchange rates.
+  converted, [Frankfurter](https://frankfurter.dev) or [open.er-api.com](https://open.er-api.com) for exchange rates;
+  and, only when you set up the automatic price check and tap it, [SerpApi](https://serpapi.com) with the search
+  keywords and your key (never photos).
 - API keys are stored on the phone and excluded from Android's cloud backup.
 - Backups are files you save or share yourself; nothing is uploaded automatically.
 
@@ -238,7 +251,8 @@ Without it, the release build is signed with your local debug key. Choose one ke
 another key can't be installed over the old app without uninstalling it, which deletes its data.
 
 **Brand logo (optional):** the blister boards show `app/src/main/assets/brand/hot_wheels_logo.png` if it exists. The
-logo is Mattel's trademark, so it isn't in the repository; without it the boards draw a flame.
+logo is Mattel's trademark, so it isn't in the repository; without it the boards draw a flame. The small logos in
+lists and buttons are in the repository (see [Logos](#logos)).
 
 ## Architecture
 
@@ -268,7 +282,7 @@ app/src/main/java/io/github/caropeboka/diecasttracker/
 │   ├── locale/      app language and texts outside the screens
 │   ├── money/       exchange rates
 │   ├── places/      place names (Nominatim) and regions
-│   ├── price/       market price analysis
+│   ├── price/       market price analysis, Google Shopping through SerpApi
 │   ├── receipt/     receipts read by the AI and kept as proof
 │   ├── scan/        bulk scan queue and in-store check
 │   ├── shelf/       3D garage placement
@@ -280,7 +294,7 @@ app/src/main/java/io/github/caropeboka/diecasttracker/
 Texts live in `app/src/main/res/values*/strings_<feature>.xml`: `values` (English), `values-in` (Indonesian) and
 `values-zh-rCN` (Simplified Chinese).
 
-**Tests:** 280 JVM and Robolectric tests, many of them ports of the web app's feature tests with their real-world
+**Tests:** 291 JVM and Robolectric tests, many of them ports of the web app's feature tests with their real-world
 fixtures (wiki tables, backup zips, AI answers). The AI providers and wikis are faked with OkHttp interceptors, and
 every Room migration is tested from each older schema.
 
@@ -318,6 +332,18 @@ Diecast Tracker is released under the [MIT License](LICENSE).
   [Matchbox Wiki](https://matchbox.fandom.com), [Mini GT Wiki](https://minigt.fandom.com) and
   [Tomica Wiki](https://tomica.fandom.com) (CC BY-SA). They are downloaded on the phone, not bundled with the app.
 
-Hot Wheels and Matchbox are trademarks of Mattel, Inc.; Tomica of TOMY Company, Ltd.; Mini GT and Kaido House of
-their owners. This project is not affiliated with or endorsed by them, by Fandom, or by any marketplace or AI
-provider it works with.
+Hot Wheels and Matchbox are trademarks of Mattel, Inc.; Tomica of TOMY Company, Ltd.; Mini GT, Kaido House, Bburago,
+Maisto and the shops and AI services named in the app of their owners. This project is not affiliated with or
+endorsed by them, by Fandom, or by any marketplace or AI provider it works with.
+
+### Logos
+
+The app shows the logos of the shops, AI services, diecast brands and car makers it works with, next to their names,
+only to say which one is meant (`app/src/main/res/drawable-nodpi/logo_*.png` and `make_*.png`,
+`app/src/main/res/drawable/logo_*.xml` and `make_*.xml`). They are their owners' trademarks and are not covered
+by the MIT License. The Shopee, NVIDIA, Google Lens, Chrysler, IVECO and Red Bull marks come from
+[Simple Icons](https://simpleicons.org) (CC0); most car makers' emblems from the
+[car-logos-dataset](https://github.com/filippofilip95/car-logos-dataset), a few from Wikimedia Commons; the others
+are the services' own icons and the brands' wordmarks (Roll Speed's badge redrawn from its card), scaled down to
+small tiles. The Treasure Hunt circle-flame is the Hot Wheels Wiki's symbol, recoloured silver and gold. The large Hot Wheels logo of the 3D garage's boards stays out of the
+repository.
