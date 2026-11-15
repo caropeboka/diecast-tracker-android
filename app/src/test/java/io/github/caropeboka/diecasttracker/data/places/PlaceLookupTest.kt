@@ -184,6 +184,85 @@ class PlaceLookupTest {
     }
 
     @Test
+    fun `a receipt's store is found on its street or closer, never just in its town`() = runBlocking {
+        // Nominatim finds nothing for a full Indonesian address, a street for the street and a kelurahan for the area.
+        osm.onSearch("Ruko Cibinong City, Cibinong", "[]")
+        osm.onSearch(
+            "Jalan Tegar Beriman, Tengah, Cibinong",
+            """[{"place_rank": 26, "lat": "-6.4812501", "lon": "106.8235227", "name": "Jalan Tegar Beriman",
+                 "display_name": "Jalan Tegar Beriman, Tengah, Cibinong, Kab Bogor, Jawa Barat, 16914, Indonesia",
+                 "address": {"road": "Jalan Tegar Beriman", "village": "Tengah"}}]""",
+        )
+        osm.onSearch("Tengah, Cibinong", """[{"place_rank": 16, "lat": "-6.48", "lon": "106.83", "name": "Tengah", "display_name": "Tengah, Cibinong"}]""")
+
+        val found = places.locate("Indomaret Tegar Beriman", listOf(" Ruko Cibinong City, Cibinong ", "Jalan Tegar Beriman, Tengah, Cibinong", "Tengah, Cibinong"))!!
+        assertEquals(-6.4812501, found.lat, 0.0)
+        assertEquals(106.8235227, found.lng, 0.0)
+        assertEquals(PlaceSource.Osm, found.source)
+        // Found at the second: the third isn't asked.
+        assertEquals(listOf("Ruko Cibinong City, Cibinong", "Jalan Tegar Beriman, Tengah, Cibinong"), osm.requests.map { it.queryParameter("q") })
+
+        // A kelurahan's middle says too little; no answer at all is the same.
+        assertNull(places.locate("Indomaret", listOf("Tengah, Cibinong")))
+        assertNull(places.locate("Indomaret", listOf("Jalan Entah, Bogor")))
+        assertNull(places.locate("Indomaret", emptyList()))
+    }
+
+    @Test
+    fun `only a place named like the search counts, and a shop's search only when it finds one`() = runBlocking {
+        // Nominatim lacks the street and answers with any "Jalan Raya" around.
+        osm.onSearch(
+            "Jalan Raya Teluk Naga, Pangkalan, Teluknaga",
+            """[{"place_rank": 26, "lat": "-6.07", "lon": "106.63", "name": "Jalan Raya Kampung Melayu", "display_name": "Jalan Raya Kampung Melayu, Teluknaga"},
+                {"place_rank": 26, "lat": "-6.08", "lon": "106.62", "name": "", "display_name": "Teluknaga"}]""",
+        )
+        osm.onSearch(
+            "Indomaret, Pangkalan, Teluknaga",
+            """[{"place_rank": 30, "lat": "-6.0649631", "lon": "106.6438872", "name": "Indomaret", "display_name": "Indomaret, Jalan Kalibaru, Pangkalan, Teluknaga",
+                 "address": {"shop": "Indomaret", "road": "Jalan Kalibaru"}},
+                {"place_rank": 16, "lat": "-6.06", "lon": "106.64", "name": "Pangkalan", "display_name": "Pangkalan, Teluknaga"}]""",
+        )
+        osm.onSearch(
+            "Indomaret, Teluknaga",
+            """[{"place_rank": 30, "lat": "-6.0649", "lon": "106.6438", "name": "Indomaret", "display_name": "Indomaret, Pangkalan"},
+                {"place_rank": 30, "lat": "-6.0900", "lon": "106.6100", "name": "Indomaret Teluknaga 2", "display_name": "Indomaret Teluknaga 2"}]""",
+        )
+        // The same street under another spelling ("Teluknaga") is still it.
+        osm.onSearch(
+            "Jalan Teluk Naga, Teluknaga",
+            """[{"place_rank": 26, "lat": "-6.071", "lon": "106.632", "name": "Jalan Raya Teluknaga", "display_name": "Jalan Raya Teluknaga, Teluknaga"}]""",
+        )
+
+        assertNull(places.locate("Indomaret Teluk Naga II", listOf("Jalan Raya Teluk Naga, Pangkalan, Teluknaga")))
+        val shop = places.locate("Indomaret Teluk Naga II", listOf("Jalan Raya Teluk Naga, Pangkalan, Teluknaga"), "Indomaret, Pangkalan, Teluknaga")!!
+        assertEquals(-6.0649631, shop.lat, 0.0)
+        assertEquals(PlaceSource.Osm, shop.source)
+        // Two branches in the area: neither.
+        assertNull(places.locate("Indomaret", emptyList(), "Indomaret, Teluknaga"))
+        assertEquals(-6.071, places.locate("Indomaret", listOf("Jalan Teluk Naga, Teluknaga"))!!.lat, 0.0)
+        assertEquals("teluknaga", PlaceLookup.searchedName("Jalan Raya Teluk Naga, Pangkalan"))
+        assertEquals("grandindonesia", PlaceLookup.searchedName("Grand Indonesia, Jakarta Pusat"))
+    }
+
+    @Test
+    fun `a receipt's store moves onto the collector's own pin of it nearby`() = runBlocking {
+        osm.onSearch(
+            "Jalan Tegar Beriman, Tengah, Cibinong",
+            """[{"place_rank": 26, "lat": "-6.4812501", "lon": "106.8235227", "name": "Jalan Tegar Beriman", "display_name": "Jalan Tegar Beriman, Tengah"}]""",
+        )
+        // ~300 m along the street, and a branch of the same name across town.
+        bought("Indomaret Tegar Beriman", -6.4835, 106.8250)
+        bought("Indomaret", -6.4600, 106.8500)
+
+        val own = places.locate("indomaret tegar beriman", listOf("Jalan Tegar Beriman, Tengah, Cibinong"))!!
+        assertEquals(PlaceSource.History, own.source)
+        assertEquals(-6.4835, own.lat, 0.0)
+
+        // Another name, or the same one over a kilometre away: the street's point.
+        assertEquals(PlaceSource.Osm, places.locate("Indomaret", listOf("Jalan Tegar Beriman, Tengah, Cibinong"))!!.source)
+    }
+
+    @Test
     fun `regions come from OpenStreetMap's admin levels, cached per 100 m cell for a year`() = runBlocking {
         osm.on(
             "reverse",

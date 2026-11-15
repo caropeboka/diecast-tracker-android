@@ -67,6 +67,8 @@ class MigrationTest {
                 db.execSQL("INSERT INTO sightings (diecast_id, place, seen_on, created_at) VALUES (1, 'Toys Kingdom GI', '2026-10-01', 1)")
                 // Queued before checks shared the table: it stays in the bulk queue.
                 if (version >= 5) db.execSQL("INSERT INTO scan_items (id, photo_file, status, created_at) VALUES (99, 'old.jpg', 'pending', 1)")
+                // Read before receipts kept the store's address.
+                if (version >= 9) db.execSQL("INSERT INTO receipts (id, photo, store, lines, created_at) VALUES (50, 'old.jpg', 'Alfamart', '[]', 1)")
             }
 
             val db = Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(*AppDatabase.MIGRATIONS).build()
@@ -105,6 +107,11 @@ class MigrationTest {
                     ),
                 )
                 assertEquals(listOf(ReceiptLine("HW BASIC", 1, 33_900)), db.receipts().get(receipt)?.lines)
+                if (version >= 9) assertEquals("Alfamart" to null, db.receipts().get(50)?.let { it.store to it.address })
+                val located = db.receipts().insert(
+                    ReceiptEntity(photo = "s.jpg", store = "Toys Kingdom", address = "Jl. M.H. Thamrin No. 1", latitude = -6.1957, longitude = 106.8214, lines = emptyList(), createdAt = 10),
+                )
+                assertEquals(-6.1957, db.receipts().get(located)?.latitude!!, 1e-9)
                 assertEquals(null, db.diecasts().get(1)?.receiptId)
                 db.openHelper.writableDatabase.execSQL("UPDATE diecasts SET receipt_id = $receipt, receipt_line = 0 WHERE id = 1")
                 assertEquals(receipt, db.diecasts().get(1)?.receiptId)
@@ -126,6 +133,6 @@ class MigrationTest {
     }
 
     private companion object {
-        const val LATEST = 9
+        const val LATEST = 10
     }
 }

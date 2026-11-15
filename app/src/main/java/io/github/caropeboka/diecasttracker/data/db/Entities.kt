@@ -399,6 +399,11 @@ data class ReceiptEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val photo: String,
     val store: String? = null,
+    /** The branch's address as printed, when it was (not a head office's). */
+    val address: String? = null,
+    /** Where OpenStreetMap places [address], when it found the street or closer. */
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     @ColumnInfo(name = "bought_on") val boughtOn: LocalDate? = null,
     /** What was paid in all; null when it couldn't be read or converted. */
     val total: Long? = null,

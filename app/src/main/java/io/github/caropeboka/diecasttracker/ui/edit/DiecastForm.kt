@@ -19,6 +19,7 @@ import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexPrefill
 import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
+import io.github.caropeboka.diecasttracker.data.receipt.place
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 
@@ -191,12 +192,24 @@ data class DiecastForm(
             next = next.copy(purchaseDate = date)
             filled += Field.PurchaseDate
         }
-        val store = receipt.store
-        if (store != null && purchasePlace.isBlank()) {
-            next = next.withPurchaseLocation(PlaceValue(store))
-            filled += Field.PurchasePlace
+        receipt.place?.let { place ->
+            // Its point also goes to the store typed already by hand, as long as that has none.
+            val same = purchaseLatitude == null && place.hasPoint && purchasePlace.trim().equals(place.name, ignoreCase = true)
+            if (purchasePlace.isBlank() || same) {
+                next = next.withPurchaseLocation(place)
+                filled += Field.PurchasePlace
+            }
         }
         return next to filled
+    }
+
+    /**
+     * The receipt's store found on the map later, on the collector's tap: "Bought at" takes its point, under the name
+     * typed there (the store's when empty). A place already on the map stays: null then, as when [place] has no point.
+     */
+    fun withReceiptPoint(place: PlaceValue): DiecastForm? {
+        if (!place.hasPoint || purchaseLatitude != null) return null
+        return withPurchaseLocation(if (purchasePlace.isBlank()) place else place.copy(name = purchasePlace.trim()))
     }
 
     /** Filled the way the entry's card prints it, and linked to it (web: the `dexItem` prefill). */

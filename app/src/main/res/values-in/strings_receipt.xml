@@ -32,6 +32,13 @@
     <string name="receipt_keep_only">Simpan struknya saja</string>
     <string name="receipt_total">Total %1$s</string>
     <string name="receipt_read_by">Dibaca oleh %1$s</string>
+    <string name="receipt_locating">Mencari tokonya di peta</string>
+    <string name="receipt_on_map">Ada di peta</string>
+    <string name="receipt_not_on_map">Tidak ketemu di peta: atur titiknya lewat tombol peta di Beli di</string>
+    <string name="receipt_find_on_map">Cari tokonya di peta</string>
+    <string name="receipt_no_address">Struk ini tidak mencantumkan alamat toko: atur titiknya lewat tombol peta di Beli di.</string>
+    <string name="receipt_point_set">Beli di sekarang ada di peta. Simpan supaya tersimpan.</string>
+    <string name="receipt_point_kept">Ketemu di peta, tapi Beli di sudah punya titik sendiri, jadi tetap.</string>
     <string name="receipt_each">%1$d × %2$s</string>
     <string name="receipt_used_by">dipakai %1$s</string>
     <string name="receipt_attached">Struknya disimpan bersama diecast ini.</string>

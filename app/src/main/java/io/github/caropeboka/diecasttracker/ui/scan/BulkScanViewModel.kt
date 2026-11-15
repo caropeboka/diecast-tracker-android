@@ -28,6 +28,7 @@ import io.github.caropeboka.diecasttracker.data.db.ReceiptEntity
 import io.github.caropeboka.diecasttracker.data.db.ScanItemEntity
 import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
+import io.github.caropeboka.diecasttracker.data.receipt.place
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.data.scan.ScanWork
@@ -163,7 +164,7 @@ class BulkScanViewModel(
         receipt.boughtOn?.let { date ->
             if (next.date.isBlank() || next.date == LocalDate.now().toString()) next = next.copy(date = date.toString())
         }
-        receipt.store?.let { store -> if (next.place.name.isBlank()) next = next.copy(place = PlaceValue(store)) }
+        receipt.place?.let { place -> if (next.place.name.isBlank()) next = next.copy(place = place) }
         if (next != defaults) updateDefaults(next)
         messages.show(texts.plural(R.plurals.receipt_applied_many, used, used))
     }

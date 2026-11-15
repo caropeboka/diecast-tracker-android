@@ -10,12 +10,15 @@ import io.github.caropeboka.diecasttracker.data.db.AppDatabase
 import io.github.caropeboka.diecasttracker.data.db.ReceiptEntity
 import io.github.caropeboka.diecasttracker.data.db.ReceiptUse
 import io.github.caropeboka.diecasttracker.data.locale.Texts
+import io.github.caropeboka.diecasttracker.data.places.PlaceResult
+import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.util.ExchangeRates
 import io.github.caropeboka.diecasttracker.util.array
 import io.github.caropeboka.diecasttracker.util.string
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -33,8 +36,8 @@ import java.time.LocalDate
 import java.util.UUID
 import kotlin.math.roundToLong
 
-// Receipts: a photo of what was paid, read by the AI to fill in the purchase price (and the date and store when the
-// form has none), then kept as proof. One receipt can hold several diecasts, each taking one of its lines.
+// Receipts: a photo of what was paid, read by the AI to fill in the purchase price (and the date and store, with the
+// store's point on the map when its address is printed, when the form has none), then kept as proof. One receipt can hold several diecasts, each taking one of its lines.
 
 /** One product on a receipt; [price] is what one of them cost in Rupiah, after the discounts printed for the line. */
 @Serializable
@@ -85,6 +88,15 @@ class ReceiptStore(root: File) {
  */
 data class ReceiptReading(
     val store: String?,
+    /** The branch's address as printed; null for an online order or when only a head office's is printed. */
+    val address: String? = null,
+    /** What the AI would search OpenStreetMap for to find [address], most precise first. */
+    val mapQueries: List<String> = emptyList(),
+    /** The chain's name in its area ("Indomaret, Pangkalan, Teluknaga"), for when the map lacks the street. */
+    val shopQuery: String? = null,
+    /** Where [address] is, once [ReceiptReader.locate] found it. */
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val boughtOn: LocalDate?,
     val total: Long?,
     val currency: String?,
@@ -100,8 +112,17 @@ class ReceiptReader(
     private val texts: Texts,
     private val rates: suspend () -> ExchangeRates? = { null },
     private val today: () -> LocalDate = LocalDate::now,
+    /** Finds a shop from its name, the searches of its address and the shop's own (`PlaceLookup.locate`). */
+    private val places: suspend (name: String?, queries: List<String>, shop: String?) -> PlaceResult? = { _, _, _ -> null },
 ) {
     val enabled: Flow<Boolean> = vision.enabled
+
+    /** [reading] with the point of its store's address, when the map finds it; it stays as it was otherwise. */
+    suspend fun locate(reading: ReceiptReading): ReceiptReading {
+        if (reading.mapQueries.isEmpty() && reading.shopQuery == null) return reading
+        val place = withTimeoutOrNull(LOCATE_TIMEOUT_MS) { places(reading.store, reading.mapQueries, reading.shopQuery) } ?: return reading
+        return reading.copy(latitude = place.lat, longitude = place.lng)
+    }
 
     /**
      * [image]: the receipt as JPEG. [items]: the diecasts it may hold, one line each ("Name: …, brand: …"), to be
@@ -163,8 +184,15 @@ class ReceiptReader(
             texts(R.string.receipt_no_rate, currency).takeIf { rate == null },
         )
 
+        val address = data.string("address")?.trim()?.ifEmpty { null }?.take(MAX_ADDRESS)
         return ReceiptReading(
             store = data.string("store")?.trim()?.ifEmpty { null }?.take(MAX_STORE),
+            address = address,
+            mapQueries = if (address == null) emptyList() else data.array("map_queries").orEmpty()
+                .mapNotNull { (it as? JsonPrimitive)?.takeIf(JsonPrimitive::isString)?.content?.trim()?.ifEmpty { null }?.take(MAX_STORE) }
+                .distinct()
+                .take(MAX_QUERIES),
+            shopQuery = data.string("shop_query")?.trim()?.ifEmpty { null }?.take(MAX_STORE)?.takeIf { address != null },
             boughtOn = date,
             total = idr(amount(data, "total")),
             currency = currency.takeIf { it != IDR },
@@ -192,7 +220,12 @@ class ReceiptReader(
         const val MIN_YEAR = 1990
         const val MAX_NAME = 200
         const val MAX_STORE = 255
+        const val MAX_ADDRESS = 500
+        const val MAX_QUERIES = 3
         const val MAX_QUANTITY = 999
+
+        /** Nominatim answers a search in a second or two; four of them, a second apart, with room to spare. */
+        const val LOCATE_TIMEOUT_MS = 25_000L
 
         val SYSTEM_PROMPT = """
             You read shop receipts for a diecast car collector's tracker, to fill in what each diecast cost.
@@ -205,6 +238,19 @@ class ReceiptReader(
             - store: the shop as printed, with its branch if shown (e.g. "Indomaret Cibinong Raya", "Toys Kingdom Grand
               Indonesia"); for an online order the shop's name and the marketplace (e.g. "Diecast Corner · Tokopedia").
               null if not shown.
+            - address: the street address of the branch where it was bought, as printed (e.g. "Jl. Tegar Beriman No. 5,
+              Tengah, Cibinong, Kab. Bogor"). null for an online order, when none is printed, or when the only address is
+              the company's head office or tax address (e.g. Indomaret's "PT Indomarco Prima", Alfamart's "PT Sumber
+              Alfaria Trijaya" with an address in another city than the branch).
+            - map_queries: when there is an address, up to 3 searches that would find the branch on OpenStreetMap, the
+              most precise first: the mall or building it is in with its city ("Grand Indonesia, Jakarta Pusat"), then
+              the street with its kelurahan or desa and its kecamatan or city ("Jalan Tegar Beriman, Tengah, Cibinong").
+              Write abbreviations out ("Jl." → "Jalan", "Kab." → "Kabupaten") and leave out the shop's own name, house
+              and block numbers, RT/RW, floors, postal codes and words like "Kel." or "Kec.". An empty list without an
+              address.
+            - shop_query: when there is an address, one more search: the chain's or shop's name alone with the kelurahan
+              or desa, the kecamatan and the kabupaten or city ("Indomaret, Pangkalan, Teluknaga, Kabupaten Tangerang"),
+              for a street OpenStreetMap doesn't know. null without an address.
             - date: the purchase date as YYYY-MM-DD. Indonesian receipts print the day first ("12.11.26", "12/11/2026").
               null if not shown.
             - currency: the ISO code of the prices: IDR for "Rp" or an Indonesian receipt, JPY for "円" or "¥" in Japan, USD
@@ -261,6 +307,9 @@ class ReceiptReader(
                 linkedMapOf(
                     "is_receipt" to type("boolean"),
                     "store" to nullable("string"),
+                    "address" to nullable("string"),
+                    "map_queries" to arrayOf(type("string")),
+                    "shop_query" to nullable("string"),
                     "date" to nullable("string"),
                     "currency" to type("string"),
                     "total" to nullable("number"),
@@ -298,6 +347,9 @@ class ReceiptRepository(
         val receipt = ReceiptEntity(
             photo = photo,
             store = reading.store,
+            address = reading.address,
+            latitude = reading.latitude,
+            longitude = reading.longitude,
             boughtOn = reading.boughtOn,
             total = reading.total,
             currency = reading.currency,
@@ -307,6 +359,21 @@ class ReceiptRepository(
             createdAt = clock(),
         )
         return receipt.copy(id = dao.insert(receipt))
+    }
+
+    /**
+     * The store's address and point from [reading], a receipt read again: one read before addresses were, or whose
+     * store the map didn't find then. What the new reading lacks stays as it was.
+     */
+    suspend fun setPlace(receipt: ReceiptEntity, reading: ReceiptReading): ReceiptEntity {
+        val found = reading.latitude != null && reading.longitude != null
+        val next = receipt.copy(
+            address = reading.address ?: receipt.address,
+            latitude = if (found) reading.latitude else receipt.latitude,
+            longitude = if (found) reading.longitude else receipt.longitude,
+        )
+        dao.setPlace(receipt.id, next.address, next.latitude, next.longitude)
+        return next
     }
 
     /** At start-up: receipts nothing was bought with for a day (an abandoned form's), and photos no receipt holds. */
@@ -335,3 +402,7 @@ fun receiptItem(name: String, brand: String?, series: String?, number: String?):
         series?.trim()?.ifEmpty { null }?.let { "series: $it" },
         number?.trim()?.ifEmpty { null }?.let { "number: $it" },
     ).joinToString(", ").ifEmpty { "a diecast" }
+
+/** What a receipt gives "Bought at": its store (its address when no name is printed), with the store's point if found. */
+val ReceiptEntity.place: PlaceValue?
+    get() = (store ?: address)?.let { PlaceValue(it, latitude, longitude) }

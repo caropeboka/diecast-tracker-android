@@ -151,6 +151,9 @@ object WebBackupFormat {
                         put("photo", photo)
                         put("line", diecast.receiptLine)
                         put("store", entity.store)
+                        put("address", entity.address)
+                        put("latitude", entity.latitude)
+                        put("longitude", entity.longitude)
                         put("bought_on", entity.boughtOn?.toString())
                         put("total", entity.total)
                         put("currency", entity.currency)
@@ -232,6 +235,9 @@ object WebBackupFormat {
                 ReceiptEntity(
                     photo = photo,
                     store = text("store")?.take(255),
+                    address = text("address")?.take(500),
+                    latitude = text("latitude")?.toDoubleOrNull()?.takeIf { it in -90.0..90.0 },
+                    longitude = text("longitude")?.toDoubleOrNull()?.takeIf { it in -180.0..180.0 },
                     boughtOn = text("bought_on")?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
                     total = text("total")?.toLongOrNull()?.takeIf { it in 1..MAX_MONEY },
                     currency = text("currency")?.takeIf { CURRENCY.matches(it) },

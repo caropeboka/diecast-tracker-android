@@ -14,12 +14,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectable
@@ -224,7 +226,11 @@ class ReceiptViewModel(
         try {
             log.step(texts(R.string.receipt_reading))
             val image = withContext(Dispatchers.IO) { store.file(name).readBytes() }
-            val reading = reader.read(image, items.map { it.text }, log::onEvent)
+            var reading = reader.read(image, items.map { it.text }, log::onEvent)
+            if (reading.mapQueries.isNotEmpty()) {
+                log.step(texts(R.string.receipt_locating))
+                reading = reader.locate(reading)
+            }
             val receipt = receipts.add(name, reading)
             saved[WAITING] = null
             show(receipt.id, reading.matches.mapNotNull { (index, line) -> items.getOrNull(index)?.let { it.key to line } }.toMap())
@@ -241,6 +247,40 @@ class ReceiptViewModel(
         } finally {
             reading = false
             log.stop()
+        }
+    }
+
+    /**
+     * Reads [receipt] again for its store's address and looks that up on the map: for one read before addresses were,
+     * or whose store wasn't found then. [onFound] gets it back with its point; not found, the receipt says so.
+     */
+    fun findOnMap(receipt: ReceiptEntity, onFound: (ReceiptEntity) -> Unit) {
+        if (reading) return
+        reading = true
+        error = null
+        log.start(texts(R.string.receipt_reading))
+        viewModelScope.launch {
+            try {
+                val image = withContext(Dispatchers.IO) { receipts.file(receipt).readBytes() }
+                var again = reader.read(image, emptyList(), log::onEvent)
+                if (again.address == null && receipt.address == null) {
+                    error = texts(R.string.receipt_no_address)
+                    return@launch
+                }
+                log.step(texts(R.string.receipt_locating))
+                again = reader.locate(again)
+                val placed = receipts.setPlace(receipt, again)
+                if (placed.latitude != null) onFound(placed)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: AiException) {
+                error = e.message
+            } catch (e: Exception) {
+                error = texts(R.string.receipt_failed, e.message ?: e::class.simpleName.orEmpty())
+            } finally {
+                reading = false
+                log.stop()
+            }
         }
     }
 
@@ -458,7 +498,8 @@ fun ReceiptReading(viewModel: ReceiptViewModel, items: () -> List<ReceiptItem>) 
 /**
  * The form's purchase price with its receipt: [priceField] and a receipt button beside it (like the map button beside
  * a place) that offers the camera, the gallery and the recent receipts; under them the reading, then the receipt
- * itself (its photo opens it) with the line this diecast took, another line, or none.
+ * itself (its photo opens it) with the line this diecast took, another line, or none. A receipt whose store has no
+ * point yet can look for it on the map; [onPlace] gets it once found.
  */
 @Composable
 fun ReceiptPanel(
@@ -470,9 +511,11 @@ fun ReceiptPanel(
     onApply: (ReceiptEntity, Int?) -> Unit,
     onDetach: () -> Unit,
     onAiSettings: () -> Unit,
+    onPlace: (ReceiptEntity) -> Unit = {},
     priceField: @Composable (Modifier) -> Unit,
 ) {
     val viewModel: ReceiptViewModel = viewModel(key = key, factory = ReceiptViewModel.Factory)
+    val aiOn by viewModel.enabled.collectAsStateWithLifecycle()
     val attached by remember(receiptId) { viewModel.observe(receiptId) }.collectAsStateWithLifecycle(null)
     val shownId by viewModel.shown.collectAsStateWithLifecycle()
     val shown by remember(shownId) { viewModel.observe(shownId) }.collectAsStateWithLifecycle(null)
@@ -503,6 +546,8 @@ fun ReceiptPanel(
                 onView = { viewing = true },
                 onOtherLine = { viewModel.show(receipt.id, line?.let { mapOf(FORM_KEY to it) }.orEmpty()) },
                 onDetach = onDetach,
+                onFind = { viewModel.findOnMap(receipt, onPlace) }.takeIf { aiOn && receipt.latitude == null },
+                busy = viewModel.reading,
             )
         }
     }
@@ -546,6 +591,8 @@ private fun AttachedReceipt(
     onView: () -> Unit,
     onOtherLine: () -> Unit,
     onDetach: () -> Unit,
+    onFind: (() -> Unit)?,
+    busy: Boolean,
 ) {
     Surface(shape = MaterialTheme.shapes.medium, color = Garage.Muted, border = BorderStroke(1.dp, Garage.Border)) {
         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -570,6 +617,14 @@ private fun AttachedReceipt(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
+                }
+            }
+            ReceiptAddress(receipt)
+            if (onFind != null) {
+                OutlinedButton(onClick = onFind, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+                    Icon(painterResource(R.drawable.ic_place), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.receipt_find_on_map))
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -662,7 +717,31 @@ private fun ReceiptSummary(receipt: ReceiptEntity, photo: File, onView: () -> Un
             }
         }
     }
+    ReceiptAddress(receipt)
     receipt.note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.Brand2) }
+}
+
+/** The store's address as printed, and whether the map found it (then "Bought at" got its point). */
+@Composable
+private fun ReceiptAddress(receipt: ReceiptEntity) {
+    val address = receipt.address ?: return
+    val found = receipt.latitude != null && receipt.longitude != null
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Icon(
+            painterResource(R.drawable.ic_place),
+            contentDescription = null,
+            tint = if (found) Garage.Brand else Garage.MutedForeground,
+            modifier = Modifier.padding(top = 1.dp).size(16.dp),
+        )
+        Column {
+            Text(address, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                stringResource(if (found) R.string.receipt_on_map else R.string.receipt_not_on_map),
+                style = MaterialTheme.typography.labelSmall,
+                color = Garage.MutedForeground,
+            )
+        }
+    }
 }
 
 @Composable

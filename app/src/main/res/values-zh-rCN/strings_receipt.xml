@@ -32,6 +32,13 @@
     <string name="receipt_keep_only">只保存小票</string>
     <string name="receipt_total">合计 %1$s</string>
     <string name="receipt_read_by">由 %1$s 读取</string>
+    <string name="receipt_locating">正在地图上查找门店</string>
+    <string name="receipt_on_map">已在地图上</string>
+    <string name="receipt_not_on_map">未在地图上找到：可用“购买地点”旁的地图按钮设置位置</string>
+    <string name="receipt_find_on_map">在地图上查找门店</string>
+    <string name="receipt_no_address">这张收据没有印门店地址：可用“购买地点”旁的地图按钮设置位置。</string>
+    <string name="receipt_point_set">购买地点已标在地图上。保存后生效。</string>
+    <string name="receipt_point_kept">已在地图上找到，但购买地点已有自己的位置，保持不变。</string>
     <string name="receipt_each">%1$d × %2$s</string>
     <string name="receipt_used_by">已用于 %1$s</string>
     <string name="receipt_attached">小票已随这辆合金车保存。</string>

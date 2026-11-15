@@ -44,6 +44,7 @@ import io.github.caropeboka.diecasttracker.data.dex.DexRepository
 import io.github.caropeboka.diecasttracker.data.dex.LinkAction
 import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
+import io.github.caropeboka.diecasttracker.data.receipt.place
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.data.studio.CardCutout
 import io.github.caropeboka.diecasttracker.data.studio.StudioException
@@ -413,6 +414,18 @@ class DiecastEditViewModel(
         if (Field.PurchasePrice in filled) markAiFields(aiFields + Field.PurchasePrice)
         val labels = filled.mapNotNull { RECEIPT_FIELDS[it] }.map { texts(it) }
         messages.show(if (labels.isEmpty()) texts(R.string.receipt_attached) else texts(R.string.receipt_filled, labels.joinToString(", ")))
+    }
+
+    /** The receipt's store found on the map afterwards: its point for "Bought at", unless that has one already. */
+    fun applyReceiptPlace(receipt: ReceiptEntity) {
+        val next = receipt.place?.let(form::withReceiptPoint)
+        if (next == null) {
+            messages.show(texts(R.string.receipt_point_kept))
+            return
+        }
+        replaceForm(next)
+        errors = errors - Field.PurchasePlace
+        messages.show(texts(R.string.receipt_point_set))
     }
 
     /** No receipt with this one after all; the receipt stays for the others (or goes at start-up when nobody has it). */

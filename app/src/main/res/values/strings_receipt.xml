@@ -33,6 +33,13 @@
     <string name="receipt_keep_only">Keep the receipt only</string>
     <string name="receipt_total">Total %1$s</string>
     <string name="receipt_read_by">Read by %1$s</string>
+    <string name="receipt_locating">Finding the store on the map</string>
+    <string name="receipt_on_map">On the map</string>
+    <string name="receipt_not_on_map">Not found on the map: set the point with the map button at Bought at</string>
+    <string name="receipt_find_on_map">Find the store on the map</string>
+    <string name="receipt_no_address">This receipt prints no store address to look up: set the point with the map button at Bought at.</string>
+    <string name="receipt_point_set">Bought at is on the map now. Save to keep it.</string>
+    <string name="receipt_point_kept">Found on the map, but Bought at already has its own point, so it stays.</string>
     <string name="receipt_each">%1$d × %2$s</string>
     <string name="receipt_used_by">taken by %1$s</string>
     <string name="receipt_attached">The receipt is kept with this diecast.</string>

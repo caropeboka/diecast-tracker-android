@@ -296,6 +296,9 @@ interface ReceiptDao {
     @Query("SELECT * FROM receipts WHERE id = :id")
     fun observe(id: Long): Flow<ReceiptEntity?>
 
+    @Query("UPDATE receipts SET address = :address, latitude = :latitude, longitude = :longitude WHERE id = :id")
+    suspend fun setPlace(id: Long, address: String?, latitude: Double?, longitude: Double?)
+
     /** Read since [since], newest first: to use again for the next diecast of the same purchase. */
     @Query("SELECT * FROM receipts WHERE created_at >= :since ORDER BY created_at DESC, id DESC LIMIT :limit")
     fun observeRecent(since: Long, limit: Int): Flow<List<ReceiptEntity>>

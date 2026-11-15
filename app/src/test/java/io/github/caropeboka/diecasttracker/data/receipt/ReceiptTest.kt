@@ -12,6 +12,8 @@ import io.github.caropeboka.diecasttracker.data.backup.BackupImporter
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.ReceiptEntity
 import io.github.caropeboka.diecasttracker.data.db.ScanItemEntity
+import io.github.caropeboka.diecasttracker.data.places.PlaceResult
+import io.github.caropeboka.diecasttracker.data.places.PlaceSource
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.ui.edit.DiecastForm
 import io.github.caropeboka.diecasttracker.ui.edit.Field
@@ -49,7 +51,13 @@ class ReceiptTest {
     private val env = TestEnvironment(now = { now })
     private val fake = FakeGemini()
     private var rates: ExchangeRates? = ExchangeRates(16_000.0, 2_200.0, "2026-11-13", "test", 0, others = mapOf("JPY" to 105.0))
-    private val reader = ReceiptReader(fake.vision(), env.texts, rates = { rates }, today = { TODAY })
+    private val searched = mutableListOf<Pair<String?, List<String>>>()
+    private val shops = mutableListOf<String?>()
+    private val reader = ReceiptReader(fake.vision(), env.texts, rates = { rates }, today = { TODAY }) { name, queries, shop ->
+        searched += name to queries
+        shops += shop
+        STREET.takeIf { "Jalan Tegar Beriman, Tengah, Cibinong" in queries } ?: SHOP.takeIf { shop == "Indomaret, Pangkalan, Teluknaga" }
+    }
     private val store = ReceiptStore(env.root)
     private val receipts = ReceiptRepository(env.db, store, clock = { now })
 
@@ -99,6 +107,44 @@ class ReceiptTest {
             .last().jsonObject["text"]!!.jsonPrimitive.content
         assertTrue(instruction.contains("0. name: Car 0, brand: Hot Wheels"))
         assertTrue(instruction.contains("3. name: Car 3"))
+    }
+
+    @Test
+    fun `the branch address finds the store on the map, and an online order looks for nothing`() = runBlocking {
+        answer(
+            """{"is_receipt": true, "store": "Indomaret Tegar Beriman", "address": " Jl. Tegar Beriman No. 5, Tengah, Cibinong ",
+                "map_queries": ["Jalan Tegar Beriman, Tengah, Cibinong", " ", "Jalan Tegar Beriman, Tengah, Cibinong", "Tengah, Cibinong", "Cibinong", "Bogor"],
+                "date": "2026-11-12", "currency": "IDR", "total": 33900,
+                "lines": [{"name": "HW BASIC CAR ASST", "quantity": 1, "unit_price": 33900, "is_diecast": true}], "matches": [], "note": null}""",
+        )
+        val read = reader.read(TestEnvironment.fixtureJpeg, emptyList())
+        assertEquals("Jl. Tegar Beriman No. 5, Tengah, Cibinong", read.address)
+        // Blanks and repeats dropped, three at most; nothing looked up while reading.
+        assertEquals(listOf("Jalan Tegar Beriman, Tengah, Cibinong", "Tengah, Cibinong", "Cibinong"), read.mapQueries)
+        assertNull(read.latitude)
+        assertTrue(searched.isEmpty())
+
+        val located = reader.locate(read)
+        assertEquals("Indomaret Tegar Beriman" to read.mapQueries, searched.single())
+        assertEquals(STREET.lat, located.latitude!!, 0.0)
+        assertEquals(STREET.lng, located.longitude!!, 0.0)
+        val kept = receipts.add(store.save(TestEnvironment.fixtureJpeg), located)
+        assertEquals("Jl. Tegar Beriman No. 5, Tengah, Cibinong" to STREET.lat, kept.address to kept.latitude)
+
+        // Not found: the reading stays as it was.
+        val elsewhere = read.copy(mapQueries = listOf("Jalan Entah, Bogor"))
+        assertEquals(elsewhere, reader.locate(elsewhere))
+
+        // An online order has no shop to go to, whatever searches come with it.
+        answer(
+            """{"is_receipt": true, "store": "Diecast Corner · Tokopedia", "address": null, "map_queries": ["Jakarta Barat"],
+                "date": "2026-11-12", "currency": "IDR", "total": 45000,
+                "lines": [{"name": "Hot Wheels Skyline", "quantity": 1, "unit_price": 45000, "is_diecast": true}], "matches": [], "note": null}""",
+        )
+        val online = reader.read(TestEnvironment.fixtureJpeg, emptyList())
+        assertTrue(online.mapQueries.isEmpty())
+        assertEquals(online, reader.locate(online))
+        assertEquals(2, searched.size)
     }
 
     @Test
@@ -172,6 +218,82 @@ class ReceiptTest {
     }
 
     @Test
+    fun `the store found on the map comes with its point, also for the same store typed by hand`() {
+        val today = LocalDate.of(2026, 11, 14)
+        val located = receipt(id = 5).copy(address = "Jl. Tegar Beriman No. 5", latitude = STREET.lat, longitude = STREET.lng)
+
+        val (filled, fields) = DiecastForm.new(DiecastStatus.Owned, today).withReceipt(located, 0, dateIsDefault = true)
+        assertEquals("Indomaret Cibinong Raya", filled.purchasePlace)
+        assertEquals(STREET.lat to STREET.lng, filled.purchaseLatitude to filled.purchaseLongitude)
+        assertTrue(Field.PurchasePlace in fields)
+
+        val typed = DiecastForm.new(DiecastStatus.Owned, today).copy(purchasePlace = " indomaret cibinong raya ")
+        val (pointed, pointedFields) = typed.withReceipt(located, 0, dateIsDefault = false)
+        assertEquals(STREET.lat, pointed.purchaseLatitude!!, 0.0)
+        assertEquals("Indomaret Cibinong Raya", pointed.purchasePlace)
+        assertTrue(Field.PurchasePlace in pointedFields)
+
+        // Another place typed, or one with its own point: kept.
+        val other = DiecastForm.new(DiecastStatus.Owned, today).copy(purchasePlace = "Toys Kingdom")
+        assertEquals(other.purchaseLocation, other.withReceipt(located, 0, dateIsDefault = false).first.purchaseLocation)
+        val pinned = typed.copy(purchaseLatitude = -6.2, purchaseLongitude = 106.8)
+        assertEquals(pinned.purchaseLocation, pinned.withReceipt(located, 0, dateIsDefault = false).first.purchaseLocation)
+
+        // No name printed: the address stands for the store.
+        val nameless = located.copy(store = null)
+        assertEquals("Jl. Tegar Beriman No. 5", DiecastForm.new(DiecastStatus.Owned, today).withReceipt(nameless, 0, dateIsDefault = true).first.purchasePlace)
+    }
+
+    @Test
+    fun `a receipt read again finds its store by the shop's own search, and Bought at keeps its name`() = runBlocking {
+        // Read before addresses were: no address, no point.
+        val old = receipts.add(store.save(TestEnvironment.fixtureJpeg), reading().copy(store = "Indomaret Teluk Naga II"))
+        assertNull(old.address)
+        answer(
+            """{"is_receipt": true, "store": "INDOMARET TELUK NAGA II", "address": "Jl. Raya Teluk Naga No. 8, Pangkalan, Teluknaga",
+                "map_queries": ["Jalan Raya Teluk Naga, Pangkalan, Teluknaga"], "shop_query": " Indomaret, Pangkalan, Teluknaga ",
+                "date": "2026-11-14", "currency": "IDR", "total": 71100,
+                "lines": [{"name": "HW FAST FURIOUS 2027", "quantity": 1, "unit_price": 71100, "is_diecast": true}], "matches": [], "note": null}""",
+        )
+        val again = reader.locate(reader.read(TestEnvironment.fixtureJpeg, emptyList()))
+        assertEquals("Indomaret, Pangkalan, Teluknaga", shops.last())
+        assertEquals(SHOP.lat, again.latitude!!, 0.0)
+
+        val placed = receipts.setPlace(old, again)
+        assertEquals("Jl. Raya Teluk Naga No. 8, Pangkalan, Teluknaga", placed.address)
+        assertEquals(SHOP.lat to SHOP.lng, placed.latitude to placed.longitude)
+        assertEquals(placed, receipts.get(old.id))
+        // The receipt's own store name stays as first read.
+        assertEquals("Indomaret Teluk Naga II", placed.store)
+
+        // Not found again: what was found before stays.
+        assertEquals(placed, receipts.setPlace(placed, again.copy(latitude = null, longitude = null, address = null)))
+
+        // Bought at typed by hand takes the point under its own name; one with a point already stays; empty takes the store.
+        val today = LocalDate.of(2026, 11, 15)
+        val typed = DiecastForm.new(DiecastStatus.Owned, today).copy(purchasePlace = "Indomaret Teluk Naga II ")
+        val pointed = typed.withReceiptPoint(placed.place!!)!!
+        assertEquals("Indomaret Teluk Naga II", pointed.purchasePlace)
+        assertEquals(SHOP.lat to SHOP.lng, pointed.purchaseLatitude to pointed.purchaseLongitude)
+        assertNull(pointed.withReceiptPoint(placed.place!!))
+        assertEquals("Indomaret Teluk Naga II", DiecastForm.new(DiecastStatus.Owned, today).withReceiptPoint(placed.place!!)!!.purchasePlace)
+        assertNull(typed.withReceiptPoint(old.place!!))
+    }
+
+    @Test
+    fun `the shop's own search comes only with an address`() = runBlocking {
+        answer(
+            """{"is_receipt": true, "store": "Diecast Corner · Tokopedia", "address": null, "shop_query": "Diecast Corner, Jakarta",
+                "date": "2026-11-12", "currency": "IDR", "total": 45000,
+                "lines": [{"name": "Hot Wheels Skyline", "quantity": 1, "unit_price": 45000, "is_diecast": true}], "matches": [], "note": null}""",
+        )
+        val online = reader.read(TestEnvironment.fixtureJpeg, emptyList())
+        assertNull(online.shopQuery)
+        assertEquals(online, reader.locate(online))
+        assertTrue(shops.isEmpty())
+    }
+
+    @Test
     fun `a diecast keeps its receipt and line, unless the receipt went meanwhile`() = runBlocking {
         val kept = receipts.add(store.save(TestEnvironment.fixtureJpeg), reading())
         val id = env.repository.save(DiecastEntity(name = "Datsun 510", receiptId = kept.id, receiptLine = 1))
@@ -209,7 +331,7 @@ class ReceiptTest {
 
     @Test
     fun `a phone backup brings a shared receipt back once, with its photo, for both diecasts`() = runBlocking {
-        val kept = receipts.add(store.save(TestEnvironment.fixtureJpeg), reading())
+        val kept = receipts.add(store.save(TestEnvironment.fixtureJpeg), reading().copy(address = "Jl. Tegar Beriman No. 5", latitude = STREET.lat, longitude = STREET.lng))
         env.repository.save(DiecastEntity(name = "Datsun 510", receiptId = kept.id, receiptLine = 0))
         env.repository.save(DiecastEntity(name = "Skyline GT-R", receiptId = kept.id, receiptLine = 0))
         env.repository.save(DiecastEntity(name = "Without one"))
@@ -236,6 +358,7 @@ class ReceiptTest {
             val restored = other.db.receipts().get(receiptId!!)!!
             assertEquals("Indomaret Cibinong Raya", restored.store)
             assertEquals(LocalDate.of(2026, 11, 12), restored.boughtOn)
+            assertEquals(Triple("Jl. Tegar Beriman No. 5", STREET.lat, STREET.lng), Triple(restored.address, restored.latitude, restored.longitude))
             assertEquals(reading().lines, restored.lines)
             assertEquals(1, other.db.receipts().allPhotos().size)
             assertTrue(ReceiptStore(other.root).file(restored.photo).length() > 0)
@@ -271,5 +394,7 @@ class ReceiptTest {
 
     private companion object {
         val TODAY: LocalDate = LocalDate.of(2026, 11, 14)
+        val STREET = PlaceResult("Jalan Tegar Beriman", null, -6.4812501, 106.8235227, PlaceSource.Osm)
+        val SHOP = PlaceResult("Indomaret", null, -6.0649631, 106.6438872, PlaceSource.Osm)
     }
 }

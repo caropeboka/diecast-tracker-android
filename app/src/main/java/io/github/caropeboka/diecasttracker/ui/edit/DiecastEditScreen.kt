@@ -824,6 +824,7 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
                     onApply = viewModel::applyReceipt,
                     onDetach = viewModel::detachReceipt,
                     onAiSettings = onAiSettings,
+                    onPlace = viewModel::applyReceiptPlace,
                 ) { fieldModifier ->
                     MoneyInput(
                         form.purchasePrice, { v -> set(Field.PurchasePrice) { it.copy(purchasePrice = v) } }, stringResource(R.string.edit_purchase_price),

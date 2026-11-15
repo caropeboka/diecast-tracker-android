@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.data.places
 
+import io.github.caropeboka.diecasttracker.data.CollectionMatcher
 import io.github.caropeboka.diecasttracker.data.db.PlaceDao
 import io.github.caropeboka.diecasttracker.data.db.SpotRow
 import io.github.caropeboka.diecasttracker.util.obj
@@ -57,6 +58,53 @@ class PlaceLookup(
         return known + forwardGeocode(needle, lat, lng)
     }
 
+    /**
+     * Where a shop is, from searches the AI made of its address ("Jalan Tegar Beriman, Tengah, Cibinong"): the first
+     * that OpenStreetMap places on a street or closer, as a kelurahan's or a city's middle says too little, and only a
+     * place named like what was searched (Nominatim answers a street it lacks with any "Jalan Raya" in the area). Then
+     * [shop], the chain's name in its area ("Indomaret, Pangkalan, Teluknaga"), when exactly one such shop comes back.
+     * The collector's own pin of the shop's [name] within a kilometre is closer still. Null when nothing that close is
+     * found or OpenStreetMap can't be reached.
+     */
+    suspend fun locate(name: String?, queries: List<String>, shop: String? = null): PlaceResult? {
+        val found = queries.asSequence()
+            .map(String::trim)
+            .filter { it.length >= 3 }
+            .distinct()
+            .take(MAX_LOCATE_QUERIES)
+            .firstNotNullOfOrNull { query -> located(query, STREET_RANK).firstOrNull() }
+            ?: shop?.trim()?.takeIf { it.length >= 3 }?.let { located(it, SHOP_RANK).singleOrNull() }
+            ?: return null
+
+        val own = name?.trim()?.lowercase()?.ifEmpty { null }?.let { needle ->
+            knownSpots()
+                .filter { it.place.trim().lowercase() == needle }
+                .map { it to distanceMeters(found.lat, found.lng, it.lat, it.lng) }
+                .filter { (_, meters) -> meters <= OWN_PIN_METERS }
+                .minByOrNull { (_, meters) -> meters }
+                ?.first
+        }
+        return own?.let { PlaceResult(it.place, found.address, it.lat, it.lng, PlaceSource.History) } ?: found
+    }
+
+    /** What OpenStreetMap finds for [query] of at least [rank], named like the query's first part. */
+    private suspend fun located(query: String, rank: Int): List<PlaceResult> {
+        val wanted = searchedName(query)
+        return osm.search(query, null, null)
+            ?.mapNotNull { it as? JsonObject }
+            ?.mapNotNull { result ->
+                val placeRank = (result["place_rank"] as? JsonPrimitive)?.content?.toIntOrNull() ?: return@mapNotNull null
+                val lat = result.number("lat")
+                val lng = result.number("lon")
+                if (placeRank < rank || lat == null || lng == null) return@mapNotNull null
+                val own = searchedName(result.string("name").orEmpty())
+                if (wanted.isEmpty() || own.isEmpty() || CollectionMatcher.similarity(wanted, own) < NAME_SIMILARITY) return@mapNotNull null
+                val (osmName, address) = describe(result)
+                PlaceResult(osmName ?: query, address, lat, lng, PlaceSource.Osm)
+            }
+            .orEmpty()
+    }
+
     private suspend fun nearestKnown(lat: Double, lng: Double): PlaceName? {
         // ~0.002° ≈ 220 m: a cheap box first, exact distance after.
         val nearest = dao.spots(lat - BOX, lat + BOX, lng - BOX, lng + BOX)
@@ -112,6 +160,29 @@ class PlaceLookup(
         const val NEARBY_KM = 150
 
         private const val BOX = 0.002
+
+        /** Nominatim's place_rank of a street; buildings and shops are 30, a kelurahan or a town 16–20. */
+        const val STREET_RANK = 26
+
+        /** A shop, a building or an address point. */
+        const val SHOP_RANK = 30
+
+        /** A receipt's searches tried at most, at Nominatim's pace of one a second. */
+        const val MAX_LOCATE_QUERIES = 3
+
+        /** How alike a place's name and what was searched must be (`CollectionMatcher.similarity`, 0–100). */
+        private const val NAME_SIMILARITY = 80.0
+
+        /** Words a street's name may or may not carry. */
+        private val ROAD_WORDS = setOf("jalan", "jl", "jln", "raya", "gang", "gg")
+        private val NOT_WORD = Regex("[^\\p{L}\\p{N}]+")
+
+        /** A search's first part as a name, without the words for a road: "Jalan Raya Teluk Naga, …" → "teluknaga". */
+        fun searchedName(text: String): String =
+            text.substringBefore(',').lowercase(Locale.ROOT).split(NOT_WORD).filter { it.isNotEmpty() && it !in ROAD_WORDS }.joinToString("")
+
+        /** The collector's own pin of the same shop counts within this distance of where its address is. */
+        const val OWN_PIN_METERS = 1_000
 
         /** Short name + address for a Nominatim result. */
         fun describe(result: JsonObject): Pair<String?, String?> {

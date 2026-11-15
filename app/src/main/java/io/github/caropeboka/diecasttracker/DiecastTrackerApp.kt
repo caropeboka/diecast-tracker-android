@@ -115,10 +115,15 @@ class AppContainer(context: Context) {
     val ownPrices = OwnPriceFinder(database, matcher)
     val receiptStore = ReceiptStore(context.filesDir)
     val receipts = ReceiptRepository(database, receiptStore)
-    val receiptReader = ReceiptReader(vision, texts, rates = {
-        refreshRates(needed = true)
-        prefs.rates.first()
-    })
+    val receiptReader = ReceiptReader(
+        vision,
+        texts,
+        rates = {
+            refreshRates(needed = true)
+            prefs.rates.first()
+        },
+        places = places::locate,
+    )
     val scanQueue = ScanQueue(database, photos, scanner, texts)
     val storeCheck = StoreCheck(database, photos, scanner, matcher, repository, texts)
     private val cutter = MlKitCutter(context)
