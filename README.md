@@ -65,8 +65,12 @@ each other's backups.
 ### 📦 Collection
 - A grid or list with search (tags included), filters for status, brand, rarity, tag and missing data, and 7 sort
   orders.
-- Up to 8 photos per car from the camera or the gallery; the first one is the cover.
+- Up to 8 photos per car from the camera or the gallery; the first one is the cover. Turn or mirror a photo that came
+  out the wrong way.
 - Owned, wishlist, spotted and sold, with packaging, condition, scale, prices, storage location and tags.
+- **Receipts:** photograph the receipt and the AI fills in the purchase price (and the date and shop when they're
+  empty). One receipt can cover several cars, each picking its line, also in the bulk scan; the receipt is kept as
+  proof with the car.
 - **Studio photo:** turns a photo into a clean cover on white, entirely on the phone. Loose cars are cut out with
   ML Kit; for cards and boxes you place four corners and the app squares the card up, rounds its corners and clears
   the hang hole.
@@ -109,10 +113,11 @@ each other's backups.
   brand, rarity, car manufacturer, release year and scale. Every number opens the cars behind it.
 
 ### 🧱 3D garage
-- Real furniture modelled in code after photos: a carved corner shelf, two laser-cut blister boards on the wall, a
-  low desk under them with two car lifts, and a 6 × 10 case, rendered with Filament.
-- Owned cars appear as their photos: cards hang on the boards, loose cars sit in the compartments, on the lifts or
-  anywhere on the desk. Place them anywhere they fit (that fills in their storage location); the rest wait in a
+- Real furniture modelled in code after photos: a carved corner shelf, two laser-cut blister boards high on the wall
+  with eight nails under them, a low desk with two car lifts below, and a 6 × 10 case on the wall beside the boards,
+  rendered with Filament.
+- Owned cars appear as their photos: cards hang on the nails (one each) and the boards, loose cars sit in the
+  compartments, on the lifts or anywhere on the desk. Place them anywhere they fit (that fills in their storage location); the rest wait in a
   tray, or "Place all automatically". How many cards a lane takes is yours to set.
 - A map-like camera, cars that glide between places, and decorations: photograph a figure and the app cuts it out (and
   can clean off the dust) to stand on the shelf.
@@ -122,8 +127,8 @@ each other's backups.
 - Prices in Rupiah, US dollars or Chinese yuan at the day's exchange rate (always stored in Rupiah); a choice of date
   formats.
 - A guided tour on first launch that spotlights each part of the app on the real screens.
-- One `.zip` backup with every photo, the Dex, price checks, shelf places and decorations, saved through the file
-  picker or shared. Restores phone and web backups (merge or replace). Excel export. A reminder after 30 days.
+- One `.zip` backup with every photo, the Dex, price checks, receipts, shelf places and decorations, saved through
+  the file picker or shared. Restores phone and web backups (merge or replace). Excel export. A reminder after 30 days.
 
 ## Download and install
 
@@ -197,8 +202,9 @@ Free tiers change often. The settings screen notes each provider's terms.
 ## Privacy
 
 - **No backend, no account, no analytics, no ads.** The collection and its photos live in the app's private storage.
-- Photos go to an AI provider **only when you ask the AI** (scan, store check, bulk scan, Ask AI, price check), and
-  only to the providers you set up. Price-check screenshots are read and then discarded.
+- Photos go to an AI provider **only when you ask the AI** (scan, store check, bulk scan, Ask AI, price check,
+  receipts), and only to the providers you set up. Price-check screenshots are read and then discarded; receipts are
+  kept on the phone as proof of purchase (and travel in backups).
 - Other network use: the fan wikis on Fandom for the Dex; OpenStreetMap's [Nominatim](https://nominatim.org) for
   place names and regions; [OpenFreeMap](https://openfreemap.org) for map tiles; Google Play services for location
   and the ML Kit model download; and, only when prices are shown in another currency or a listing abroad is
@@ -243,7 +249,7 @@ view model each, and navigation uses type-safe routes.
 | Area | Libraries |
 | --- | --- |
 | UI | Jetpack Compose (Material 3), Navigation Compose, shared-element and container transitions |
-| Data | Room (schema v8, every version migrated, schemas in `app/schemas`), DataStore |
+| Data | Room (schema v9, every version migrated, schemas in `app/schemas`), DataStore |
 | Network | OkHttp 5, kotlinx.serialization |
 | Images | Coil 3, ML Kit subject segmentation (on the device) |
 | Maps and location | MapLibre Android with OpenFreeMap, Fused Location Provider |
@@ -263,6 +269,7 @@ app/src/main/java/io/github/caropeboka/diecasttracker/
 │   ├── money/       exchange rates
 │   ├── places/      place names (Nominatim) and regions
 │   ├── price/       market price analysis
+│   ├── receipt/     receipts read by the AI and kept as proof
 │   ├── scan/        bulk scan queue and in-store check
 │   ├── shelf/       3D garage placement
 │   └── studio/      studio photos on the phone
@@ -273,7 +280,7 @@ app/src/main/java/io/github/caropeboka/diecasttracker/
 Texts live in `app/src/main/res/values*/strings_<feature>.xml`: `values` (English), `values-in` (Indonesian) and
 `values-zh-rCN` (Simplified Chinese).
 
-**Tests:** 252 JVM and Robolectric tests, many of them ports of the web app's feature tests with their real-world
+**Tests:** 280 JVM and Robolectric tests, many of them ports of the web app's feature tests with their real-world
 fixtures (wiki tables, backup zips, AI answers). The AI providers and wikis are faked with OkHttp interceptors, and
 every Room migration is tested from each older schema.
 

@@ -4,6 +4,35 @@ All notable changes to Diecast Tracker for Android. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 Releases with an APK are on the [Releases page](https://github.com/caropeboka/diecast-tracker-android/releases).
 
+## [0.14.0] - 2026-11-14
+
+### Added
+- Receipts: the receipt button beside the purchase price photographs a receipt (or picks it from the gallery) and the
+  AI reads its lines. The car's line fills in the purchase price, and the receipt's date and shop fill in the purchase
+  date and place when they are still empty. Prices in another currency are converted at the day's rate.
+- One receipt for several cars: the next car of the same purchase picks it from "Read recently" and takes another
+  line; lines already taken say by which car. Lines that aren't diecasts (a bag, a drink) are listed apart.
+- Bulk scan: "Prices from a receipt" for the whole queue, with the AI pairing each photo with its line before you
+  apply it.
+- The receipt is kept with the car as proof of purchase (not as one of its photos), opens full screen with zoom,
+  and travels in phone backups. Receipts no car was saved with go after a day.
+- Turn a photo a quarter to the right or mirror it from the photo tools on a car's page.
+- "Move to…" on a sighting (its ⋮ menu, next to delete): a sighting logged on the wrong car becomes a new spotted
+  car with its photo as the cover, or moves to a look-alike of the same name.
+- Store check: "Not this one: log it as new" on a result that matched a car in the collection.
+- 3D garage: eight nails in the wall over the desk, two rows of four, each holding one card by its hang hole. A card
+  put on a taken nail swaps with the one there, "Place all automatically" fills the nails before the boards, and a
+  "Nails" view faces them.
+
+### Changed
+- 3D garage: the blister boards hang higher, above the nails, and the white case hangs upright on the wall beside
+  them, level with the boards, instead of leaning on the floor.
+
+### Fixed
+- Store check: a card with the same name but another number (the two "Batmobile" cards in the 2026 Batman series)
+  no longer counts as the car you already have or saw. It shows as a look-alike with its number, and the verdict
+  says you don't have it yet. Before, its sighting was logged on the other car, whose old photo then stood for both.
+
 ## [0.13.0] - 2026-11-10
 
 ### Added
@@ -117,6 +146,7 @@ The first complete version: the collection with photos and backup import (phase 
 and the hunting map (3), the Dex with wiki sync and own lists (4), and backup and Excel export, the Garage dashboard,
 market prices from screenshots, the bulk scan and the in-store check (5).
 
+[0.14.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.14.0
 [0.13.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.13.0
 [0.12.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.12.0
 [0.11.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.11.0

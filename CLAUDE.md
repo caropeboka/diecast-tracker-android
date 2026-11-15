@@ -48,7 +48,18 @@ and a nanoblock dog, the cards per lane set by the collector, and loose cars fli
 garage"); covered by tests (264 pass, no lint errors). **0.13.0** (the user on 2026-11-10, see "From the phone after
 0.12.0"): Bukalapak out of the price check, Google Shopping, OLX, Carousell, Yahoo! Auctions and Mercari Japan in, Google
 Lens with the cover photo, and an Ask AI quick question for the market price; covered by tests (264 pass), on the phone since
-2026-11-10 (Lens and OLX tried there). A first 0.12.0 build is on the
+2026-11-10 (Lens and OLX tried there). **0.14.0** (the user on 2026-11-13, see "Receipts and photo turns (0.14.0)"):
+receipts read by the AI fill the purchase price (Room v9), photos turned or mirrored, and in the garage eight nails
+for cards under the boards, which moved up, with the white case hung beside them (the user's photo of 2026-11-15,
+see "3D garage"); covered by tests (280 pass, no lint errors), on the phone since 2026-11-15 (the garage's new layout
+and a tap on a nail checked there; receipts and turns not tried yet). The "two diecasts with the same name show the
+older photo" bug was one diecast on the phone (BATMOBILE, the blue 2026 Batman card) carrying two sightings of the
+gold one logged through the store check: fixed in 0.14.0 with the number rule and "Pindahkan ke…" on sightings. On
+2026-11-15 the phone's data was tidied with it (through the UI over adb, after a backup): the gold "THE DARK KNIGHT
+BATMOBILE" (51/250 · 2/5) and the light purple "Ghoul Mobile" (48/250 · 2/5) became their own Ditemui diecasts with
+their sightings; four '69 Chevelle entries (137/250 twice) were pointed out to the user, not changed. Still open: an
+automatic price check (no open diecast price API exists; options offered: SerpApi Google Shopping, eBay Browse API,
+a WebView). A first 0.12.0 build is on the
 phone since 2026-11-08 to try the blink fix (no report yet); the desk build followed the same day (it renders in
 "Normal", a tap on the desk offers what fits, the dog shows its bar; placing not tried there yet). The
 phone got 0.7.0 and 0.7.1 on 2026-11-01 (migration fine, data intact, "Normal" renders right on its Mali-G57). Next: try the new pieces on the phone (Tanya AI, the web estimate and the web list with
@@ -652,12 +663,63 @@ sites and Japan.
 - **Ask AI**: "Market price now?" sends the user's own prompt "Give me your estimate of current market price." and
   asks for it as the market value, so "Pakai" can apply it.
 
+## Receipts and photo turns (0.14.0)
+
+The user on 2026-11-13: a receipt's photo to fill the price when buying, rotate/flip in the form, a history bug and
+an automatic price check. Their choices: the form plus one receipt for several diecasts (the bulk scan too), the
+receipt kept as proof (not a car photo, not the cover, not in the garage, in backups), the AI filling the price and,
+when empty, the date and store.
+
+- **Turn/flip**: two tools on the form's big photo (`ic_rotate_right`, `ic_flip`): `PhotoStore.turned` writes a turned
+  or mirrored copy as a pending photo that takes the original's place (a studio copy stays one); the old one goes on
+  save, or at once when it was pending. `PhotoTurnTest`.
+- **Data**: Room **v9** `receipts` (photo, store, bought_on, total, currency, lines as JSON `ReceiptLine`: name,
+  quantity, price in Rupiah per one after line discounts, `original` amount when not Rupiah, `diecast`; read_by, note,
+  created_at) and `diecasts.receipt_id` / `receipt_line` (index, **no foreign key**, like `catalog_item_id`;
+  `DiecastRepository.save` drops a receipt id that no longer exists). Only owned/sold forms keep it
+  (`DiecastForm.toEntity`). Photos in `files/receipts/<uuid>.jpg` (`ReceiptStore`, 2400 px like screenshots).
+- **Reading** (`data/receipt/Receipts.kt`): `ReceiptReader` through `AiVision.extract` with its own prompt and schema
+  (is_receipt, store, date, currency, total, lines with unit_price and is_diecast, matches item → line, note); told
+  which diecasts it may hold (`receiptItem`: "name: …, brand: …"), numbered from 0. Rupiah written as text
+  ("33.900", "33.900,00") keeps its digits after dropping a cents part (`CENTS`); other currencies at
+  `ExchangeRates.idrPer(code)` (`refreshRates(needed = true)` first), without a rate no prices and a note. A line of
+  n takes at most n matches; a date after today or before 1990 is dropped. Not a receipt or no lines:
+  `ReceiptException` (the photo is forgotten).
+- **Form** (`ui/edit/ReceiptPanel.kt`, the price field passed in as a slot): a receipt button beside the purchase
+  price, like the map button beside "Beli di" (`ReceiptMenu(icon = true)`; the user's wish), opens camera / gallery /
+  "Baru dibaca" (the last 3 of 14 days) → the AI's line is preselected in `ReceiptLinesSheet` (diecast lines first, others under "Bukan
+  diecast", lines taken by other diecasts say by whom; `firstFree`) → `DiecastForm.withReceipt` (price; the date only
+  when it is still the new form's default or empty; the store only when "Beli di" is blank; ✦ on the price). The
+  attached receipt shows as a card ("Lihat struk" = full-screen zoom viewer, Baris lain, Lepas). The panel has its own view
+  model (`viewModel(key = "receipt-<id>-<round>")`), its photo waiting in saved state while the camera is open.
+- **Bulk scan** (`BulkReceipt` in the shared fields, owned only): one receipt for the queue's read photos;
+  `ReceiptMatchSheet` shows each photo with the AI's line (or "Tidak ada di struk ini") to change before "Pakai";
+  `BulkScanViewModel.applyReceipt` writes price, receipt and line into each photo's `QuickEdits`, the date when the
+  shared one is blank or today, the store when blank; `queuedForm` carries them. A "Struk" pill on the cards.
+- **Clean-up and backups**: `ReceiptRepository.housekeeping` at start-up deletes receipts no diecast points at after a
+  day (an abandoned form's) and photos no receipt holds. Phone backups carry `"receipt"` per record (the entity plus
+  its line and `receipts/<uuid>.jpg`, `RECEIPT_ENTRY`); a receipt shared by several records comes back once; replace
+  deletes the phone's receipts after the commit. The web ignores the key. `ReceiptTest`, `MigrationTest`.
+- **Same name, other car** (the user's "two diecasts with the same name show the oldest photo", seen on the phone
+  2026-11-14: one BATMOBILE, the blue 2026 Batman card, with two sightings whose photos were the gold one; the store
+  check had matched it by name and "Catat temuan" logged it there). Their choices: a number rule plus a button, and
+  moving sightings. `CollectionMatcher.otherNumber`: printed numbers that can't be the same release ("1/5" vs "3/5"
+  by a shared denominator; plain numbers like Tomica's when neither has a fraction); unknown or nothing to compare is
+  not different. The matcher still finds them (unlike the web's, unchanged), but `CheckResult.verdict` leaves them
+  out, the panel lists them last as "Mirip di koleksimu" with "Nomor X: mungkin mobil lain", and a result with
+  matches has "Bukan yang ini, catat sebagai baru" (`spotNew`). `DiecastListItem` carries `collection_number` now.
+  Sightings have a ⋮ (Pindahkan ke… / Hapus): `MoveSightingSheet` offers "Item baru" (`DiecastRepository
+  .splitSighting`: a Ditemui diecast named and filed like the old one, number/colour/year left empty, the sighting's
+  photo copied as its cover, then opened) or the look-alikes by name (`moveSighting`). `CollectionMatcherTest`,
+  `StoreCheckTest`, `DiecastRepositoryTest`.
+
 ## 3D garage (G0 0.6.7–0.6.8, G1 0.7.0)
 
 The user's real furniture from their photos, in 3D, with the owned diecasts on it: left the black carved corner shelf
 (they call it "laci hitam"; three quarter-round tiers), in the middle **two** laser-cut MDF blister boards (4 lanes
-each, ~12 cards per lane) on the wall over a low white desk with two car lifts and a nanoblock dog (0.12.0), right the
-white case (6 × 10 compartments). Opens from "Rak 3D" on the Garasi dashboard
+each, ~12 cards per lane) high on the wall over eight nails for cards (0.14.0) and a low white desk with two car lifts
+and a nanoblock dog (0.12.0), right the white case (6 × 10 compartments) on the wall level with the boards (on the
+floor leaning back before 0.14.0). Opens from "Rak 3D" on the Garasi dashboard
 (`GarageRoute`). Stages agreed: G0 technical trial, G1 shelves + placement, G2 realism, G3 shelf settings.
 
 - Rendering: SceneView (Compose) on Filament; furniture built in code (`ui/garage/Meshes.kt`: lathe, extruded
@@ -764,6 +826,18 @@ white case (6 × 10 compartments). Opens from "Rak 3D" on the Garasi dashboard
   3D picture changes, not the photo; cards and boxes can't flip (their print would read backwards). Not in backups.
   Loose photos for the garage: a side profile at the car's height on a plain light background, then "Foto studio"
   (the garage's own cut-out only clears light, plain backdrops; a photo from above stands too tall and slanted).
+- **Nails (0.14.0; the user's photo of the wall: two rows of four nails over the desk, a card on one).** Their
+  choices: one card per nail, "Taruh semua otomatis" fills the nails before the lanes, the white case upright on the
+  wall. `Shelf.Nails` (`ShelfLayout.NAIL_COLUMNS` 4 × `NAIL_ROWS` 2; spot = row × 4 + column, rows from the top;
+  "Paku 1"–"Paku 8"): cards only, one each, a taken nail swaps like a compartment (`ONE_EACH`, `ShelfPlanner`,
+  `restoreSlot`). `ui/garage/WallNails.kt`: lathe-turned steel nails 12.5 cm apart across and 20 cm between rows,
+  centred over the desk (`NAILS_X = DESK_X`); a card hangs flat against the wall by its hang hole 1.2 cm under its top
+  (`onNail`), the bottom row's cards end 17 cm above the desk (clear of the lifts), and comes off up and out;
+  `nailAt` takes a tap on the wall over a card's place or its nail. The boards moved up over them (`BOARD_Y =
+  NAILS_TOP + 0.045`, 0.83 m), the case hangs flat (`CASE_LEAN` 0) with its middle at the middle of the boards' rails
+  (`CASE_MIDDLE`). A "Paku" focus chip between Papan and Meja; a card picked from the tray in the overview flies to
+  the nails while one is free (`GarageScene.nailFree`). The camera's target may go up to 1.8 m. No schema change.
+  Seen on the phone: the overview, the "Paku" view and a tap on an empty nail.
 - Render quality switch at the top right ("Normal" / "Polos" without post-processing / "Hemat" without shadows, AO,
   bloom), kept from G0 until the phone shows which works ("Normal" does, on the phone's Mali-G57 with OpenGL ES 3.2;
   Filament runs at feature level 1 there). **The emulator (SwiftShader) can't show "Normal"** (all
@@ -795,7 +869,7 @@ white case (6 × 10 compartments). Opens from "Rak 3D" on the Garasi dashboard
 | Navigation | Bottom bar: Koleksi · Garasi (dashboard) · ＋ · Peta · Dex; the app opens on Koleksi. The centre ＋ opens Isi manual / Cek di toko / Scan massal / Scan dengan AI (since 0.6.0, replacing the Koleksi FABs; Scan massal since 0.12.0) as a FAB menu rising above it (since 0.7.2, replacing a bottom sheet). Koleksi's gear opens Settings, which leads to everything else (0.12.0; a ⋮ menu before). A screen opened by a tap grows out of what was tapped (0.7.3). Every number on Garasi opens Koleksi filtered to what it counted, the filter shown as a removable chip (0.11.0). |
 | AI scan flow (0.6.0) | Photos first (camera back-to-back for a new diecast, a guide of the sides to shoot), the AI reads only on "Pindai dengan AI". While any AI request runs, its steps are shown as a log (not just a spinner). |
 | Foto studio (0.6.1) | On the phone only (ML Kit segmentation; corners by hand for cards and boxes), free and offline after the first download; the original photo stays. No generative AI editing (it can change printed details). |
-| 3D garage (0.6.7+) | SceneView/Filament, furniture modelled in code after the user's photos (black corner shelf, two MDF blister boards on the wall, a white desk 70 × 40 × 25 cm with two car lifts under them since 0.12.0, white 6 × 10 case). Owned diecasts only, one place each whatever the quantity. Free placement with a tray of unplaced ones; the place writes "Lokasi simpan". The trademarked logo stays out of git. Decorations (the user's figures) on the black shelf, cut out on the phone and optionally cleaned (0.7.3). How many cards a lane takes is the collector's setting (0.12.0). |
+| 3D garage (0.6.7+) | SceneView/Filament, furniture modelled in code after the user's photos (black corner shelf, two MDF blister boards on the wall, a white desk 70 × 40 × 25 cm with two car lifts under them since 0.12.0, eight nails for single cards between the desk and the boards since 0.14.0, white 6 × 10 case on the wall beside the boards). Owned diecasts only, one place each whatever the quantity. Free placement with a tray of unplaced ones; the place writes "Lokasi simpan". The trademarked logo stays out of git. Decorations (the user's figures) on the black shelf, cut out on the phone and optionally cleaned (0.7.3). How many cards a lane takes is the collector's setting (0.12.0). |
 | Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). Since 0.10.0: Hot Wheels from 1989, Matchbox from 2000, Mini GT (with Kaido House) 2018–2022 and Tomica's regular lineup from their wikis; other lines through the AI's web search into own dexes, reviewed first. Since 0.11.0: Tomica Premium per release year; the Dex tab shows a card per brand, which opens that brand's page with its lists. The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. Own dexes: the AI's checklist rows are reviewed before they're added; entries can be edited (both unlike the web). |
 | Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
 | Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
@@ -806,6 +880,7 @@ white case (6 × 10 compartments). Opens from "Rak 3D" on the Garasi dashboard
 | In-store check (phase 5e) | Opened from a launcher shortcut and the bottom bar's centre button (the ⋮ menu too until 0.12.0); the camera opens straight away. A typed search without the AI works offline. "Dapat" also fills "Beli di" with the store (the web only sets the date). Since 0.10.0 many photos in a row, read one at a time. |
 | Bulk scan (phase 5d) | Reads in the background with WorkManager (not only while the screen is open, unlike the web). Camera is back-to-back. Entry: the ＋ menu (the ⋮ menu in Koleksi until 0.12.0), banners in Koleksi and Garasi. Saved items leave the queue (no "saved" history). |
 | Price check (phase 5c) | From the diecast form only (no share target). Screenshots are read and thrown away; the readings, stats and history are kept (5 in view) and go into phone backups. Since 0.10.0 also other keywords, Lazada/Facebook/eBay sold (Bukalapak until 0.12.0: it closed its marketplace), since 0.13.0 Google Shopping, OLX, Carousell, Yahoo! Auctions and Mercari Japan sold and Google Lens with the cover photo, prices abroad at today's rate, a rough AI estimate from the web (source `ai_estimate`) and the collector's own records. |
+| Receipts (0.14.0) | A receipt's photo read by the AI fills the purchase price (date and store only when empty); one receipt covers several diecasts (form and bulk scan), each picking its line. Kept as proof apart from the car photos, in phone backups; unused ones go after a day. |
 | Tanya AI (0.10.0) | A chat in the diecast form that sees its photos and fields; suggested changes applied with "Pakai"; Gemini searches the web and shows its sources. |
 | Map regions (0.10.0) | Provinsi → kabupaten/kota → kecamatan → desa from OpenStreetMap's admin levels per point, looked up while Peta is open and cached a year; a drill-down chart that also filters the page. |
 | Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |
