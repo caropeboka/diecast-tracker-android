@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Receipts: the purchase price read from a photo of the receipt, kept as proof. Edit all three languages together. -->
+<resources>
+    <string name="receipt">小票</string>
+    <string name="receipt_from">从小票填写</string>
+    <string name="receipt_other">换一张小票</string>
+    <string name="receipt_bulk">从小票填价格</string>
+    <string name="receipt_bulk_hint">整批共用一张小票：每张已读取的照片取对应那一行的价格。</string>
+    <string name="receipt_bulk_none">AI 读取照片后，才能从小票填写价格。</string>
+    <string name="receipt_take_photo">拍摄小票</string>
+    <string name="receipt_pick">从相册选择</string>
+    <string name="receipt_recent">最近读取</string>
+    <plurals name="receipt_lines">
+        <item quantity="other">%d 行</item>
+    </plurals>
+    <string name="receipt_needs_ai">读取新小票需要 AI：请在 AI 设置中添加 API 密钥。</string>
+    <string name="receipt_preparing">正在准备小票照片</string>
+    <string name="receipt_reading">正在读取小票</string>
+    <string name="receipt_not_receipt">这看起来不像小票。请正对着拍下整张小票。</string>
+    <string name="receipt_no_lines">这张小票上读不出购买的商品。请换一张更清晰、光线充足的照片。</string>
+    <string name="receipt_no_rate">还没有 %1$s 的汇率，价格暂时无法换算成印尼盾。</string>
+    <string name="receipt_failed">无法读取小票：%1$s</string>
+    <string name="receipt_no_price">无价格</string>
+    <string name="receipt_view">查看小票</string>
+    <string name="receipt_no_line_chosen">仅作凭证保存，未选择行</string>
+    <string name="receipt_other_line">换一行</string>
+    <string name="receipt_detach">移除</string>
+    <string name="receipt_which_line">这辆合金车是哪一行？</string>
+    <string name="receipt_other_items">非合金车</string>
+    <string name="receipt_use_price">使用 %1$s</string>
+    <string name="receipt_use_line">使用这一行</string>
+    <string name="receipt_keep_only">只保存小票</string>
+    <string name="receipt_total">合计 %1$s</string>
+    <string name="receipt_read_by">由 %1$s 读取</string>
+    <string name="receipt_each">%1$d × %2$s</string>
+    <string name="receipt_used_by">已用于 %1$s</string>
+    <string name="receipt_attached">小票已随这辆合金车保存。</string>
+    <string name="receipt_filled">已从小票填写：%1$s</string>
+    <string name="receipt_match_title">小票上的价格</string>
+    <string name="receipt_match_hint">为每辆合金车选择对应的行。在别处买的，就保留“不在这张小票上”。</string>
+    <string name="receipt_not_on_it">不在这张小票上</string>
+    <string name="receipt_taken">已用 %1$d / %2$d</string>
+    <plurals name="receipt_apply_many">
+        <item quantity="other">用于 %d 辆合金车</item>
+    </plurals>
+    <plurals name="receipt_applied_many">
+        <item quantity="other">已为 %d 辆合金车填入小票价格</item>
+    </plurals>
+</resources>

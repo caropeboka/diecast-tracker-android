@@ -14,6 +14,7 @@ import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
+import io.github.caropeboka.diecasttracker.data.db.ReceiptEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexPrefill
 import io.github.caropeboka.diecasttracker.data.locale.Texts
@@ -23,7 +24,7 @@ import java.time.LocalDate
 
 enum class Field {
     Name, Brand, Make, Series, CollectionNumber, Year, Scale, Color, Rarity, Packaging, Condition, Quantity,
-    PurchasePrice, MarketValue, TargetPrice, PurchasePlace, StorageLocation, Notes, Tags, Photos,
+    PurchasePrice, MarketValue, TargetPrice, PurchaseDate, PurchasePlace, StorageLocation, Notes, Tags, Photos,
     SightingPlace, SightingDate, SightingPrice,
 }
 
@@ -69,6 +70,9 @@ data class DiecastForm(
     val sightingPrice: String = "",
     /** The dex entry a new diecast will be linked to (chosen in the Dex or from the scan's suggestion). */
     val catalogItemId: Long? = null,
+    /** The receipt it was bought with and the line it is (owned or sold only). */
+    val receiptId: Long? = null,
+    val receiptLine: Int? = null,
 ) {
     val purchaseLocation get() = PlaceValue(purchasePlace, purchaseLatitude, purchaseLongitude)
 
@@ -169,6 +173,32 @@ data class DiecastForm(
         return next?.takeIf { it.first != this }
     }
 
+    /**
+     * Bought with [receipt], as [line] of it: that line's price (one of them, after its discounts), and the receipt's
+     * date and store where the form has none yet. [dateIsDefault]: the date is still the one a new form starts with,
+     * so the receipt's is better. Returns the form and the fields it filled.
+     */
+    fun withReceipt(receipt: ReceiptEntity, line: Int?, dateIsDefault: Boolean): Pair<DiecastForm, Set<Field>> {
+        val filled = mutableSetOf<Field>()
+        var next = copy(receiptId = receipt.id, receiptLine = line?.takeIf { it in receipt.lines.indices })
+
+        line?.let { receipt.lines.getOrNull(it) }?.price?.let { price ->
+            next = next.copy(purchasePrice = price.toString())
+            filled += Field.PurchasePrice
+        }
+        val date = receipt.boughtOn?.toString()
+        if (date != null && date != purchaseDate && (purchaseDate == null || dateIsDefault)) {
+            next = next.copy(purchaseDate = date)
+            filled += Field.PurchaseDate
+        }
+        val store = receipt.store
+        if (store != null && purchasePlace.isBlank()) {
+            next = next.withPurchaseLocation(PlaceValue(store))
+            filled += Field.PurchasePlace
+        }
+        return next to filled
+    }
+
     /** Filled the way the entry's card prints it, and linked to it (web: the `dexItem` prefill). */
     fun withDex(prefill: DexPrefill, itemId: Long) = copy(
         name = prefill.name,
@@ -261,6 +291,8 @@ data class DiecastForm(
             storageLocation = storageLocation.clean().takeIf { owned },
             notes = notes.clean(),
             aiScanned = aiScanned,
+            receiptId = receiptId.takeIf { owned },
+            receiptLine = receiptLine.takeIf { owned && receiptId != null },
         )
     }
 
@@ -309,6 +341,8 @@ data class DiecastForm(
                 tags = details.orderedTags.map { it.name },
                 aiScanned = aiScanned,
                 sightingDate = today.toString(),
+                receiptId = receiptId,
+                receiptLine = receiptLine,
             )
         }
     }

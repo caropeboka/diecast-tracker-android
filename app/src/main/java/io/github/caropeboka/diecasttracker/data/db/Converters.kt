@@ -11,6 +11,7 @@ import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
+import io.github.caropeboka.diecasttracker.data.receipt.ReceiptLine
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanSource
 import io.github.caropeboka.diecasttracker.data.shelf.Shelf
@@ -87,6 +88,13 @@ class Converters {
     /** Unreadable (an older shape) counts as not read yet. */
     @TypeConverter fun scanFieldsFromJson(text: String?): ScanFields? =
         text?.let { runCatching { JSON.decodeFromString<ScanFields>(it) }.getOrNull() }
+
+    // Receipts: the lines the AI read
+
+    @TypeConverter fun receiptLinesToJson(value: List<ReceiptLine>): String = JSON.encodeToString(value)
+
+    @TypeConverter fun receiptLinesFromJson(text: String): List<ReceiptLine> =
+        runCatching { JSON.decodeFromString<List<ReceiptLine>>(text) }.getOrDefault(emptyList())
 
     private companion object {
         val JSON = Json {

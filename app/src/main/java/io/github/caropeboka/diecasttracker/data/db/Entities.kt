@@ -19,6 +19,7 @@ import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
+import io.github.caropeboka.diecasttracker.data.receipt.ReceiptLine
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanSource
 import io.github.caropeboka.diecasttracker.data.shelf.Shelf
@@ -30,7 +31,7 @@ import java.time.LocalDate
  */
 @Entity(
     tableName = "diecasts",
-    indices = [Index("brand"), Index("series"), Index("status"), Index("catalog_item_id")],
+    indices = [Index("brand"), Index("series"), Index("status"), Index("catalog_item_id"), Index("receipt_id")],
 )
 data class DiecastEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -65,6 +66,12 @@ data class DiecastEntity(
     /** The Dex entry (variant) this diecast is; kept in sync by the code, not a foreign key (web: `CatalogSync::forget`). */
     @ColumnInfo(name = "catalog_item_id") val catalogItemId: Long? = null,
     @ColumnInfo(name = "catalog_match") val catalogMatch: CatalogMatch? = null,
+    /**
+     * The receipt it was bought with ([ReceiptEntity]) and which of its lines it is. Not a foreign key, like the Dex
+     * link: one receipt holds several diecasts, and one nobody points at any more goes at start-up.
+     */
+    @ColumnInfo(name = "receipt_id") val receiptId: Long? = null,
+    @ColumnInfo(name = "receipt_line") val receiptLine: Int? = null,
     /** Epoch millis. */
     @ColumnInfo(name = "created_at") val createdAt: Long = 0,
     /** Epoch millis. */
@@ -286,6 +293,7 @@ data class DiecastListItem(
     val name: String,
     val brand: String?,
     val series: String?,
+    @ColumnInfo(name = "collection_number") val collectionNumber: String?,
     val color: String?,
     val year: Int?,
     val rarity: Rarity,
@@ -378,6 +386,38 @@ data class DecorationEntity(
     val position: Int,
     /** Epoch millis. */
     @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/**
+ * A shop's receipt or an online order's summary, kept as proof of what was paid: its photo (in
+ * [io.github.caropeboka.diecasttracker.data.receipt.ReceiptStore], apart from the diecasts' photos: never a cover, never
+ * in the garage) and what the AI read from it. Diecasts point at it ([DiecastEntity.receiptId]); one receipt can hold
+ * several. Money is whole Rupiah, converted at the day's rate when it was printed in another currency.
+ */
+@Entity(tableName = "receipts")
+data class ReceiptEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val photo: String,
+    val store: String? = null,
+    @ColumnInfo(name = "bought_on") val boughtOn: LocalDate? = null,
+    /** What was paid in all; null when it couldn't be read or converted. */
+    val total: Long? = null,
+    /** The ISO code it was printed in when that wasn't Rupiah ("JPY"). */
+    val currency: String? = null,
+    val lines: List<ReceiptLine>,
+    /** The provider that read it, when it wasn't Gemini. */
+    @ColumnInfo(name = "read_by") val readBy: String? = null,
+    /** What the AI found unclear (blurry, cut off, a discount for the whole receipt). */
+    val note: String? = null,
+    /** Epoch millis. */
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/** A diecast bought with a receipt, and the line it took. */
+data class ReceiptUse(
+    val id: Long,
+    val name: String,
+    @ColumnInfo(name = "receipt_line") val line: Int?,
 )
 
 /**

@@ -26,8 +26,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ScanItemEntity::class,
         ShelfSlotEntity::class,
         DecorationEntity::class,
+        ReceiptEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -47,6 +48,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun shelves(): ShelfDao
 
     abstract fun decorations(): DecorationDao
+
+    abstract fun receipts(): ReceiptDao
 
     companion object {
         const val NAME = "diecast-tracker.db"
@@ -146,7 +149,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+        /** Receipts kept as proof of what was paid, and which one (and which line of it) each diecast was bought with. */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `receipts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `photo` TEXT NOT NULL, " +
+                        "`store` TEXT, `bought_on` TEXT, `total` INTEGER, `currency` TEXT, `lines` TEXT NOT NULL, `read_by` TEXT, " +
+                        "`note` TEXT, `created_at` INTEGER NOT NULL)",
+                )
+                db.execSQL("ALTER TABLE `diecasts` ADD COLUMN `receipt_id` INTEGER")
+                db.execSQL("ALTER TABLE `diecasts` ADD COLUMN `receipt_line` INTEGER")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_diecasts_receipt_id` ON `diecasts` (`receipt_id`)")
+            }
+        }
+
+        val MIGRATIONS = arrayOf(
+            MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+        )
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, NAME).addMigrations(*MIGRATIONS).build()

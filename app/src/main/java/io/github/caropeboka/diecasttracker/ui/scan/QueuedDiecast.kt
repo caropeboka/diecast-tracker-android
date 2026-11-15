@@ -20,6 +20,9 @@ data class QuickEdits(
     val rarity: Rarity? = null,
     /** Digits: the purchase price, target price or asking price, by [QueueDefaults.status]. */
     val price: String? = null,
+    /** The receipt it was bought with and its line there, when the price came from one. */
+    val receiptId: Long? = null,
+    val receiptLine: Int? = null,
 )
 
 /** What every photo in the queue shares (web: `Defaults`): saved as, when, where, stored where, tags. */
@@ -62,7 +65,12 @@ fun queuedForm(item: ScanItemEntity, edits: QuickEdits, defaults: QueueDefaults,
     return when (defaults.status) {
         DiecastStatus.Wishlist -> form.copy(targetPrice = price)
         DiecastStatus.Spotted -> form.copy(sightingPrice = price, sightingDate = date).withSightingLocation(defaults.place)
-        else -> form.copy(purchasePrice = price, purchaseDate = date, storageLocation = defaults.storageLocation)
-            .withPurchaseLocation(defaults.place)
+        else -> form.copy(
+            purchasePrice = price,
+            purchaseDate = date,
+            storageLocation = defaults.storageLocation,
+            receiptId = edits.receiptId,
+            receiptLine = edits.receiptLine,
+        ).withPurchaseLocation(defaults.place)
     }
 }

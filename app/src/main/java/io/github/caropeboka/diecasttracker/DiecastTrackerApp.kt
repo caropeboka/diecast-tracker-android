@@ -33,6 +33,9 @@ import io.github.caropeboka.diecasttracker.data.places.Nominatim
 import io.github.caropeboka.diecasttracker.data.places.PlaceLookup
 import io.github.caropeboka.diecasttracker.data.price.OwnPriceFinder
 import io.github.caropeboka.diecasttracker.data.price.PriceChecker
+import io.github.caropeboka.diecasttracker.data.receipt.ReceiptReader
+import io.github.caropeboka.diecasttracker.data.receipt.ReceiptRepository
+import io.github.caropeboka.diecasttracker.data.receipt.ReceiptStore
 import io.github.caropeboka.diecasttracker.data.scan.ScanQueue
 import io.github.caropeboka.diecasttracker.data.scan.ScanWork
 import io.github.caropeboka.diecasttracker.data.scan.StoreCheck
@@ -100,6 +103,12 @@ class AppContainer(context: Context) {
         prefs.rates.first()
     })
     val ownPrices = OwnPriceFinder(database, matcher)
+    val receiptStore = ReceiptStore(context.filesDir)
+    val receipts = ReceiptRepository(database, receiptStore)
+    val receiptReader = ReceiptReader(vision, texts, rates = {
+        refreshRates(needed = true)
+        prefs.rates.first()
+    })
     val scanQueue = ScanQueue(database, photos, scanner, texts)
     val storeCheck = StoreCheck(database, photos, scanner, matcher, repository, texts)
     private val cutter = MlKitCutter(context)
@@ -152,6 +161,7 @@ class DiecastTrackerApp : Application() {
             container.storeCheck.prune(before = System.currentTimeMillis() - StoreCheck.KEEP_MS)
             container.repository.housekeeping()
             container.decorations.housekeeping()
+            container.receipts.housekeeping()
             container.backupExporter.housekeeping()
             container.database.places().pruneCache(
                 before = System.currentTimeMillis() - Nominatim.REVERSE_TTL_MS,

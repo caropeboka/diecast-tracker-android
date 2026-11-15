@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
+import io.github.caropeboka.diecasttracker.data.receipt.ReceiptLine
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanSource
 import io.github.caropeboka.diecasttracker.data.shelf.Shelf
@@ -22,6 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import java.io.File
+import java.time.LocalDate
 
 /** Every exported schema version must open, migrated, without losing the collection. */
 @RunWith(AndroidJUnit4::class)
@@ -96,6 +98,18 @@ class MigrationTest {
                 assertEquals(if (version >= 5) 2 else 1, db.scanItems().observeBulkCount().first())
                 assertEquals(ScanItemStatus.Pending, db.scanItems().get(queued)?.status)
 
+                val receipt = db.receipts().insert(
+                    ReceiptEntity(
+                        photo = "r.jpg", store = "Indomaret", boughtOn = LocalDate.of(2026, 11, 12), total = 33_900,
+                        lines = listOf(ReceiptLine("HW BASIC", 1, 33_900)), createdAt = 9,
+                    ),
+                )
+                assertEquals(listOf(ReceiptLine("HW BASIC", 1, 33_900)), db.receipts().get(receipt)?.lines)
+                assertEquals(null, db.diecasts().get(1)?.receiptId)
+                db.openHelper.writableDatabase.execSQL("UPDATE diecasts SET receipt_id = $receipt, receipt_line = 0 WHERE id = 1")
+                assertEquals(receipt, db.diecasts().get(1)?.receiptId)
+                assertEquals(listOf(0), db.receipts().observeUses(receipt).first().map { it.line })
+
                 db.shelves().put(ShelfSlotEntity(1, Shelf.Case, 12))
                 assertEquals(Shelf.Case, db.diecasts().observeShelf().first().single().slot?.shelf)
                 db.diecasts().delete(1)
@@ -112,6 +126,6 @@ class MigrationTest {
     }
 
     private companion object {
-        const val LATEST = 8
+        const val LATEST = 9
     }
 }

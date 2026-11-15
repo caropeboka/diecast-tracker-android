@@ -42,7 +42,7 @@ interface DiecastDao {
     /** Every diecast as the dashboard adds it up (see [io.github.caropeboka.diecasttracker.data.dashboard.Dashboard]). */
     @Query(
         """
-        SELECT d.id, d.name, d.brand, d.series, d.color, d.year, d.rarity, d.status, d.quantity,
+        SELECT d.id, d.name, d.brand, d.series, d.collection_number, d.color, d.year, d.rarity, d.status, d.quantity,
             d.purchase_price, d.market_value, d.target_price,
             (SELECT p.file_name FROM diecast_photos p WHERE p.diecast_id = d.id ORDER BY p.position, p.id LIMIT 1) AS cover_file,
             (SELECT COUNT(*) FROM sightings s WHERE s.diecast_id = d.id) AS sightings_count,
@@ -163,6 +163,9 @@ interface SightingDao {
     @Query("DELETE FROM sightings WHERE id = :id")
     suspend fun delete(id: Long)
 
+    @Query("UPDATE sightings SET diecast_id = :diecastId WHERE id = :id")
+    suspend fun move(id: Long, diecastId: Long)
+
     /** Newest first, like the web's "Catatan temuan". */
     @Query("SELECT * FROM sightings WHERE diecast_id = :diecastId ORDER BY seen_on DESC, id DESC")
     fun observeFor(diecastId: Long): Flow<List<SightingEntity>>
@@ -276,6 +279,42 @@ interface ShelfDao {
 
     @Query("UPDATE diecasts SET storage_location = :location, updated_at = :now WHERE id = :id")
     suspend fun setStorageLocation(id: Long, location: String?, now: Long)
+}
+
+/** Receipts kept as proof of what was paid, and the diecasts bought with them. */
+@Dao
+interface ReceiptDao {
+    @Insert
+    suspend fun insert(receipt: ReceiptEntity): Long
+
+    @Query("SELECT * FROM receipts WHERE id = :id")
+    suspend fun get(id: Long): ReceiptEntity?
+
+    @Query("SELECT * FROM receipts WHERE id = :id")
+    fun observe(id: Long): Flow<ReceiptEntity?>
+
+    /** Read since [since], newest first: to use again for the next diecast of the same purchase. */
+    @Query("SELECT * FROM receipts WHERE created_at >= :since ORDER BY created_at DESC, id DESC LIMIT :limit")
+    fun observeRecent(since: Long, limit: Int): Flow<List<ReceiptEntity>>
+
+    @Query("SELECT id, name, receipt_line FROM diecasts WHERE receipt_id = :id ORDER BY id")
+    fun observeUses(id: Long): Flow<List<ReceiptUse>>
+
+    @Query("SELECT * FROM receipts WHERE id IN (:ids)")
+    suspend fun byIds(ids: Collection<Long>): List<ReceiptEntity>
+
+    @Query("SELECT photo FROM receipts")
+    suspend fun allPhotos(): List<String>
+
+    /** Read before [before] and bought with by nothing: an abandoned form's, a bulk scan's thrown away. */
+    @Query("SELECT * FROM receipts WHERE created_at < :before AND id NOT IN (SELECT receipt_id FROM diecasts WHERE receipt_id IS NOT NULL)")
+    suspend fun unusedBefore(before: Long): List<ReceiptEntity>
+
+    @Query("DELETE FROM receipts WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("DELETE FROM receipts")
+    suspend fun deleteAll()
 }
 
 /** The 3D garage's decorations. */

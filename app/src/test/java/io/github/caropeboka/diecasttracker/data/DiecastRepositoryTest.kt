@@ -196,4 +196,44 @@ class DiecastRepositoryTest {
         assertEquals(setOf(photo), env.savedFiles)
         assertEquals(setOf(unsaved), env.pendingFiles)
     }
+
+    @Test
+    fun `a sighting of another car of the same name becomes its own diecast, and the next one moves there`() = runBlocking {
+        // The blue Batmobile was seen first; two gold ones were logged on it by mistake.
+        val blue = repository.save(
+            DiecastEntity(
+                name = "BATMOBILE", brand = "Hot Wheels", series = "Batman", collectionNumber = "4/250 · 1/5", year = 2026,
+                color = "Biru", status = DiecastStatus.Spotted,
+            ),
+            photoNames = listOf(env.pendingPhoto()),
+        )
+        val gold = env.pendingPhoto()
+        val first = repository.addSighting(SightingEntity(diecastId = blue, place = "Indomaret", seenOn = LocalDate.of(2026, 11, 3), price = 35_900, photoFile = gold))
+        val second = repository.addSighting(SightingEntity(diecastId = blue, place = "Indomaret", seenOn = LocalDate.of(2026, 11, 9)))
+        repository.addSighting(SightingEntity(diecastId = blue, place = "Terminal 1", seenOn = LocalDate.of(2026, 11, 2)))
+
+        val created = repository.splitSighting(first)!!
+
+        val split = repository.details(created)!!
+        assertEquals("BATMOBILE", split.diecast.name)
+        assertEquals("Hot Wheels", split.diecast.brand)
+        assertEquals("Batman", split.diecast.series)
+        assertEquals(DiecastStatus.Spotted, split.diecast.status)
+        assertNull(split.diecast.collectionNumber)
+        assertNull(split.diecast.color)
+        assertEquals(listOf(first), split.orderedSightings.map { it.id })
+        // Its cover is a copy: deleting the sighting keeps it.
+        val cover = split.orderedPhotos.single().fileName
+        assertTrue(cover != gold)
+        assertTrue(cover in env.savedFiles && gold in env.savedFiles)
+
+        repository.moveSighting(second, created)
+
+        assertEquals(listOf(second, first), repository.observeSightings(created).first().map { it.id })
+        assertEquals(listOf("Terminal 1"), repository.observeSightings(blue).first().map { it.place })
+
+        repository.deleteSighting(first)
+        assertTrue(cover in env.savedFiles)
+        assertFalse(gold in env.savedFiles)
+    }
 }

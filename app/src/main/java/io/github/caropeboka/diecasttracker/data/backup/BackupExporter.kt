@@ -14,11 +14,13 @@ import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.db.DecorationEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
+import io.github.caropeboka.diecasttracker.data.db.ReceiptEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
 import io.github.caropeboka.diecasttracker.data.decor.DecorStore
 import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
 import io.github.caropeboka.diecasttracker.data.locale.Texts
+import io.github.caropeboka.diecasttracker.data.receipt.ReceiptStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -169,15 +171,19 @@ class BackupExporter(
     suspend fun writeBackup(out: OutputStream, onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }): ExportSummary =
         withContext(Dispatchers.IO) {
             val dexDao = db.dex()
-            val (diecasts, catalogs, priceChecks, slots, decorations) = db.withTransaction {
+            val (diecasts, catalogs, priceChecks, slots, decorations, receipts) = db.withTransaction {
+                val all = db.diecasts().allDetails()
+                val receiptIds = all.mapNotNull { it.diecast.receiptId }.distinct()
                 Snapshot(
-                    db.diecasts().allDetails(),
+                    all,
                     dexDao.allCatalogs().map { it to dexDao.items(it.id) },
                     db.priceChecks().all().groupBy { it.diecastId },
                     db.shelves().all().associateBy { it.diecastId },
                     db.decorations().all(),
+                    if (receiptIds.isEmpty()) emptyMap() else db.receipts().byIds(receiptIds).associateBy { it.id },
                 )
             }
+            val receiptStore = ReceiptStore(root)
 
             // Zip entry → file, for every photo that is really there (the web skips missing ones too).
             val files = linkedMapOf<String, File>()
@@ -190,7 +196,11 @@ class BackupExporter(
             val records = diecasts.map { details ->
                 val own = details.orderedPhotos.mapNotNull { photo(it.fileName) }.also { photoCount += it.size }
                 val sightingPhoto = { sighting: SightingEntity -> photo(sighting.photoFile)?.also { sightingPhotoCount++ } }
-                WebBackupFormat.record(details, own, sightingPhoto, priceChecks[details.diecast.id].orEmpty(), slots[details.diecast.id])
+                // Several diecasts on one receipt share its photo in the zip.
+                val receipt = details.diecast.receiptId?.let(receipts::get)?.let { receipt ->
+                    add("receipts", receiptStore.file(receipt.photo))?.let { receipt to it }
+                }
+                WebBackupFormat.record(details, own, sightingPhoto, priceChecks[details.diecast.id].orEmpty(), slots[details.diecast.id], receipt)
             }
             val dex = catalogs.map { (catalog, items) ->
                 DexBackup.catalog(catalog, items) { item ->
@@ -254,6 +264,7 @@ class BackupExporter(
         val priceChecks: Map<Long, List<PriceCheckEntity>>,
         val slots: Map<Long, ShelfSlotEntity>,
         val decorations: List<DecorationEntity>,
+        val receipts: Map<Long, ReceiptEntity>,
     )
 
     private class Counting(out: OutputStream) : FilterOutputStream(out) {

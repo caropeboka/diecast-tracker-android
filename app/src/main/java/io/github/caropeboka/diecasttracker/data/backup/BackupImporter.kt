@@ -14,6 +14,7 @@ import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
 import io.github.caropeboka.diecasttracker.data.decor.DecorStore
 import io.github.caropeboka.diecasttracker.data.locale.Texts
+import io.github.caropeboka.diecasttracker.data.receipt.ReceiptStore
 import io.github.caropeboka.diecasttracker.data.shelf.Shelf
 import io.github.caropeboka.diecasttracker.data.shelf.ShelfLayout
 import kotlinx.coroutines.CancellationException
@@ -150,6 +151,11 @@ class BackupImporter(
         val decorStore = DecorStore(root)
         val decorFiles = mutableListOf<String>()
         val replacedDecor = mutableListOf<String>()
+        val receiptStore = ReceiptStore(root)
+        val receiptFiles = mutableListOf<String>()
+        val replacedReceipts = mutableListOf<String>()
+        // A receipt several diecasts share comes back once: by its photo's zip entry.
+        val receiptIds = mutableMapOf<String, Long>()
 
         val dao = db.diecasts()
         val sightingDao = db.sightings()
@@ -165,6 +171,8 @@ class BackupImporter(
                     replacedFiles += dao.allPhotoFiles() + sightingDao.allPhotoFiles()
                     dao.deleteAll()
                     dao.pruneTags()
+                    replacedReceipts += db.receipts().allPhotos()
+                    db.receipts().deleteAll()
                     // A web backup has no Dex: the own dexes stay.
                     if (dex != null) {
                         replacedDexes += dexDao.customCatalogIds()
@@ -201,7 +209,15 @@ class BackupImporter(
 
                     val photoNames = record.photos.mapNotNull { extractPhoto(zip, it) }.also { created += it }
                     val itemId = record.dexItem?.let(itemIds::get)
+                    val receiptId = record.receipt?.let { receipt ->
+                        receiptIds[receipt.photo] ?: restoreReceipt(zip, receipt, receiptStore)?.also { (id, file) ->
+                            receiptFiles += file
+                            receiptIds[receipt.photo] = id
+                        }?.first
+                    }
                     val diecast = record.diecast.copy(
+                        receiptId = receiptId,
+                        receiptLine = record.receipt?.line.takeIf { receiptId != null },
                         catalogItemId = itemId,
                         // A link to an entry that didn't come back is worked out again; "not in the Dex" stays.
                         catalogMatch = if (itemId != null) {
@@ -227,8 +243,10 @@ class BackupImporter(
             created.forEach(photos::delete)
             restorer.written.forEach(File::delete)
             decorFiles.forEach(decorStore::delete)
+            receiptFiles.forEach(receiptStore::delete)
             throw e
         }
+        replacedReceipts.forEach(receiptStore::delete)
 
         created.filter(photos::isPending).forEach(photos::promote)
         replacedFiles.forEach(photos::delete)
@@ -259,6 +277,14 @@ class BackupImporter(
             Shelf.Corner -> slot.position
         }
         shelves.put(slot.copy(diecastId = id, position = position))
+    }
+
+    /** A receipt back with its photo; its id and the photo's new name, or null when the photo is missing or too big. */
+    private suspend fun restoreReceipt(zip: ZipFile, receipt: WebBackupFormat.Receipt, store: ReceiptStore): Pair<Long, String>? {
+        val entry = zip.getEntry(receipt.photo)?.takeIf { it.size in 0..WebBackupFormat.MAX_PHOTO_BYTES } ?: return null
+        val name = store.save(zip.getInputStream(entry).use { it.readBytes() })
+        val createdAt = receipt.entity.createdAt.takeIf { it > 0 } ?: System.currentTimeMillis()
+        return db.receipts().insert(receipt.entity.copy(id = 0, photo = name, createdAt = createdAt)) to name
     }
 
     /** Copies one photo out of the zip as a pending photo; null if it is missing, too big or not a JPEG. */

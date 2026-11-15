@@ -101,7 +101,11 @@ class DiecastRepository(
             // A value typed in by hand (a price check, later, sets its own source).
             val valueChanged = existing == null || existing.marketValue != diecast.marketValue
             val sourceGiven = diecast.marketValueSource != existing?.marketValueSource
+            // A receipt cleared away meanwhile (a form left open for days) is simply not linked.
+            val receiptId = diecast.receiptId?.takeIf { db.receipts().get(it) != null }
             val record = diecast.copy(
+                receiptId = receiptId,
+                receiptLine = diecast.receiptLine.takeIf { receiptId != null },
                 marketValueSource = if (valueChanged && !sourceGiven) diecast.marketValue?.let { ValueSource.Manual } else diecast.marketValueSource,
                 marketValueUpdatedAt = if (valueChanged && !sourceGiven) diecast.marketValue?.let { now } else diecast.marketValueUpdatedAt,
                 catalogItemId = if (existing != null) existing.catalogItemId else diecast.catalogItemId,
@@ -178,6 +182,39 @@ class DiecastRepository(
         val id = sightingDao.insert(sighting.copy(id = 0, photoFile = photo, createdAt = clock()))
         photo?.let(photos::promote)
         return id
+    }
+
+    /** A sighting logged on a look-alike goes to the diecast it really was. */
+    suspend fun moveSighting(id: Long, to: Long) {
+        require(dao.get(to) != null) { "Diecast $to not found" }
+        sightingDao.move(id, to)
+    }
+
+    /**
+     * A sighting that was another car of the same name (two "Batmobile" cards) becomes its own "Ditemui" diecast:
+     * named and filed like the old one, its photo (a copy, the sighting keeps its own) as the cover; what tells the
+     * two apart (number, year, colour, rarity) is left to fill in. Returns the new diecast's id.
+     */
+    suspend fun splitSighting(id: Long): Long? {
+        val sighting = sightingDao.get(id) ?: return null
+        val from = dao.get(sighting.diecastId) ?: return null
+        val cover = sighting.photoFile
+            ?.let { name -> runCatching { photos.file(name).readBytes() }.getOrNull() }
+            ?.let(photos::addFromBackup)
+        val created = save(
+            DiecastEntity(
+                name = from.name,
+                brand = from.brand,
+                make = from.make,
+                series = from.series,
+                scale = from.scale,
+                packaging = from.packaging,
+                status = DiecastStatus.Spotted,
+            ),
+            photoNames = listOfNotNull(cover),
+        )
+        sightingDao.move(id, created)
+        return created
     }
 
     suspend fun deleteSighting(id: Long) {

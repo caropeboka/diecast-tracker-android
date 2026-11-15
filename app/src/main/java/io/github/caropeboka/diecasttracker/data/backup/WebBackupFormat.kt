@@ -15,12 +15,14 @@ import io.github.caropeboka.diecasttracker.data.ValueSource
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastWithDetails
 import io.github.caropeboka.diecasttracker.data.db.PriceCheckEntity
+import io.github.caropeboka.diecasttracker.data.db.ReceiptEntity
 import io.github.caropeboka.diecasttracker.data.db.ShelfSlotEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
 import io.github.caropeboka.diecasttracker.data.price.PriceStats
+import io.github.caropeboka.diecasttracker.data.receipt.ReceiptLine
 import io.github.caropeboka.diecasttracker.data.shelf.Shelf
 import io.github.caropeboka.diecasttracker.data.shelf.ShelfLayout
 import io.github.caropeboka.diecasttracker.util.groupThousands
@@ -97,6 +99,8 @@ object WebBackupFormat {
         sightingPhoto: (SightingEntity) -> String?,
         priceChecks: List<PriceCheckEntity> = emptyList(),
         shelfSlot: ShelfSlotEntity? = null,
+        /** Its receipt and the zip entry of the receipt's photo. */
+        receipt: Pair<ReceiptEntity, String>? = null,
     ): JsonObject =
         buildJsonObject {
             val diecast = details.diecast
@@ -137,6 +141,23 @@ object WebBackupFormat {
                         put("shelf", slot.shelf.key)
                         put("spot", slot.spot)
                         put("position", slot.position)
+                    }
+                } ?: JsonNull,
+            )
+            put(
+                "receipt",
+                receipt?.let { (entity, photo) ->
+                    buildJsonObject {
+                        put("photo", photo)
+                        put("line", diecast.receiptLine)
+                        put("store", entity.store)
+                        put("bought_on", entity.boughtOn?.toString())
+                        put("total", entity.total)
+                        put("currency", entity.currency)
+                        put("lines", PRICE_JSON.encodeToJsonElement(ListSerializer(ReceiptLine.serializer()), entity.lines))
+                        put("read_by", entity.readBy)
+                        put("note", entity.note)
+                        put("created_at", timestamp(entity.createdAt))
                     }
                 } ?: JsonNull,
             )
@@ -201,10 +222,39 @@ object WebBackupFormat {
         return ShelfSlotEntity(0, shelf, spot, (json["position"] as? JsonPrimitive)?.intOrNull ?: 0)
     }
 
+    /** The receipt a diecast of a phone backup was bought with, for no diecast yet; null when it can't be read. */
+    private fun parseReceipt(element: JsonElement?): Receipt? {
+        val json = element as? JsonObject ?: return null
+        fun text(key: String) = (json[key] as? JsonPrimitive)?.contentOrNull?.trim()?.ifEmpty { null }
+        val photo = text("photo")?.takeIf { RECEIPT_ENTRY.matches(it) } ?: return null
+        return runCatching {
+            Receipt(
+                ReceiptEntity(
+                    photo = photo,
+                    store = text("store")?.take(255),
+                    boughtOn = text("bought_on")?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+                    total = text("total")?.toLongOrNull()?.takeIf { it in 1..MAX_MONEY },
+                    currency = text("currency")?.takeIf { CURRENCY.matches(it) },
+                    lines = json["lines"]?.let { PRICE_JSON.decodeFromJsonElement(ListSerializer(ReceiptLine.serializer()), it) }.orEmpty(),
+                    readBy = text("read_by"),
+                    note = text("note"),
+                    createdAt = text("created_at")?.let(::parseTimestamp) ?: 0,
+                ),
+                photo,
+                (json["line"] as? JsonPrimitive)?.intOrNull,
+            )
+        }.getOrNull()
+    }
+
     private val PRICE_JSON = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
     }
+
+    private val CURRENCY = Regex("^[A-Z]{3}$")
+
+    /** A receipt's photo in a phone backup. */
+    val RECEIPT_ENTRY = Regex("receipts/[0-9a-f-]{36}\\.jpg", RegexOption.IGNORE_CASE)
 
     /**
      * Only images stored under photos/ are taken from the zip. Wider than the web's own restore (JPEG only),
@@ -230,6 +280,8 @@ object WebBackupFormat {
             val priceChecks: List<PriceCheckEntity> = emptyList(),
             /** Phone backups: where it stood in the 3D garage, for no diecast yet. */
             val shelfSlot: ShelfSlotEntity? = null,
+            /** Phone backups: the receipt it was bought with. */
+            val receipt: Receipt? = null,
         ) : Record
 
         data class Invalid(val reason: String) : Record
@@ -237,6 +289,9 @@ object WebBackupFormat {
 
     /** [entity] has no diecast yet; [photo] is a zip entry name. */
     data class Sighting(val entity: SightingEntity, val photo: String?)
+
+    /** [entity]'s photo is the zip entry [photo]; several records share one receipt by it. [line]: the one this diecast took. */
+    data class Receipt(val entity: ReceiptEntity, val photo: String, val line: Int?)
 
     fun parseManifest(text: String, texts: Texts): Manifest {
         val root = runCatching { Json.parseToJsonElement(text) }.getOrNull() as? JsonObject
@@ -315,6 +370,7 @@ object WebBackupFormat {
             updatedAt = fields.extra("updated_at")?.let(::parseTimestamp),
             priceChecks = (fields.json["price_checks"] as? JsonArray).orEmpty().mapNotNull(::parsePriceCheck),
             shelfSlot = parseShelfSlot(fields.json["shelf_slot"]),
+            receipt = parseReceipt(fields.json["receipt"]),
         )
     }
 
