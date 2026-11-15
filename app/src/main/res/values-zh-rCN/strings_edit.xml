@@ -42,8 +42,12 @@
     <string name="gallery">相册</string>
     <string name="edit_scan">AI 扫描</string>
     <string name="edit_rescan">重新 AI 扫描</string>
-    <string name="edit_scan_first_photos">%1$s（前 %2$d 张照片）</string>
-    <string name="edit_scan_photos">%1$s（%2$d 张照片）</string>
+    <plurals name="edit_scan_count">
+        <item quantity="other">%d 张照片</item>
+    </plurals>
+    <plurals name="edit_scan_first_count">
+        <item quantity="other">前 %d 张照片</item>
+    </plurals>
     <string name="side_front">正面</string>
     <string name="side_side">侧面</string>
     <string name="side_top">顶部</string>

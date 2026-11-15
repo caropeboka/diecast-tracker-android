@@ -43,8 +43,14 @@
     <string name="gallery">Gallery</string>
     <string name="edit_scan">Scan with AI</string>
     <string name="edit_rescan">Scan again with AI</string>
-    <string name="edit_scan_first_photos">%1$s (first %2$d photos)</string>
-    <string name="edit_scan_photos">%1$s (%2$d photos)</string>
+    <plurals name="edit_scan_count">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
+    <plurals name="edit_scan_first_count">
+        <item quantity="one">first %d photo</item>
+        <item quantity="other">first %d photos</item>
+    </plurals>
     <string name="side_front">Front</string>
     <string name="side_side">Side</string>
     <string name="side_top">Top</string>

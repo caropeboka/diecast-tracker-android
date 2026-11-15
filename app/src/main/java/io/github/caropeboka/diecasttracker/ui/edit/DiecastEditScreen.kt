@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,6 +46,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -75,6 +79,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -524,42 +529,37 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
         }
         val readyToScan = beforeScan && photos.isNotEmpty()
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val cameraLabel = stringResource(if (photos.isEmpty()) R.string.edit_take_photo else R.string.edit_take_another)
-            if (readyToScan) {
-                OutlinedButton(onClick = onCamera, enabled = !busy && !full, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                    IconLabel(R.drawable.ic_photo_camera, cameraLabel)
-                }
-            } else {
+        val cameraLabel = stringResource(if (photos.isEmpty()) R.string.edit_take_photo else R.string.edit_take_another)
+        val pickPhoto = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+        if (scanEnabled && photos.isNotEmpty()) {
+            // Camera, gallery and the AI side by side, the icon over the label; before the first scan the AI is the
+            // main one, after it the camera.
+            val count = minOf(photos.size, MAX_SCAN_PHOTOS)
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val tile = Modifier.weight(1f).fillMaxHeight()
+                PhotoAction(R.drawable.ic_photo_camera, cameraLabel, filled = !readyToScan, enabled = !busy && !full, onClick = onCamera, modifier = tile)
+                PhotoAction(R.drawable.ic_photo_library, stringResource(R.string.gallery), filled = false, enabled = !busy && !full, onClick = pickPhoto, modifier = tile)
+                PhotoAction(
+                    R.drawable.ic_sparkles,
+                    stringResource(if (viewModel.scan == ScanState.Idle) R.string.edit_scan else R.string.edit_rescan),
+                    detail = when {
+                        photos.size > MAX_SCAN_PHOTOS -> pluralStringResource(R.plurals.edit_scan_first_count, count, count)
+                        photos.size > 1 -> pluralStringResource(R.plurals.edit_scan_count, count, count)
+                        else -> null
+                    },
+                    filled = readyToScan,
+                    enabled = !busy,
+                    onClick = viewModel::runScan,
+                    modifier = tile,
+                )
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onCamera, enabled = !busy && !full, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
                     IconLabel(R.drawable.ic_photo_camera, cameraLabel)
                 }
-            }
-            OutlinedButton(
-                onClick = { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                enabled = !busy && !full,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.weight(1f),
-            ) {
-                IconLabel(R.drawable.ic_photo_library, stringResource(R.string.gallery))
-            }
-        }
-
-        if (scanEnabled && photos.isNotEmpty()) {
-            val label = stringResource(if (viewModel.scan == ScanState.Idle) R.string.edit_scan else R.string.edit_rescan)
-            val count = minOf(photos.size, MAX_SCAN_PHOTOS)
-            val text = when {
-                photos.size > MAX_SCAN_PHOTOS -> stringResource(R.string.edit_scan_first_photos, label, count)
-                photos.size > 1 -> stringResource(R.string.edit_scan_photos, label, count)
-                else -> label
-            }
-            if (readyToScan) {
-                Button(onClick = viewModel::runScan, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                    IconLabel(R.drawable.ic_sparkles, text)
-                }
-            } else {
-                OutlinedButton(onClick = viewModel::runScan, enabled = !busy, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
-                    IconLabel(R.drawable.ic_sparkles, text)
+                OutlinedButton(onClick = pickPhoto, enabled = !busy && !full, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
+                    IconLabel(R.drawable.ic_photo_library, stringResource(R.string.gallery))
                 }
             }
         }
@@ -569,6 +569,41 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
         }
 
         ScanFeedback(viewModel.scan, onOpen)
+    }
+}
+
+/** One of the three buttons under the photos: its icon over its label (and [detail], e.g. how many photos go). */
+@Composable
+private fun PhotoAction(
+    @DrawableRes icon: Int,
+    label: String,
+    filled: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    detail: String? = null,
+) {
+    val padding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
+    val content: @Composable RowScope.() -> Unit = {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(20.dp))
+            Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (detail != null) {
+                Text(
+                    detail,
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = LocalContentColor.current.copy(alpha = 0.75f),
+                )
+            }
+        }
+    }
+    if (filled) {
+        Button(onClick = onClick, enabled = enabled, shape = MaterialTheme.shapes.medium, contentPadding = padding, modifier = modifier, content = content)
+    } else {
+        OutlinedButton(onClick = onClick, enabled = enabled, shape = MaterialTheme.shapes.medium, contentPadding = padding, modifier = modifier, content = content)
     }
 }
 

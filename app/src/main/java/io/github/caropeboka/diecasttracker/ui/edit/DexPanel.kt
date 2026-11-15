@@ -56,7 +56,11 @@ fun DexEditPanel(
         when {
             linked != null -> {
                 DexEntryCard(linked) { onOpenEntry(linked.row.item) }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.Center) {
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.Center,
+                ) {
                     if (state.match == CatalogMatch.Auto) {
                         Note(R.drawable.ic_auto_fix_high, stringResource(R.string.dex_matched_auto), Modifier.align(Alignment.CenterVertically))
                         Button(onClick = { onLink(LinkAction.Confirm, null) }, enabled = !busy, shape = MaterialTheme.shapes.medium) {

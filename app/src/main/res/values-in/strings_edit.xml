@@ -42,8 +42,12 @@
     <string name="gallery">Galeri</string>
     <string name="edit_scan">Pindai dengan AI</string>
     <string name="edit_rescan">Pindai ulang dengan AI</string>
-    <string name="edit_scan_first_photos">%1$s (%2$d foto pertama)</string>
-    <string name="edit_scan_photos">%1$s (%2$d foto)</string>
+    <plurals name="edit_scan_count">
+        <item quantity="other">%d foto</item>
+    </plurals>
+    <plurals name="edit_scan_first_count">
+        <item quantity="other">%d foto pertama</item>
+    </plurals>
     <string name="side_front">Depan</string>
     <string name="side_side">Samping</string>
     <string name="side_top">Atas</string>
