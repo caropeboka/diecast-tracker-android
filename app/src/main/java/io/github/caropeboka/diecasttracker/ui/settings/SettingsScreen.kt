@@ -78,6 +78,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onGeneral: () -> Unit,
     onAiSettings: () -> Unit,
+    onPriceSearch: () -> Unit,
     onData: () -> Unit,
     onTour: () -> Unit,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
@@ -87,6 +88,7 @@ fun SettingsScreen(
     val currency by viewModel.currency.collectAsStateWithLifecycle(null)
     val dateStyle by viewModel.dateStyle.collectAsStateWithLifecycle(null)
     val ai by viewModel.aiSetup.collectAsStateWithLifecycle(null)
+    val serpApiKey by viewModel.serpApiKey.collectAsStateWithLifecycle(null)
     val backups by viewModel.backupTimes.collectAsStateWithLifecycle(null)
 
     SettingsScaffold(stringResource(R.string.settings_title), onBack) {
@@ -107,6 +109,11 @@ fun SettingsScreen(
                 else -> stringResource(R.string.settings_ai_in_use, chain.joinToString(", ") { it.label })
             }
             Category(R.drawable.ic_sparkles, stringResource(R.string.settings_section_ai), aiSummary, onClick = onAiSettings)
+            Divider()
+
+            val priceSummary = serpApiKey?.let { stringResource(R.string.settings_price_auto_on, keyHint(it)) }
+                ?: stringResource(R.string.settings_price_auto_off)
+            Category(R.drawable.ic_sell, stringResource(R.string.settings_price_auto), priceSummary, onClick = onPriceSearch)
             Divider()
 
             val last = backups?.last
@@ -207,7 +214,7 @@ fun GeneralSettingsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsScaffold(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+internal fun SettingsScaffold(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(

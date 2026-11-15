@@ -135,6 +135,7 @@ fun DiecastEditScreen(
     onOpen: (Long) -> Unit,
     onOpenEntry: (CatalogItemEntity) -> Unit,
     onAiSettings: () -> Unit,
+    onPriceSettings: () -> Unit,
     viewModel: DiecastEditViewModel = viewModel(factory = DiecastEditViewModel.Factory),
 ) {
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
@@ -246,7 +247,7 @@ fun DiecastEditScreen(
                     onMove = viewModel::moveSighting,
                     onSplit = { id -> viewModel.splitSighting(id, onOpen) },
                 )
-                PriceCheckPanel(existing, viewModel.sightings, viewModel.form.photos.firstOrNull(), viewModel::marketValueApplied, onAiSettings)
+                PriceCheckPanel(existing, viewModel.sightings, viewModel.form.photos.firstOrNull(), viewModel::marketValueApplied, onAiSettings, onPriceSettings)
             }
         }
     }

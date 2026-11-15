@@ -46,6 +46,7 @@ import io.github.caropeboka.diecasttracker.ui.garage.GarageScreen
 import io.github.caropeboka.diecasttracker.ui.scan.BulkScanScreen
 import io.github.caropeboka.diecasttracker.ui.settings.AiSettingsScreen
 import io.github.caropeboka.diecasttracker.ui.settings.GeneralSettingsScreen
+import io.github.caropeboka.diecasttracker.ui.settings.PriceSearchSettingsScreen
 import io.github.caropeboka.diecasttracker.ui.settings.SettingsScreen
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -98,6 +99,10 @@ data object SettingsRoute
 /** Language, currency and date format. */
 @Serializable
 data object GeneralSettingsRoute
+
+/** The SerpApi key for the automatic price check. */
+@Serializable
+data object PriceSearchSettingsRoute
 
 /** "Peta jelajah". */
 @Serializable
@@ -294,6 +299,7 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                             onOpen = { id -> nav.navigate(DiecastEditRoute(id = id)) },
                             onOpenEntry = openEntry,
                             onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
+                            onPriceSettings = dropUnlessResumed { nav.navigate(PriceSearchSettingsRoute) },
                         )
                     }
                     screen<DataRoute> {
@@ -304,6 +310,7 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                             onBack = dropUnlessResumed { nav.popBackStack() },
                             onGeneral = dropUnlessResumed { nav.navigate(GeneralSettingsRoute) },
                             onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
+                            onPriceSearch = dropUnlessResumed { nav.navigate(PriceSearchSettingsRoute) },
                             onData = dropUnlessResumed { nav.navigate(DataRoute) },
                             // The tour starts on Koleksi.
                             onTour = dropUnlessResumed { nav.popBackStack<CollectionRoute>(inclusive = false) },
@@ -311,6 +318,9 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                     }
                     screen<GeneralSettingsRoute> {
                         GeneralSettingsScreen(onBack = dropUnlessResumed { nav.popBackStack() })
+                    }
+                    screen<PriceSearchSettingsRoute> {
+                        PriceSearchSettingsScreen(onBack = dropUnlessResumed { nav.popBackStack() })
                     }
                     screen<AiSettingsRoute> {
                         AiSettingsScreen(onClose = { nav.popBackStack<AiSettingsRoute>(inclusive = true) })

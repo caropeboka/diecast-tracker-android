@@ -85,6 +85,7 @@ import io.github.caropeboka.diecasttracker.data.price.PriceAccuracy
 import io.github.caropeboka.diecasttracker.data.price.PriceChecker
 import io.github.caropeboka.diecasttracker.data.price.PriceEstimate
 import io.github.caropeboka.diecasttracker.data.price.PriceListing
+import io.github.caropeboka.diecasttracker.data.price.ShoppingSearchException
 import io.github.caropeboka.diecasttracker.ui.components.AiProgress
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
@@ -125,6 +126,15 @@ class PriceCheckViewModel(
         checker.observe(diecastId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val enabled: StateFlow<Boolean> = checker.enabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    /** A SerpApi key is set: the automatic check (Google Shopping) can run. */
+    val online: StateFlow<Boolean> = checker.onlineEnabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** The running check is the automatic one: its steps show by its own button. */
+    var checkingOnline by mutableStateOf(false)
+        private set
+    var onlineError by mutableStateOf<String?>(null)
+        private set
 
     /** The steps (search, screenshots) are showing. */
     val open: StateFlow<Boolean> = saved.getStateFlow(OPEN, false)
@@ -244,6 +254,7 @@ class PriceCheckViewModel(
     fun setOpen(value: Boolean) {
         saved[OPEN] = value
         error = null
+        onlineError = null
     }
 
     fun setQuery(text: String) {
@@ -289,6 +300,43 @@ class PriceCheckViewModel(
                 analyzing = false
                 log.stop()
             }
+        }
+    }
+
+    /**
+     * Searches Google Shopping for the keywords through SerpApi, has the AI sort out the listings, and records the
+     * check like one from screenshots; then says how many searches are left.
+     */
+    fun checkOnline(diecast: DiecastEntity) {
+        val text = (query.value ?: PriceChecker.searchQuery(diecast)).trim()
+        if (analyzing || text.isEmpty()) return
+
+        analyzing = true
+        checkingOnline = true
+        error = null
+        onlineError = null
+        log.start(texts(R.string.price_auto_searching, text))
+        viewModelScope.launch {
+            var done = false
+            try {
+                checker.checkOnline(diecast, text, onFound = { log.step(texts.plural(R.plurals.price_auto_found, it, it)) }, onEvent = log::onEvent)
+                saved[OPEN] = false
+                done = true
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: ShoppingSearchException) {
+                onlineError = e.message
+            } catch (e: AiException) {
+                onlineError = e.message
+            } catch (e: Exception) {
+                onlineError = texts(R.string.failed_because, e.message ?: e::class.simpleName.orEmpty())
+            } finally {
+                analyzing = false
+                checkingOnline = false
+                log.stop()
+            }
+            // Free to ask, and worth knowing with 250 a month.
+            if (done) checker.searchesLeft()?.let { messages.show(texts.plural(R.plurals.price_auto_left, it, it)) }
         }
     }
 
@@ -339,10 +387,17 @@ class PriceCheckViewModel(
  * results, and the AI reads every listing; the app works out the median. For a diecast no marketplace lists, the AI's
  * rough estimate from the web and the prices in the collector's own records. Only for saved diecasts. [records]
  * changes when the sightings do, so their shelf prices are read again; [cover] (the form's first photo) goes to Google
- * Lens.
+ * Lens. With a SerpApi key, one tap searches Google Shopping instead of the screenshots ([onPriceSettings] sets it up).
  */
 @Composable
-fun PriceCheckPanel(diecast: DiecastEntity, records: Any?, cover: String?, onApplied: (DiecastEntity) -> Unit, onAiSettings: () -> Unit) {
+fun PriceCheckPanel(
+    diecast: DiecastEntity,
+    records: Any?,
+    cover: String?,
+    onApplied: (DiecastEntity) -> Unit,
+    onAiSettings: () -> Unit,
+    onPriceSettings: () -> Unit,
+) {
     val viewModel: PriceCheckViewModel = viewModel(key = "price-check-${diecast.id}", factory = PriceCheckViewModel.factory(diecast.id))
     LaunchedEffect(diecast, records) { viewModel.loadOwn(diecast) }
     val checks by viewModel.checks.collectAsStateWithLifecycle()
@@ -364,7 +419,7 @@ fun PriceCheckPanel(diecast: DiecastEntity, records: Any?, cover: String?, onApp
                 Hint(stringResource(R.string.price_needs_ai))
                 OutlinedButton(onClick = onAiSettings, shape = MaterialTheme.shapes.medium) { IconLabel(R.drawable.ic_sparkles, stringResource(R.string.settings_ai)) }
             }
-            open -> Steps(viewModel, diecast, cover)
+            open -> Steps(viewModel, diecast, cover, onPriceSettings)
             all.isEmpty() -> Hint(
                 stringResource(R.string.price_intro),
             )
@@ -526,10 +581,12 @@ private fun Hint(text: String) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity, cover: String?) {
+private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity, cover: String?, onPriceSettings: () -> Unit) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val picked by viewModel.picked.collectAsStateWithLifecycle()
     val keywords by viewModel.keywords.collectAsStateWithLifecycle()
+    val online by viewModel.online.collectAsStateWithLifecycle()
+    val progress by viewModel.progress.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
     val text = query ?: PriceChecker.searchQuery(diecast)
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_PRICE_SCREENSHOTS), viewModel::addScreenshots)
@@ -564,6 +621,25 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity, cover:
                     }
                 },
             )
+        }
+        // One tap instead of the screenshots, once a SerpApi key is set.
+        if (online) {
+            val steps = progress
+            if (viewModel.checkingOnline && steps != null) {
+                AiProgressView(steps)
+            } else {
+                Button(
+                    onClick = { viewModel.checkOnline(diecast) },
+                    enabled = !viewModel.analyzing && text.isNotBlank(),
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { IconLabel(R.drawable.ic_auto_fix_high, stringResource(R.string.price_auto)) }
+                Text(stringResource(R.string.price_auto_hint), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
+            }
+            viewModel.onlineError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.Loss) }
+            Text(stringResource(R.string.price_auto_or), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 6.dp))
+        } else {
+            TextButton(onClick = onPriceSettings, contentPadding = PaddingValues(0.dp)) { Text(stringResource(R.string.price_auto_setup)) }
         }
         MarketGroup.entries.forEach { group ->
             Text(stringResource(group.label), style = MaterialTheme.typography.labelMedium, color = Garage.MutedForeground)
@@ -623,9 +699,8 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity, cover:
 
         viewModel.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.Loss) }
 
-        val progress by viewModel.progress.collectAsStateWithLifecycle()
         val steps = progress
-        if (steps != null) {
+        if (steps != null && !viewModel.checkingOnline) {
             AiProgressView(steps)
         } else {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -701,7 +776,11 @@ private fun CheckResult(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        stringResource(R.string.price_checked_on, formatDate(day), check.listings.size, check.screenshots),
+                        if (check.screenshots == 0) {
+                            pluralStringResource(R.plurals.price_checked_auto, check.listings.size, formatDate(day), check.listings.size)
+                        } else {
+                            stringResource(R.string.price_checked_on, formatDate(day), check.listings.size, check.screenshots)
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                     )
@@ -794,9 +873,12 @@ private fun ListingRow(listing: PriceListing) {
         stringResource(R.string.price_ad).takeIf { listing.isAd },
         listing.marketplace.takeIf { it != "tokopedia" }?.let { MARKETPLACE_NAMES[it] ?: it },
         listing.currency?.let { currency -> listing.originalPrice?.let { "$currency " + String.format(Locale.ROOT, "%,.2f", it) } },
-    ).joinToString(" · ")
+    ).joinToString(" · ") + if (listing.link != null) " ↗" else ""
+    val uris = LocalUriHandler.current
+    // Only the automatic check knows where a listing is.
+    val open = listing.link?.let { link -> Modifier.clickable(onClickLabel = stringResource(R.string.price_open_listing)) { runCatching { uris.openUri(link) } } } ?: Modifier
 
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(open, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(painterResource(icon), contentDescription = state, tint = tint, modifier = Modifier.padding(top = 2.dp).size(16.dp))
         Column(Modifier.weight(1f)) {
             Text(

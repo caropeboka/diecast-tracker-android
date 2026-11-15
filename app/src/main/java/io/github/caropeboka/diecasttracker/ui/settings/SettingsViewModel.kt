@@ -24,6 +24,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
 
     /** For the summaries on the settings page. */
     val aiSetup = container.aiSettings.setup
+    val serpApiKey = container.aiSettings.serpApiKey
     val backupTimes = prefs.backupTimes
 
     var refreshing by mutableStateOf(false)
