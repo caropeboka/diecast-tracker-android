@@ -37,6 +37,7 @@ data class CollectionUiState(
     val items: List<DiecastListItem>? = null,
     val filter: CollectionFilter = CollectionFilter(),
     val brands: List<String> = emptyList(),
+    val makes: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
     val layout: CollectionLayout = CollectionLayout.Grid,
     /** Everything in the database, Ditemui included: tells "empty collection" from "nothing matches". */
@@ -60,7 +61,7 @@ data class CollectionLink(
     val rare: Boolean = false,
 )
 
-/** The filters only a link sets (each shown as a chip that clears it), and the rest of the menus'. */
+/** The filters a link sets (the scale and years only there, each a chip that clears it), and the rest of the menus'. */
 private data class LinkFilters(val make: String?, val scale: String?, val years: IntRange?, val rare: Boolean)
 
 private data class MoreFilters(val tag: String?, val missing: String?, val sort: CollectionSort, val links: LinkFilters)
@@ -116,12 +117,12 @@ class CollectionViewModel(
 
     val state: StateFlow<CollectionUiState> = combine(
         items,
-        repository.observeBrands(),
+        combine(repository.observeBrands(), repository.observeMakes(), ::Pair),
         repository.observeTagNames(),
         prefs.layout,
         repository.observeCount(),
-    ) { (items, filter), brands, tags, layout, total ->
-        CollectionUiState(items, filter, brands, tags, layout, total)
+    ) { (items, filter), (brands, makes), tags, layout, total ->
+        CollectionUiState(items, filter, brands, makes, tags, layout, total)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CollectionUiState())
 
     /** Null while no backup reminder is due. */
@@ -154,8 +155,8 @@ class CollectionViewModel(
         saved[RARE] = rare && rarity == null
     }
 
-    fun clearMake() {
-        saved[MAKE] = null
+    fun setMake(make: String?) {
+        saved[MAKE] = make
     }
 
     fun clearScale() {

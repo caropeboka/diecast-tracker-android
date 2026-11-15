@@ -144,6 +144,11 @@ class AiProgressLogTest {
             ),
             lines,
         )
+        // Each line about an AI carries its name, for its logo; the first step is the app's own.
+        assertEquals(
+            listOf(null, "Gemini", "Mistral", "Mistral", "Groq", "Groq", "Groq"),
+            log.state.value!!.steps.map { it.provider },
+        )
 
         // The next request starts with Gemini's name again until told otherwise.
         log.start("Menyiapkan foto")

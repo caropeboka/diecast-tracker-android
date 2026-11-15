@@ -81,6 +81,8 @@ import io.github.caropeboka.diecasttracker.ui.components.AiProgress
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import io.github.caropeboka.diecasttracker.util.formatMoney
@@ -391,11 +393,14 @@ private fun Answer(answer: ChatAnswer, applied: Set<String>, form: DiecastForm, 
             }
         }
 
-        Text(
-            if (answer.searched) stringResource(R.string.ask_by_search, answer.by) else answer.by,
-            style = MaterialTheme.typography.labelSmall,
-            color = Garage.MutedForeground,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Logos.ofProvider(answer.by)?.let { LogoTile(it, 12.dp) }
+            Text(
+                if (answer.searched) stringResource(R.string.ask_by_search, answer.by) else answer.by,
+                style = MaterialTheme.typography.labelSmall,
+                color = Garage.MutedForeground,
+            )
+        }
     }
 }
 

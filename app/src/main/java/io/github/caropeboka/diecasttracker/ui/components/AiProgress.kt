@@ -42,7 +42,10 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
-/** One line of [AiProgress]. [startedAt]: elapsed-realtime millis; [fraction]: how much of the upload is sent. */
+/**
+ * One line of [AiProgress]. [startedAt]: elapsed-realtime millis; [fraction]: how much of the upload is sent;
+ * [provider]: the AI the line is about (its label), shown with its logo.
+ */
 @Immutable
 data class AiStep(
     val text: String,
@@ -50,6 +53,7 @@ data class AiStep(
     val state: State,
     val startedAt: Long,
     val fraction: Float? = null,
+    val provider: String? = null,
 ) {
     enum class State { Done, Running, Missed }
 }
@@ -87,6 +91,10 @@ class AiProgressLog(
     fun step(text: String, detail: String? = null, fraction: Float? = null) =
         edit { steps -> steps.ended() + running(text, detail, fraction) }
 
+    /** A step about [about] (an AI's label), shown with its logo. */
+    private fun stepAbout(text: String, about: String, detail: String? = null, fraction: Float? = null) =
+        edit { steps -> steps.ended() + running(text, detail, fraction, about) }
+
     fun stop() {
         _state.value = null
     }
@@ -94,22 +102,23 @@ class AiProgressLog(
     fun onEvent(event: AiEvent) {
         when (event) {
             is AiEvent.Provider -> provider = event.name
-            is AiEvent.Resting -> note(texts(R.string.ai_resting, event.name, restEnd(texts, event.until, zone)))
-            is AiEvent.Switching -> step(texts(R.string.ai_switching, event.name))
-            is AiEvent.Trimmed -> note(texts(R.string.ai_trimmed, provider, event.sent, event.total))
-            AiEvent.ListingModels -> step(texts(R.string.ai_listing_models, provider))
-            is AiEvent.Sending -> step(
+            is AiEvent.Resting -> note(texts(R.string.ai_resting, event.name, restEnd(texts, event.until, zone)), event.name)
+            is AiEvent.Switching -> stepAbout(texts(R.string.ai_switching, event.name), about = event.name)
+            is AiEvent.Trimmed -> note(texts(R.string.ai_trimmed, provider, event.sent, event.total), provider)
+            AiEvent.ListingModels -> stepAbout(texts(R.string.ai_listing_models, provider), about = provider)
+            is AiEvent.Sending -> stepAbout(
                 texts(R.string.ai_sending, provider, formatBytes(event.bytes)),
-                if (event.fallback == 0) event.model else texts(R.string.ai_fallback_model, event.model, event.fallback),
+                about = provider,
+                detail = if (event.fallback == 0) event.model else texts(R.string.ai_fallback_model, event.model, event.fallback),
                 fraction = 0f,
             )
             is AiEvent.Uploading -> progress(event.sent.toFloat() / event.total)
-            is AiEvent.Waiting -> edit { steps -> steps.ended() + running(texts(R.string.ai_waiting), steps.lastOrNull()?.detail) }
+            is AiEvent.Waiting -> edit { steps -> steps.ended() + running(texts(R.string.ai_waiting), steps.lastOrNull()?.detail, about = provider) }
             is AiEvent.Missed -> edit { steps ->
                 val text = texts(if (event.retrying) R.string.ai_missed_retrying else R.string.ai_missed, provider, event.reason)
-                steps.filterNot { it.state == AiStep.State.Running } + AiStep(text, steps.lastOrNull()?.detail, AiStep.State.Missed, clock())
+                steps.filterNot { it.state == AiStep.State.Running } + AiStep(text, steps.lastOrNull()?.detail, AiStep.State.Missed, clock(), provider = provider)
             }
-            AiEvent.Answered -> step(texts(R.string.ai_answered))
+            AiEvent.Answered -> stepAbout(texts(R.string.ai_answered), about = provider)
         }
     }
 
@@ -123,10 +132,11 @@ class AiProgressLog(
     private fun edit(change: (List<AiStep>) -> List<AiStep>) = _state.update { it?.copy(steps = change(it.steps)) }
 
     /** A ⚠ line that isn't a step of its own: something left out or set aside. */
-    private fun note(text: String) = edit { steps -> steps.ended() + AiStep(text, null, AiStep.State.Missed, clock()) }
+    private fun note(text: String, about: String? = null) =
+        edit { steps -> steps.ended() + AiStep(text, null, AiStep.State.Missed, clock(), provider = about) }
 
-    private fun running(text: String, detail: String? = null, fraction: Float? = null) =
-        AiStep(text, detail, AiStep.State.Running, clock(), fraction)
+    private fun running(text: String, detail: String? = null, fraction: Float? = null, about: String? = null) =
+        AiStep(text, detail, AiStep.State.Running, clock(), fraction, about)
 
     private fun List<AiStep>.ended() = map { if (it.state == AiStep.State.Running) it.copy(state = AiStep.State.Done, fraction = null) else it }
 }
@@ -189,11 +199,14 @@ private fun StepRow(step: AiStep, now: Long) {
         }
         Column(Modifier.weight(1f)) {
             val seconds = ((now - step.startedAt) / 1_000).coerceAtLeast(0)
-            Text(
-                if (running && seconds > 0) stringResource(R.string.ai_step_seconds, step.text, seconds) else step.text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (step.state == AiStep.State.Done) Garage.MutedForeground else Garage.Foreground,
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Logos.ofProvider(step.provider)?.let { LogoTile(it, 16.dp, Modifier.padding(top = 2.dp)) }
+                Text(
+                    if (running && seconds > 0) stringResource(R.string.ai_step_seconds, step.text, seconds) else step.text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (step.state == AiStep.State.Done) Garage.MutedForeground else Garage.Foreground,
+                )
+            }
             step.detail?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }

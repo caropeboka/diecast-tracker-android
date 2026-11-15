@@ -30,6 +30,8 @@ import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
 import io.github.caropeboka.diecasttracker.ui.components.Badge
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
 import io.github.caropeboka.diecasttracker.ui.components.icon
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import io.github.caropeboka.diecasttracker.util.formatMoney
@@ -43,7 +45,10 @@ fun ScanFeedback(scan: ScanState, onOpen: (Long) -> Unit) {
         }
         is ScanState.Done -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Notice(R.drawable.ic_sparkles, Garage.Brand) {
-                Text(stringResource(R.string.scan_filled_by, scan.by ?: "AI"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Logos.ofProvider(scan.by)?.let { LogoTile(it, 18.dp) }
+                    Text(stringResource(R.string.scan_filled_by, scan.by ?: "AI"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                }
                 Text(
                     stringResource(R.string.scan_confidence, stringResource(scan.confidence.label)),
                     style = MaterialTheme.typography.bodySmall,

@@ -97,12 +97,15 @@ import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.dex.LinkAction
 import io.github.caropeboka.diecasttracker.data.receipt.receiptItem
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
+import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.DateInput
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
 import io.github.caropeboka.diecasttracker.ui.components.MoneyInput
 import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.components.SuggestInput
@@ -712,11 +715,12 @@ private fun IdentitySection(viewModel: DiecastEditViewModel, suggestions: Sugges
         SuggestInput(
             form.brand, { v -> set(Field.Brand) { it.copy(brand = v) } }, suggestions.brands, stringResource(R.string.field_brand),
             placeholder = "Hot Wheels", error = errors[Field.Brand], highlighted = Field.Brand in ai,
+            trailing = Logos.ofBrand(form.brand)?.let { { BrandLogo(form.brand, 20.dp) } },
         )
-        TextInput(
-            form.make, { v -> set(Field.Make) { it.copy(make = v) } }, stringResource(R.string.edit_car_make),
-            placeholder = "Nissan", error = errors[Field.Make], capitalization = KeyboardCapitalization.Words,
-            highlighted = Field.Make in ai,
+        SuggestInput(
+            form.make, { v -> set(Field.Make) { it.copy(make = v) } }, suggestions.makes, stringResource(R.string.edit_car_make),
+            placeholder = "Nissan", error = errors[Field.Make], highlighted = Field.Make in ai,
+            trailing = Logos.ofMake(form.make)?.let { logo -> { LogoTile(logo, 24.dp) } },
         )
         SuggestInput(
             form.series, { v -> set(Field.Series) { it.copy(series = v) } }, suggestions.series, stringResource(R.string.field_series),

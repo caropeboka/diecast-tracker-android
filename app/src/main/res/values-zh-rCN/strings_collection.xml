@@ -14,6 +14,7 @@
     <string name="collection_all_completeness">全部完整度</string>
     <string name="collection_all_but_spotted">除“见过”外全部</string>
     <string name="collection_all_brands">全部品牌</string>
+    <string name="collection_all_makes">全部厂商</string>
     <string name="collection_all_rarities">全部稀有度</string>
     <string name="collection_tag">标签：%1$s</string>
     <string name="collection_all_tags">全部标签</string>

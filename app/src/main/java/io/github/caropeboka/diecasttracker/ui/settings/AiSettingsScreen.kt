@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -66,6 +67,8 @@ import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
 import io.github.caropeboka.diecasttracker.ui.components.TextInput
 import io.github.caropeboka.diecasttracker.ui.components.restEnd
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
@@ -247,9 +250,27 @@ private fun ProviderCard(
                     .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Surface(shape = CircleShape, color = if (active) Garage.Brand else Garage.Muted, modifier = Modifier.size(24.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("${index + 1}", style = MaterialTheme.typography.labelMedium, color = if (active) Garage.OnBrand else Garage.MutedForeground)
+                // Its logo, with its place in the order on a badge.
+                Box(Modifier.size(40.dp)) {
+                    val logo = Logos.of(provider)
+                    if (logo != null) {
+                        LogoTile(logo, 36.dp)
+                    } else {
+                        Surface(shape = RoundedCornerShape(8.dp), color = Garage.Muted, modifier = Modifier.size(36.dp)) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(painterResource(R.drawable.ic_sparkles), contentDescription = null, tint = Garage.MutedForeground, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                    Surface(
+                        shape = CircleShape,
+                        color = if (active) Garage.Brand else Garage.Muted,
+                        border = BorderStroke(2.dp, Garage.Card),
+                        modifier = Modifier.align(Alignment.BottomEnd).size(20.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("${index + 1}", style = MaterialTheme.typography.labelSmall, color = if (active) Garage.OnBrand else Garage.MutedForeground)
+                        }
                     }
                 }
                 Column(

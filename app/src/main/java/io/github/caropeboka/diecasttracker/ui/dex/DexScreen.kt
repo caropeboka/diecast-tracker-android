@@ -76,6 +76,7 @@ import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
 import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.components.SubHeading
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
+import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 
 /** "Dex" (web: `dex/index.tsx`). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -164,7 +165,12 @@ fun DexBrandScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Heading(brand) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        BrandLogo(brand, 26.dp)
+                        Heading(brand)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.back)) }
                 },
@@ -220,6 +226,7 @@ private fun BrandCard(group: BrandGroup, onOpen: () -> Unit) {
     SectionCard(
         group.brand,
         modifier = Modifier.clip(MaterialTheme.shapes.large).clickable(onClickLabel = stringResource(R.string.dex_brand_open), onClick = onOpen),
+        leading = { BrandLogo(group.brand, 28.dp) },
         action = {
             TextButton(onClick = onOpen, contentPadding = PaddingValues(horizontal = 8.dp)) {
                 Text(stringResource(R.string.dex_brand_open), style = MaterialTheme.typography.bodySmall)
@@ -492,20 +499,26 @@ private fun SourceToggle(selected: WikiSource, enabled: Boolean, onSelect: (Wiki
                 pair.forEach { source ->
                     val active = source == selected
                     val shape = RoundedCornerShape(8.dp)
-                    Text(
-                        source.shortName,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (active) MaterialTheme.colorScheme.onSurface else Garage.MutedForeground,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        modifier = Modifier
+                    Row(
+                        Modifier
                             .weight(1f)
                             .clip(shape)
                             .then(if (active) Modifier.background(Garage.Card, shape).border(1.dp, Garage.Brand.copy(alpha = 0.5f), shape) else Modifier)
                             .selectable(selected = active, enabled = enabled, role = Role.RadioButton, onClick = { onSelect(source) })
                             .padding(vertical = 10.dp),
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        BrandLogo(source.brand, 14.dp, fallback = false)
+                        Text(
+                            source.shortName,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (active) MaterialTheme.colorScheme.onSurface else Garage.MutedForeground,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                        )
+                    }
                 }
                 if (pair.size == 1) Spacer(Modifier.weight(1f))
             }

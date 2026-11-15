@@ -59,6 +59,7 @@ fun SectionCard(
     title: String?,
     modifier: Modifier = Modifier,
     action: (@Composable () -> Unit)? = null,
+    leading: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
@@ -68,10 +69,14 @@ fun SectionCard(
         border = BorderStroke(1.dp, Garage.Border),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (title != null && action != null) {
+            if (title != null && (action != null || leading != null)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (leading != null) {
+                        leading()
+                        Spacer(Modifier.width(10.dp))
+                    }
                     SubHeading(title, Modifier.weight(1f))
-                    action()
+                    action?.invoke()
                 }
             } else if (title != null) {
                 SubHeading(title)

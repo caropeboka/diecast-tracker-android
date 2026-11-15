@@ -44,6 +44,9 @@ import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.sharedDiecastCard
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import kotlin.math.ceil
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 
 /** The web's `--viz-muted`: regular diecasts among the rarities. */
 internal val RegularBar = Color(0xFF4A4A46)
@@ -66,6 +69,8 @@ internal class BarRow(
     val color: Color = Garage.MeterBar,
     val detail: String? = null,
     val onClick: (() -> Unit)? = null,
+    /** Before the label: a brand's or a car maker's logo. */
+    val leading: (@Composable () -> Unit)? = null,
 )
 
 /** Labelled horizontal bars, longest first (web: `BarList`). */
@@ -82,6 +87,10 @@ internal fun BarList(rows: List<BarRow>) {
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    row.leading?.let {
+                        it()
+                        Spacer(Modifier.width(8.dp))
+                    }
                     Text(
                         row.label,
                         style = MaterialTheme.typography.bodyMedium,
@@ -236,9 +245,7 @@ internal fun MiniList(items: List<DiecastListItem>, place: String, opener: Opene
                 Thumb(item, 40.dp)
                 Column(Modifier.weight(1f)) {
                     Text(item.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    subtitle(item)?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
+                    Subtitle(item)
                 }
                 detail(item)
             }
@@ -253,6 +260,16 @@ private fun YearColumn.label() = if (span == 1) "'${start.toString().takeLast(2)
 private val YearColumn.longLabel get() = if (span == 1) start.toString() else "$start–${start + span - 1}"
 
 internal fun subtitle(item: DiecastListItem): String? = listOfNotNull(item.brand, item.series).joinToString(" · ").ifEmpty { null }
+
+/** Brand · series under a diecast's name, after the brand's logo when it has one. */
+@Composable
+internal fun Subtitle(item: DiecastListItem) {
+    val text = subtitle(item) ?: return
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        BrandLogo(item.brand, 12.dp, fallback = false)
+        Text(text, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
 
 /** "Semua →" at a panel's heading. */
 @Composable

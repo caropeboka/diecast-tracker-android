@@ -70,9 +70,13 @@ import io.github.caropeboka.diecasttracker.ui.LocalTour
 import io.github.caropeboka.diecasttracker.ui.MainNavigationBar
 import io.github.caropeboka.diecasttracker.ui.MainTab
 import io.github.caropeboka.diecasttracker.ui.TourTarget
+import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
+import io.github.caropeboka.diecasttracker.ui.components.MakeLogo
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
 import io.github.caropeboka.diecasttracker.ui.scan.QueueBanner
 import io.github.caropeboka.diecasttracker.ui.revealSource
@@ -208,6 +212,19 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
         )
     }
 
+    val makeChip = @Composable {
+        MenuChip(
+            label = filter.make ?: stringResource(R.string.collection_all_makes),
+            active = filter.make != null,
+            options = listOf<String?>(null) + state.makes,
+            optionLabel = { it ?: stringResource(R.string.collection_all_makes) },
+            current = filter.make,
+            onSelect = viewModel::setMake,
+            leading = filter.make?.let(Logos::ofMake)?.let { logo -> { LogoTile(logo, FilterChipDefaults.IconSize) } },
+            optionLeading = { make -> if (make != null) MakeLogo(make, 20.dp) },
+        )
+    }
+
     Row(
         Modifier
             .fillMaxWidth()
@@ -215,8 +232,8 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // Set from the dashboard's links, and only there: tapping one clears it.
-        filter.make?.let { LinkChip(R.drawable.ic_car, it, viewModel::clearMake) }
+        // A car maker from the dashboard's links in view first. The scale and years are set only there; a tap clears them.
+        if (filter.make != null) makeChip()
         filter.scale?.let { scale ->
             LinkChip(R.drawable.ic_straighten, if (scale == UNKNOWN_SCALE) stringResource(R.string.collection_no_scale) else scale, viewModel::clearScale)
         }
@@ -241,8 +258,11 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
                 optionLabel = { it ?: stringResource(R.string.collection_all_brands) },
                 current = filter.brand,
                 onSelect = viewModel::setBrand,
+                leading = filter.brand?.takeIf { Logos.ofBrand(it) != null }?.let { brand -> { BrandLogo(brand, 12.dp) } },
+                optionLeading = { brand -> if (brand != null) BrandLogo(brand, 16.dp) },
             )
         }
+        if (filter.make == null && state.makes.isNotEmpty()) makeChip()
         MenuChip(
             label = rarityLabel(RarityChoice(filter.rarity, filter.rare)),
             active = filter.rarity != null || filter.rare,
@@ -250,6 +270,8 @@ private fun FilterBar(state: CollectionUiState, viewModel: CollectionViewModel) 
             optionLabel = { rarityLabel(it) },
             current = RarityChoice(filter.rarity, filter.rare),
             onSelect = { viewModel.setRarity(it.rarity, it.rare) },
+            leading = Logos.of(filter.rarity)?.let { logo -> { LogoTile(logo, FilterChipDefaults.IconSize) } },
+            optionLeading = { choice -> Logos.of(choice.rarity)?.let { LogoTile(it, 20.dp) } },
         )
         if (state.tags.isNotEmpty()) {
             MenuChip(
@@ -314,6 +336,8 @@ private fun <T> MenuChip(
     current: T,
     onSelect: (T) -> Unit,
     @DrawableRes icon: Int? = null,
+    leading: (@Composable () -> Unit)? = null,
+    optionLeading: (@Composable (T) -> Unit)? = null,
 ) {
     var open by remember { mutableStateOf(false) }
 
@@ -322,7 +346,7 @@ private fun <T> MenuChip(
             selected = active,
             onClick = { open = true },
             label = { Text(label, maxLines = 1) },
-            leadingIcon = icon?.let {
+            leadingIcon = leading ?: icon?.let {
                 { Icon(painterResource(it), contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) }
             },
             trailingIcon = {
@@ -340,6 +364,7 @@ private fun <T> MenuChip(
             options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(optionLabel(option)) },
+                    leadingIcon = optionLeading?.let { { it(option) } },
                     onClick = {
                         onSelect(option)
                         open = false

@@ -277,7 +277,7 @@ fun <T> ChoiceInput(
     }
 }
 
-/** Free text with suggestions from values used before (the web form's datalists). */
+/** Free text with suggestions from values used before (the web form's datalists); [trailing], e.g. the logo of what is typed. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SuggestInput(
@@ -290,6 +290,7 @@ fun SuggestInput(
     error: String? = null,
     capitalization: KeyboardCapitalization = KeyboardCapitalization.Words,
     highlighted: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     var dismissed by remember { mutableStateOf(false) }
@@ -313,6 +314,7 @@ fun SuggestInput(
             supportingText = errorText(error),
             singleLine = true,
             keyboardOptions = KeyboardOptions(capitalization = capitalization, imeAction = ImeAction.Next),
+            trailingIcon = trailing,
             colors = if (highlighted) highlightColors() else fieldColors(),
             modifier = Modifier
                 .fillMaxWidth()

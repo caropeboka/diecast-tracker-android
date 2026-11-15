@@ -54,6 +54,8 @@ import io.github.caropeboka.diecasttracker.data.locale.AppLocales
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
 import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import io.github.caropeboka.diecasttracker.util.Currency
@@ -113,7 +115,7 @@ fun SettingsScreen(
 
             val priceSummary = serpApiKey?.let { stringResource(R.string.settings_price_auto_on, keyHint(it)) }
                 ?: stringResource(R.string.settings_price_auto_off)
-            Category(R.drawable.ic_sell, stringResource(R.string.settings_price_auto), priceSummary, onClick = onPriceSearch)
+            Category(Logos.serpApi, stringResource(R.string.settings_price_auto), priceSummary, logo = true, onClick = onPriceSearch)
             Divider()
 
             val last = backups?.last
@@ -292,6 +294,8 @@ private fun Category(
     summary: String,
     chevron: Boolean = true,
     @DrawableRes trailing: Int? = null,
+    // [icon] is a service's logo, shown in its own colours.
+    logo: Boolean = false,
     onClick: () -> Unit,
 ) {
     Row(
@@ -302,7 +306,7 @@ private fun Category(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Icon(painterResource(icon), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(22.dp))
+        if (logo) LogoTile(icon, 22.dp) else Icon(painterResource(icon), contentDescription = null, tint = Garage.Brand, modifier = Modifier.size(22.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             if (summary.isNotEmpty()) Note(summary)

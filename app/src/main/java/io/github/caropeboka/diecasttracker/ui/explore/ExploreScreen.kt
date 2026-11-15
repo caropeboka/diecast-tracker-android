@@ -96,6 +96,7 @@ import io.github.caropeboka.diecasttracker.data.places.LocationException
 import io.github.caropeboka.diecasttracker.data.places.RegionLevel
 import io.github.caropeboka.diecasttracker.ui.MainNavigationBar
 import io.github.caropeboka.diecasttracker.ui.MainTab
+import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
@@ -522,13 +523,16 @@ private fun EventRow(item: ExploreEvent, what: String, onOpen: (Long) -> Unit) {
         DiecastPhoto(item.photoFile, null, Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)), placeholderSize = 20.dp)
         Column(Modifier.weight(1f)) {
             Text(item.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                what + (item.price?.let { " · " + formatMoney(it) } ?: ""),
-                style = MaterialTheme.typography.bodySmall,
-                color = Garage.MutedForeground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                BrandLogo(item.brand, 12.dp, fallback = false)
+                Text(
+                    what + (item.price?.let { " · " + formatMoney(it) } ?: ""),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Garage.MutedForeground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         Icon(
             painterResource(if (item.kind == EventKind.Purchase) R.drawable.ic_shopping_bag else R.drawable.ic_visibility),

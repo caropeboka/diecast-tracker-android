@@ -87,6 +87,7 @@ import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
 import io.github.caropeboka.diecasttracker.ui.components.SubHeading
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
+import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 
 /** One dex (web: `dex/show.tsx`). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -117,9 +118,12 @@ fun DexCatalogScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Heading(catalog?.name ?: stringResource(R.string.tab_dex))
-                        entries?.let { Text(pluralStringResource(R.plurals.dex_numbers, it.size, it.size), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground) }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        BrandLogo(catalog?.brand, 24.dp, fallback = false)
+                        Column {
+                            Heading(catalog?.name ?: stringResource(R.string.tab_dex))
+                            entries?.let { Text(pluralStringResource(R.plurals.dex_numbers, it.size, it.size), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground) }
+                        }
                     }
                 },
                 navigationIcon = {

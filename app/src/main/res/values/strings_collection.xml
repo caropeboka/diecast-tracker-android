@@ -15,6 +15,7 @@
     <string name="collection_all_completeness">Any completeness</string>
     <string name="collection_all_but_spotted">All but spotted</string>
     <string name="collection_all_brands">All brands</string>
+    <string name="collection_all_makes">All manufacturers</string>
     <string name="collection_all_rarities">All rarities</string>
     <string name="collection_tag">Tag: %1$s</string>
     <string name="collection_all_tags">All tags</string>

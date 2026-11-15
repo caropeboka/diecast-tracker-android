@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -66,6 +67,8 @@ import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanWorkState
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.DateInput
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
@@ -387,17 +390,18 @@ private fun Confidence.color() = when (this) {
 }
 
 @Composable
-private fun Pill(text: String, color: Color) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.Medium,
-        color = color,
-        modifier = Modifier
+private fun Pill(text: String, color: Color, @DrawableRes logo: Int? = null) {
+    Row(
+        Modifier
             .background(color.copy(alpha = 0.14f), RoundedCornerShape(4.dp))
             .border(1.dp, color.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp),
-    )
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        logo?.let { LogoTile(it, 12.dp) }
+        Text(text, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = color)
+    }
 }
 
 @Composable
@@ -442,7 +446,7 @@ private fun QueueCard(
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 fields?.let { Pill(stringResource(it.confidence.short), it.confidence.color()) }
                                 if (row.matches.isNotEmpty()) Pill(stringResource(R.string.bulk_similar), Garage.MutedForeground)
-                                fields?.readBy?.let { Pill(it, Garage.MutedForeground) }
+                                fields?.readBy?.let { Pill(it, Garage.MutedForeground, Logos.ofProvider(it)) }
                                 if (edits.receiptId != null && status == DiecastStatus.Owned) Pill(stringResource(R.string.receipt), Garage.Gain)
                             }
                             TextInput(edits.name ?: fields?.name.orEmpty(), { v -> onEdit { it.copy(name = v) } }, stringResource(R.string.edit_model_name))

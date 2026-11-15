@@ -52,6 +52,8 @@ import io.github.caropeboka.diecasttracker.data.price.SerpApiAccount
 import io.github.caropeboka.diecasttracker.data.price.ShoppingSearch
 import io.github.caropeboka.diecasttracker.data.price.ShoppingSearchException
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
 import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
@@ -158,7 +160,10 @@ fun PriceSearchSettingsScreen(
     BackHandler(enabled = viewModel.isDirty) { confirmLeave = true }
 
     SettingsScaffold(stringResource(R.string.settings_price_auto), leave) {
-        Text(stringResource(R.string.serpapi_intro), style = MaterialTheme.typography.bodyMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            LogoTile(Logos.serpApi, 40.dp, Modifier.padding(top = 2.dp))
+            Text(stringResource(R.string.serpapi_intro), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        }
         Text(stringResource(R.string.serpapi_plan), style = MaterialTheme.typography.bodyMedium, color = Garage.MutedForeground)
 
         SectionCard(stringResource(R.string.serpapi_key)) {

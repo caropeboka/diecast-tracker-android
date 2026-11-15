@@ -76,6 +76,7 @@ data class Suggestions(
     val places: List<String> = emptyList(),
     val storageLocations: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
+    val makes: List<String> = emptyList(),
 )
 
 sealed interface EditEvent {
@@ -209,13 +210,12 @@ class DiecastEditViewModel(
     val events: Flow<EditEvent> = _events.receiveAsFlow()
 
     val suggestions: StateFlow<Suggestions> = combine(
-        repository.observeBrands().map { (it + COMMON_BRANDS).distinctBy(String::lowercase) },
+        combine(repository.observeBrands().map { (it + COMMON_BRANDS).distinctBy(String::lowercase) }, repository.observeMakes(), ::Pair),
         repository.observeSeries(),
         repository.observePlaces(),
         repository.observeStorageLocations(),
         repository.observeTagNames(),
-        ::Suggestions,
-    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Suggestions())
+    ) { (brands, makes), series, places, storage, tags -> Suggestions(brands, series, places, storage, tags, makes) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Suggestions())
 
     init {
         val restored = saved.get<String>(FORM)?.let { Json.decodeFromString<DiecastForm>(it) }

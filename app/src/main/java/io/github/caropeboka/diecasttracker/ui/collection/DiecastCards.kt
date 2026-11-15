@@ -38,6 +38,7 @@ import io.github.caropeboka.diecasttracker.ui.components.RarityBadge
 import io.github.caropeboka.diecasttracker.ui.components.StatusBadge
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
 import io.github.caropeboka.diecasttracker.util.formatMoneyCompact
+import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 
 /** Price line of a card: lowest asking price when spotted, target when wished for, else market value. */
 private data class PriceLabel(val text: String, val emphasized: Boolean)
@@ -94,15 +95,18 @@ fun DiecastCard(item: DiecastListItem, onClick: () -> Unit, modifier: Modifier =
                         .padding(start = 12.dp, end = 12.dp, top = 40.dp, bottom = 10.dp),
                 ) {
                     if (item.subtitle.isNotEmpty()) {
-                        Text(
-                            item.subtitle.uppercase(),
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 0.5.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BrandLogo(item.brand, 14.dp, fallback = false)
+                            Text(
+                                item.subtitle.uppercase(),
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.5.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                     Text(
                         item.name,
@@ -164,13 +168,16 @@ fun DiecastRow(item: DiecastListItem, onClick: () -> Unit, modifier: Modifier = 
                 Text(item.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 val details = listOfNotNull(item.brand, item.year?.toString(), item.series).joinToString(" · ")
                 if (details.isNotEmpty()) {
-                    Text(
-                        details,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Garage.MutedForeground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        BrandLogo(item.brand, 14.dp, fallback = false)
+                        Text(
+                            details,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Garage.MutedForeground,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     RarityBadge(item.rarity)

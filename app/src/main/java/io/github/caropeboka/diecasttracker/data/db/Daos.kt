@@ -135,6 +135,9 @@ interface DiecastDao {
     @Query("SELECT brand FROM diecasts WHERE brand IS NOT NULL GROUP BY brand COLLATE NOCASE ORDER BY brand COLLATE NOCASE")
     fun observeBrands(): Flow<List<String>>
 
+    @Query("SELECT make FROM diecasts WHERE make IS NOT NULL GROUP BY make COLLATE NOCASE ORDER BY make COLLATE NOCASE")
+    fun observeMakes(): Flow<List<String>>
+
     @Query("SELECT series FROM diecasts WHERE series IS NOT NULL GROUP BY series COLLATE NOCASE ORDER BY series COLLATE NOCASE")
     fun observeSeries(): Flow<List<String>>
 

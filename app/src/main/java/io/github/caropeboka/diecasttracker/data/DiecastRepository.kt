@@ -51,6 +51,8 @@ class DiecastRepository(
 
     fun observeBrands(): Flow<List<String>> = dao.observeBrands()
 
+    fun observeMakes(): Flow<List<String>> = dao.observeMakes()
+
     fun observeSeries(): Flow<List<String>> = dao.observeSeries()
 
     fun observeStorageLocations(): Flow<List<String>> = dao.observeStorageLocations()

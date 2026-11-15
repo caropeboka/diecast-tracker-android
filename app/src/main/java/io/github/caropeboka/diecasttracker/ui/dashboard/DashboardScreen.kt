@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Button
@@ -93,10 +94,14 @@ import io.github.caropeboka.diecasttracker.ui.MainNavigationBar
 import io.github.caropeboka.diecasttracker.ui.MainTab
 import io.github.caropeboka.diecasttracker.ui.collection.CollectionLink
 import io.github.caropeboka.diecasttracker.ui.collection.DiecastCard
+import io.github.caropeboka.diecasttracker.ui.components.BrandLogo
 import io.github.caropeboka.diecasttracker.ui.components.DiecastPhoto
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
+import io.github.caropeboka.diecasttracker.ui.components.MakeLogo
 import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.components.SubHeading
 import io.github.caropeboka.diecasttracker.ui.dex.DexLegend
@@ -495,7 +500,17 @@ private fun DexPanel(dex: List<CatalogSummary>, onOpenCatalog: (Long) -> Unit, o
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(summary.catalog.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BrandLogo(summary.catalog.brand, 16.dp)
+                    Text(
+                        summary.catalog.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 DexMeter(summary.counts)
                 DexLegend(summary.counts)
             }
@@ -547,9 +562,7 @@ private fun MostValuable(items: List<DiecastListItem>, opener: Opener, onAll: ()
                         )
                         Text(formatMoney(item.marketValue), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     }
-                    subtitle(item)?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
+                    Subtitle(item)
                     Bar((item.marketValue ?: 0L).toFloat() / max, Garage.MeterBar, Modifier.padding(top = 2.dp))
                 }
             }
@@ -615,6 +628,7 @@ private fun BrandPanel(brands: List<BrandCount>, totalItems: Int, onCollection: 
                         stringResource(R.string.dashboard_brand_share, (brand.total * 100f / totalItems.coerceAtLeast(1)).roundToInt(), formatMoney(brand.value))
                     },
                     onClick = brand.brand?.let { name -> { onCollection(OWNED.copy(brand = name)) } },
+                    leading = brand.brand?.let { name -> { BrandLogo(name, 18.dp) } },
                 )
             },
         )
@@ -678,9 +692,23 @@ private fun RarityPanel(rarities: List<RarityCount>, onCollection: (CollectionLi
                     fraction = total.toFloat() / max,
                     color = Garage.rarityColor(rarity) ?: RegularBar,
                     onClick = { onCollection(OWNED.copy(rarity = rarity)) },
+                    leading = { RarityMark(rarity) },
                 )
             },
         )
+    }
+}
+
+/** A Treasure Hunt's circle-flame, or a dot in the rarity's colour where it has none, so the names line up. */
+@Composable
+private fun RarityMark(rarity: Rarity) {
+    val logo = Logos.of(rarity)
+    if (logo != null) {
+        LogoTile(logo, 20.dp)
+    } else {
+        Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(Garage.rarityColor(rarity) ?: RegularBar))
+        }
     }
 }
 
@@ -689,7 +717,11 @@ private fun RarityPanel(rarities: List<RarityCount>, onCollection: (CollectionLi
 private fun MakePanel(makes: List<Count>, onCollection: (CollectionLink) -> Unit) {
     var all by rememberSaveable { mutableStateOf(false) }
     SectionCard(stringResource(R.string.dashboard_makes)) {
-        CountBars(if (all) makes else makes.take(TOP_MAKES), max = makes.first().total) { make -> onCollection(OWNED.copy(make = make)) }
+        CountBars(
+            if (all) makes else makes.take(TOP_MAKES),
+            max = makes.first().total,
+            leading = { make -> MakeLogo(make, 20.dp) },
+        ) { make -> onCollection(OWNED.copy(make = make)) }
         if (makes.size > TOP_MAKES) {
             TextButton(onClick = { all = !all }, contentPadding = PaddingValues(horizontal = 8.dp)) {
                 Text(
@@ -718,6 +750,7 @@ private fun CountBars(
     counts: List<Count>,
     max: Int = counts.maxOf { it.total },
     label: @Composable (String) -> String = { it },
+    leading: (@Composable (String) -> Unit)? = null,
     onClick: (String) -> Unit,
 ) {
     BarList(
@@ -728,6 +761,7 @@ private fun CountBars(
                 display = stringResource(R.string.dashboard_pcs, count.total),
                 fraction = count.total.toFloat() / max.coerceAtLeast(1),
                 onClick = { onClick(count.label) },
+                leading = leading?.let { logo -> { logo(count.label) } },
             )
         },
     )

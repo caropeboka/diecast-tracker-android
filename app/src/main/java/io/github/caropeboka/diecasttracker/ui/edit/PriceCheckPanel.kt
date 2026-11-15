@@ -90,6 +90,9 @@ import io.github.caropeboka.diecasttracker.ui.components.AiProgress
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressLog
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
+import io.github.caropeboka.diecasttracker.ui.components.LogoLabel
+import io.github.caropeboka.diecasttracker.ui.components.LogoTile
+import io.github.caropeboka.diecasttracker.ui.components.Logos
 import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.components.fieldColors
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
@@ -494,11 +497,14 @@ private fun EstimateBlock(viewModel: PriceCheckViewModel, diecast: DiecastEntity
                         modifier = Modifier.fillMaxWidth().clickable { runCatching { uris.openUri(source.url) } }.padding(vertical = 2.dp),
                     )
                 }
-                Text(
-                    stringResource(if (estimate.searched) R.string.price_estimate_by_search else R.string.price_estimate_by_memory, estimate.by),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Garage.MutedForeground,
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Logos.ofProvider(estimate.by)?.let { LogoTile(it, 12.dp) }
+                    Text(
+                        stringResource(if (estimate.searched) R.string.price_estimate_by_search else R.string.price_estimate_by_memory, estimate.by),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Garage.MutedForeground,
+                    )
+                }
                 if (typical != null) {
                     OutlinedButton(
                         onClick = { viewModel.applyEstimate(diecast, onApplied) },
@@ -566,7 +572,7 @@ private fun LensButton(photo: File) {
         onClick = { scope.launch { failed = !GoogleLens.search(context, photo, texts(R.string.price_lens)) } },
         shape = MaterialTheme.shapes.medium,
         contentPadding = PaddingValues(horizontal = 12.dp),
-    ) { IconLabel(R.drawable.ic_photo_library, stringResource(R.string.price_lens)) }
+    ) { LogoLabel(Logos.googleLens, stringResource(R.string.price_lens)) }
     Text(
         stringResource(if (failed) R.string.price_lens_failed else R.string.price_lens_hint),
         style = MaterialTheme.typography.bodySmall,
@@ -633,7 +639,7 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity, cover:
                     enabled = !viewModel.analyzing && text.isNotBlank(),
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth(),
-                ) { IconLabel(R.drawable.ic_auto_fix_high, stringResource(R.string.price_auto)) }
+                ) { LogoLabel(Logos.googleShopping, stringResource(R.string.price_auto)) }
                 Text(stringResource(R.string.price_auto_hint), style = MaterialTheme.typography.bodySmall, color = Garage.MutedForeground)
             }
             viewModel.onlineError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Garage.Loss) }
@@ -646,7 +652,7 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity, cover:
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Marketplace.entries.filter { it.group == group }.forEach { market ->
                     OutlinedButton(onClick = { open(market.search(text)) }, shape = MaterialTheme.shapes.medium, contentPadding = PaddingValues(horizontal = 12.dp)) {
-                        IconLabel(R.drawable.ic_open_in_new, market.labelRes?.let { stringResource(it) } ?: market.label)
+                        LogoLabel(Logos.of(market), market.labelRes?.let { stringResource(it) } ?: market.label)
                     }
                 }
             }
@@ -718,6 +724,9 @@ private fun Steps(viewModel: PriceCheckViewModel, diecast: DiecastEntity, cover:
     }
 }
 
+/** Logos in a check's header: where its listings came from. */
+private const val MARKET_LOGOS = 6
+
 private val MARKETPLACE_NAMES = mapOf(
     "shopee" to "Shopee",
     "bukalapak" to "Bukalapak",
@@ -784,9 +793,11 @@ private fun CheckResult(
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Pill(stringResource(check.accuracy.label), check.accuracy.color())
                         if (check.appliedAt != null) Pill(stringResource(R.string.price_used), Garage.MutedForeground)
+                        // Where its listings came from.
+                        check.listings.mapNotNull { Logos.ofMarket(it.marketplace) }.distinct().take(MARKET_LOGOS).forEach { LogoTile(it, 16.dp) }
                     }
                 }
                 IconButton(onClick = onDelete) {
@@ -871,7 +882,7 @@ private fun ListingRow(listing: PriceListing) {
         listing.location,
         listing.sold?.takeIf { it > 0 }?.let { stringResource(R.string.price_sold, it) },
         stringResource(R.string.price_ad).takeIf { listing.isAd },
-        listing.marketplace.takeIf { it != "tokopedia" }?.let { MARKETPLACE_NAMES[it] ?: it },
+        listing.marketplace.takeIf { it != "tokopedia" && Logos.ofMarket(it) == null }?.let { MARKETPLACE_NAMES[it] ?: it },
         listing.currency?.let { currency -> listing.originalPrice?.let { "$currency " + String.format(Locale.ROOT, "%,.2f", it) } },
     ).joinToString(" · ") + if (listing.link != null) " ↗" else ""
     val uris = LocalUriHandler.current
@@ -888,7 +899,13 @@ private fun ListingRow(listing: PriceListing) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (meta.isNotEmpty()) Text(meta, style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground)
+            val logo = Logos.ofMarket(listing.marketplace)
+            if (meta.isNotEmpty() || logo != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    logo?.let { LogoTile(it, 12.dp) }
+                    Text(meta, style = MaterialTheme.typography.labelSmall, color = Garage.MutedForeground)
+                }
+            }
             if (!counted) {
                 Text(
                     stringResource(R.string.price_not_counted_why, listing.excludedReason ?: stringResource(R.string.listing_unclear)) + listing.reason?.let { " — $it" }.orEmpty(),
