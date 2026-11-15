@@ -20,7 +20,10 @@ enum class Shelf(val key: String) {
     Desk("desk"),
 
     /** The two car lifts at the desk's back corners: a loose car on each one's deck and one under it. */
-    Lifts("lifts");
+    Lifts("lifts"),
+
+    /** The nails in the wall between the desk and the boards: two rows of four, a card on each. */
+    Nails("nails");
 
     companion object {
         fun fromKey(key: String?): Shelf? = entries.find { it.key == key }
@@ -54,12 +57,17 @@ object ShelfLayout {
     const val LIFTS = 2
     const val LIFT_LEVELS = 2
 
+    /** The nails, as in the user's photo: two rows of four, counted row by row from the top left. */
+    const val NAIL_COLUMNS = 4
+    const val NAIL_ROWS = 2
+    const val NAILS = NAIL_COLUMNS * NAIL_ROWS
+
     private val TIER_NAMES = listOf(R.string.shelf_tier_bottom, R.string.shelf_tier_middle, R.string.shelf_tier_top)
     private val SIDES = listOf(R.string.shelf_side_left, R.string.shelf_side_middle, R.string.shelf_side_right)
 
     /**
      * Lanes, tiers (lowest first), compartments (row by row from the top left), millimetres across the desk from its
-     * left edge, or lift levels.
+     * left edge, lift levels, or nails (row by row from the top left).
      */
     fun spots(shelf: Shelf): Int = when (shelf) {
         Shelf.Boards -> LANES
@@ -67,14 +75,15 @@ object ShelfLayout {
         Shelf.Case -> CASE_COLUMNS * CASE_ROWS
         Shelf.Desk -> DESK_W_MM + 1
         Shelf.Lifts -> LIFTS * LIFT_LEVELS
+        Shelf.Nails -> NAILS
     }
 
     /**
-     * Cards hang on the boards; a compartment takes a loose car or a box up to 1:60; the black shelf takes anything;
-     * the desk boxes and loose cars of any scale; a lift a loose car up to 1:60.
+     * Cards hang on the boards and the nails; a compartment takes a loose car or a box up to 1:60; the black shelf
+     * takes anything; the desk boxes and loose cars of any scale; a lift a loose car up to 1:60.
      */
     fun fits(shelf: Shelf, packaging: Packaging, scale: String?): Boolean = when (shelf) {
-        Shelf.Boards -> packaging == Packaging.Carded
+        Shelf.Boards, Shelf.Nails -> packaging == Packaging.Carded
         Shelf.Case -> packaging != Packaging.Carded && scaleRatio(scale) >= CASE_LARGEST
         Shelf.Corner -> true
         Shelf.Desk -> packaging != Packaging.Carded
@@ -83,7 +92,7 @@ object ShelfLayout {
 
     /**
      * Its "Lokasi simpan": "Board 2 · lane 1", "Black shelf · middle tier", "White case · row 3 column 2", "White desk ·
-     * left" (by thirds), "White desk · right lift, top".
+     * left" (by thirds), "White desk · right lift, top", "Nail 3".
      */
     fun label(texts: Texts, shelf: Shelf, spot: Int): String = when (shelf) {
         Shelf.Boards -> texts(R.string.shelf_label_board, spot / LANES_PER_BOARD + 1, spot % LANES_PER_BOARD + 1)
@@ -95,6 +104,7 @@ object ShelfLayout {
             texts(if (spot / LIFT_LEVELS == 0) R.string.shelf_side_left else R.string.shelf_side_right),
             texts(if (spot % LIFT_LEVELS == 0) R.string.shelf_tier_bottom else R.string.shelf_tier_top),
         )
+        Shelf.Nails -> texts(R.string.shelf_label_nail, spot + 1)
     }
 
     fun label(texts: Texts, slot: ShelfSlotEntity): String = label(texts, slot.shelf, slot.spot)
@@ -119,14 +129,14 @@ sealed interface ShelfMove {
 
 /**
  * Where diecasts go when the collector puts them somewhere: anywhere they fit, no order to fill in. Cards slide down
- * their lane onto the ones already there; a compartment or a lift's level holds one, so whatever is in it swaps
- * places. Along a tier and on the desk the place is only where it was put: the 3D garage pushes it clear of the
+ * their lane onto the ones already there; a compartment, a lift's level or a nail holds one, so whatever is in it
+ * swaps places. Along a tier and on the desk the place is only where it was put: the 3D garage pushes it clear of the
  * others (see ui/garage/Placement).
  */
 object ShelfPlanner {
     /**
      * [id] to [spot] of [shelf]: on top of a lane's cards, at [position] along a tier (its angle in tenths of a degree,
-     * 0 along the back wall), into a compartment or onto a lift, swapping with what's there (see [swap]), at [spot]
+     * 0 along the back wall), into a compartment, onto a lift or a nail, swapping with what's there (see [swap]), at [spot]
      * millimetres across the desk and [position] deep.
      */
     fun place(all: List<Shelved>, id: Long, shelf: Shelf, spot: Int, position: Int = 0, laneCards: Int = ShelfLayout.LANE_CARDS): ShelfMove {
@@ -144,7 +154,7 @@ object ShelfPlanner {
                     ShelfMove.Done(mapOf(id to ShelfSlotEntity(id, shelf, spot, (there.maxOfOrNull { it.position } ?: -1) + 1)))
                 }
             Shelf.Corner, Shelf.Desk -> ShelfMove.Done(mapOf(id to ShelfSlotEntity(id, shelf, spot, position)))
-            Shelf.Case, Shelf.Lifts -> there.firstOrNull()?.let { swap(all, id, it.diecastId) }
+            Shelf.Case, Shelf.Lifts, Shelf.Nails -> there.firstOrNull()?.let { swap(all, id, it.diecastId) }
                 ?: ShelfMove.Done(mapOf(id to ShelfSlotEntity(id, shelf, spot)))
         }
     }

@@ -26,4 +26,5 @@
     <string name="shelf_side_right">kanan</string>
     <string name="shelf_label_desk">Meja putih · %1$s</string>
     <string name="shelf_label_lift">Meja putih · lift %1$s, %2$s</string>
+    <string name="shelf_label_nail">Paku %1$d</string>
 </resources>

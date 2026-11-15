@@ -259,14 +259,15 @@ class BackupImporter(
 
     /**
      * Back where it stood in the 3D garage, as long as it is owned, fits there and, when merging, the place is free:
-     * a compartment or a lift's level holds one, a full lane takes no more, and a card at the same height puts it on top.
+     * a compartment, a lift's level or a nail holds one, a full lane takes no more, and a card at the same height puts
+     * it on top.
      */
     private suspend fun restoreSlot(id: Long, diecast: DiecastEntity, slot: ShelfSlotEntity) {
         if (diecast.status != DiecastStatus.Owned || !ShelfLayout.fits(slot.shelf, diecast.packaging, diecast.scale)) return
         val shelves = db.shelves()
         val there = shelves.at(slot.shelf, slot.spot)
         val position = when (slot.shelf) {
-            Shelf.Case, Shelf.Lifts -> if (there.isEmpty()) 0 else return
+            Shelf.Case, Shelf.Lifts, Shelf.Nails -> if (there.isEmpty()) 0 else return
             // Anything already where it stood is pushed clear by the garage when it shows.
             Shelf.Desk -> slot.position.coerceIn(0, ShelfLayout.DESK_D_MM)
             Shelf.Boards -> when {

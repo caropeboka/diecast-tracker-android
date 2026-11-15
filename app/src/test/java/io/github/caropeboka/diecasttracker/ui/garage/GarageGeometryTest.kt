@@ -194,13 +194,64 @@ class GarageGeometryTest {
         )
         val moves = arrange(rows, rows.take(5), rows.associate { it.id to item(it) })
 
-        assertEquals(ShelfSlotEntity(1, Shelf.Boards, 1, 0), moves[1])
-        assertEquals(ShelfSlotEntity(2, Shelf.Boards, 2, 0), moves[2])
+        assertEquals(ShelfSlotEntity(1, Shelf.Nails, 0), moves[1])
+        assertEquals(ShelfSlotEntity(2, Shelf.Nails, 1), moves[2])
         assertEquals(ShelfSlotEntity(3, Shelf.Case, 0), moves[3])
         assertEquals(ShelfSlotEntity(4, Shelf.Case, (CASE_ROWS - 1) * CASE_COLUMNS), moves[4])
         val big = moves.getValue(5)
         assertEquals(Shelf.Corner to FILL_ORDER.first(), big.shelf to big.spot)
         assertTrue(big.position in 130..770)
+    }
+
+    @Test
+    fun `cards go on the nails first, one each, then into the lanes`() {
+        val taken = row(1, Packaging.Carded, slot = ShelfSlotEntity(1, Shelf.Nails, 2))
+        val waiting = (11L..20L).map { row(it, Packaging.Carded) }
+        val rows = listOf(taken) + waiting
+        val moves = arrange(rows, waiting, rows.associate { it.id to item(it) })
+
+        val expected = listOf(0, 1, 3, 4, 5, 6, 7).map { Shelf.Nails to it } + (0..2).map { Shelf.Boards to it }
+        assertEquals(expected, waiting.map { moves.getValue(it.id).let { slot -> slot.shelf to slot.spot } })
+    }
+
+    @Test
+    fun `a card hangs on its nail between the desk and the boards, and the case hangs level with the boards`() {
+        val rows = listOf(
+            row(1, Packaging.Carded, slot = ShelfSlotEntity(1, Shelf.Nails, 5)),
+            row(2, Packaging.Carded, slot = ShelfSlotEntity(2, Shelf.Nails, 5)),
+            row(3, Packaging.Loose, slot = ShelfSlotEntity(3, Shelf.Nails, 0)),
+            row(4, Packaging.Carded, slot = ShelfSlotEntity(4, Shelf.Nails, 0)),
+        )
+        val layout = layOut(rows, rows.associate { it.id to item(it) })
+        // One card a nail; a loose car doesn't hang.
+        assertEquals(setOf(2L, 3L), layout.overflow)
+        val card = layout.placed.first { it.item.id == 1L }
+        assertEquals(nailX(1), card.rest.position.x, 1e-4f)
+        // The nail through its hang hole, near the top.
+        val top = card.rest.position.y + card.size.y / 2
+        assertTrue(nailY(1) < top && top - nailY(1) < 0.02f)
+        // Lifted off the nail on the way out.
+        assertTrue(card.clear.position.y > card.rest.position.y && card.clear.position.z > card.rest.position.z)
+
+        // Clear of the lifts below and under the boards above.
+        val lowest = card.rest.position.y - card.size.y / 2
+        assertTrue(lowest > DESK_TOP + LIFT_DECK + 0.05f)
+        val high = layout.placed.first { it.item.id == 4L }
+        assertTrue(high.rest.position.y + high.size.y / 2 < BOARD_Y)
+        assertTrue(high.rest.position.y > card.rest.position.y + card.size.y)
+
+        // The case's bottom and top within the boards' rails, upright.
+        assertTrue(inCase(0f, 0f, 0f).y > BOARD_Y + LEDGE_TOP)
+        assertTrue(inCase(0f, CASE_H, 0f).y < BOARD_Y + RAIL_TOP)
+        assertEquals(inCase(0f, 0f, 0f).z, inCase(0f, CASE_H, 0f).z, 1e-6f)
+
+        // A tap over a card or the empty place of one finds its nail; beside the nails, none.
+        val eye = Focus.Nails.eye
+        assertEquals(5, nailAt(ray(eye, card.rest.position)))
+        assertEquals(0, nailAt(ray(eye, onNail(0))))
+        assertEquals(6, nailAt(ray(eye, onNail(6, up = 0.07f))))
+        assertNull(nailAt(ray(eye, onNail(3).let { Position(it.x + 0.1f, it.y, it.z) })))
+        assertNull(nailAt(ray(eye, onNail(4, up = -0.12f))))
     }
 
     @Test

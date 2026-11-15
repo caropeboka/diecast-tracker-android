@@ -135,9 +135,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 // The user's furniture from their photos with the collection on them, each diecast where the collector put it: any
-// compartment of the white case, any lane of the boards on the wall (cards slide down onto the ones there), anywhere
-// along the black shelf's tiers, anywhere on the white desk under the boards, on or under its two lifts. Sizes in
-// metres; the back wall faces +z, the left wall +x.
+// compartment of the white case, any lane of the boards on the wall (cards slide down onto the ones there), any of
+// the nails under them (a card each), anywhere along the black shelf's tiers, anywhere on the white desk under the
+// nails, on or under its two lifts. Sizes in metres; the back wall faces +z, the left wall +x.
 
 /** The walls' faces: the black shelf stands in their corner. */
 internal const val WALL_Z = -0.02f
@@ -187,8 +187,8 @@ private const val LIGHT = 2
 
 /** What the camera looks at. The shelves' nodes are named after these, so tapping one brings it into view. */
 enum class Focus(@StringRes val label: Int, val eye: Position, val target: Position) {
-    /** From a little above, like the photo; seen level, the undersides of the case's shelves show as dark bars. */
-    All(R.string.garage_focus_all, Position(0.08f, 2.0f, 5.6f), Position(0.08f, 0.58f, 0.1f)),
+    /** From a little above, like the photo, the whole wall from the floor to the boards' tops. */
+    All(R.string.garage_focus_all, Position(0.08f, 2.15f, 5.6f), Position(0.08f, 0.78f, 0.1f)),
 
     /** From the front corner of the room, like the photo, so both walls' carving shows. */
     Shelf(R.string.garage_focus_shelf, Position(0.52f, 0.9f, 1.48f), Position(-0.78f, 0.55f, 0.18f)),
@@ -196,9 +196,14 @@ enum class Focus(@StringRes val label: Int, val eye: Position, val target: Posit
     /** Both boards across the screen, up on the wall. */
     Board(R.string.garage_focus_boards, Position(BOARDS_X, BOARD_Y + 0.5f, 2.5f), Position(BOARDS_X, BOARD_Y + 0.38f, 0f)),
 
+    /** The two rows of nails under the boards, square on, from a little above. */
+    Nails(R.string.garage_focus_nails, Position(NAILS_X, NAILS_MIDDLE + 0.12f, 1.25f), Position(NAILS_X, NAILS_MIDDLE, 0f)),
+
     /** Down on the desk from in front of it, both lifts in view. */
     Desk(R.string.garage_focus_desk, Position(DESK_X, 0.98f, 1.72f), Position(DESK_X, DESK_TOP + 0.02f, DESK_BACK + 0.17f)),
-    Case(R.string.garage_focus_case, Position(CASE_X, 0.8f, 1.55f), Position(CASE_X, 0.25f, 0.06f)),
+
+    /** Up on the wall beside the boards, from a little above, so the compartments' floors show. */
+    Case(R.string.garage_focus_case, Position(CASE_X, CASE_MIDDLE + 0.3f, 1.5f), Position(CASE_X, CASE_MIDDLE, 0.03f)),
     ;
 
     internal val sight get() = Sight(eye, target)
@@ -209,13 +214,14 @@ private fun spotAt(focus: Focus, ray: Ray): Spot? = when (focus) {
     Focus.All -> null
     Focus.Shelf -> tierAt(ray)?.let { (tier, angle) -> Spot(Shelf.Corner, tier, angle) }
     Focus.Board -> laneAt(ray)?.let { Spot(Shelf.Boards, it) }
+    Focus.Nails -> nailAt(ray)?.let { Spot(Shelf.Nails, it) }
     Focus.Desk -> liftAt(ray)?.let { Spot(Shelf.Lifts, it) } ?: deskAt(ray)?.let { (x, depth) -> Spot(Shelf.Desk, x, depth = depth) }
     Focus.Case -> cellAt(ray)?.let { Spot(Shelf.Case, it) }
 }
 
-/** The furniture a diecast belongs on, to look at when it's picked from the tray. */
-private fun home(row: ShelfRow) = when {
-    row.packaging == Packaging.Carded -> Focus.Board
+/** The furniture a diecast belongs on, to look at when it's picked from the tray: a card's a free nail, else the boards. */
+private fun home(row: ShelfRow, scene: GarageScene) = when {
+    row.packaging == Packaging.Carded -> if (scene.nailFree) Focus.Nails else Focus.Board
     ShelfLayout.fits(Shelf.Case, row.packaging, row.scale) -> Focus.Case
     else -> Focus.Shelf
 }
@@ -680,6 +686,7 @@ fun GarageScreen(
                     CornerShelf(it.wood)
                 }
                 LooseCase()
+                WallNails()
                 Desk()
                 CarLifts()
                 scene?.layout?.dog?.let { NanoDog(it, lifted = dogHeld || dogMoving) }
@@ -844,7 +851,7 @@ fun GarageScreen(
                 trayOpen = false
                 pulled = null
                 carrying = row.id
-                if (focus == Focus.All) look(home(row))
+                if (focus == Focus.All) look(home(row, current))
             },
             onDismiss = { trayOpen = false },
         )

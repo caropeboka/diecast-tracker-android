@@ -14,8 +14,8 @@ import kotlin.math.floor
 import kotlin.math.sin
 
 // The user's white display case for loose cars and small boxes, from their photo: six columns of ten compartments
-// between thin dividers, leaning back against the wall. Its own axes: x across from the centre line, y up from the
-// bottom edge, z out from the back panel; sizes in metres.
+// between thin dividers, hanging on the wall right of the boards. Its own axes: x across from the centre line, y up
+// from the bottom edge, z out from the back panel; sizes in metres.
 
 internal const val CASE_COLUMNS = ShelfLayout.CASE_COLUMNS
 internal const val CASE_ROWS = ShelfLayout.CASE_ROWS
@@ -32,10 +32,14 @@ internal const val CASE_H = CASE_ROWS * CELL_H + (CASE_ROWS - 1) * DIVIDER + 2 *
 internal const val CELL_FIT_W = CELL_W - 0.008f
 internal const val CELL_FIT_H = CELL_H - 0.005f
 
-/** Leaning back, its top edge against the wall, a hand's width right of the boards. */
-internal const val CASE_LEAN = 10f
+/**
+ * Upright on the wall a hand's width right of the boards, level with them: its middle at the middle of their rails.
+ * (It stood on the floor leaning back 10° before the nails came.)
+ */
+internal const val CASE_LEAN = 0f
 internal const val CASE_X = BOARDS_RIGHT + 0.07f + CASE_W / 2
-private val CASE_ORIGIN = Position(CASE_X, 0f, WALL_Z + CASE_H * sin(Math.toRadians(CASE_LEAN.toDouble())).toFloat())
+internal const val CASE_MIDDLE = BOARD_Y + (LEDGE_TOP + RAIL_TOP) / 2
+private val CASE_ORIGIN = Position(CASE_X, CASE_MIDDLE - CASE_H / 2, WALL_Z + 0.002f)
 
 private val FRONT = Color(0xFFFFFFFF)
 
@@ -71,7 +75,7 @@ internal const val CELL_Z = BACK + (CASE_DEPTH - BACK) * 0.45f
 internal const val CELL_BOX_D = CASE_DEPTH - BACK - 0.008f
 internal const val CELL_BOX_Z = CASE_DEPTH - 0.002f - CELL_BOX_D / 2
 
-/** The case on the floor by the wall; tapping it brings the camera to face it. */
+/** The case on the wall; tapping it brings the camera to face it. */
 @Composable
 fun SceneScope.LooseCase() {
     val front = remember(materialLoader) { materialLoader.createColorInstance(FRONT, roughness = 0.42f) }

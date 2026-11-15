@@ -77,10 +77,13 @@ class GarageScene internal constructor(
 
     fun row(id: Long): ShelfRow? = rows.find { it.id == id }
 
-    /** What stands in a compartment or on a lift's level. */
+    /** What stands in a compartment or on a lift's level, or hangs on a nail. */
     fun occupant(spot: Spot): Long? = rows.firstOrNull { row ->
         row.id in drawn && row.slot?.let { it.shelf == spot.shelf && it.shelf in ONE_EACH && it.spot == spot.spot } == true
     }?.id
+
+    /** Whether a nail has no card on it. */
+    val nailFree: Boolean = rows.count { it.id in drawn && it.slot?.shelf == Shelf.Nails } < ShelfLayout.NAILS
 
     fun decoration(id: Long): DecorItem? = decor.find { it.id == id }
 
@@ -367,13 +370,14 @@ class GarageViewModel(
 private fun doesNotFit(row: ShelfRow, shelf: Shelf) = when {
     row.packaging == Packaging.Carded -> R.string.garage_case_no_cards
     shelf == Shelf.Boards -> R.string.garage_boards_cards_only
+    shelf == Shelf.Nails -> R.string.garage_nails_cards_only
     shelf == Shelf.Case -> R.string.garage_case_small_only
     shelf == Shelf.Lifts -> R.string.garage_lifts_small_only
     else -> R.string.garage_does_not_fit
 }
 
 /** The places that hold one diecast each: whatever is there swaps with the one put in. */
-private val ONE_EACH = setOf(Shelf.Case, Shelf.Lifts)
+private val ONE_EACH = setOf(Shelf.Case, Shelf.Lifts, Shelf.Nails)
 
 /** [flip]: a loose car the other way round (cards and boxes have print on them, which would read backwards). */
 private fun shelfItem(row: ShelfRow, photos: PhotoStore, flip: Boolean): ShelfItem {

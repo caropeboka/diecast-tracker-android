@@ -26,4 +26,5 @@
     <string name="shelf_side_right">right</string>
     <string name="shelf_label_desk">White desk · %1$s</string>
     <string name="shelf_label_lift">White desk · %1$s lift, %2$s</string>
+    <string name="shelf_label_nail">Nail %1$d</string>
 </resources>

@@ -157,6 +157,28 @@ class ShelfTest {
     }
 
     @Test
+    fun `a nail takes one card, and a card put on a taken nail swaps`() {
+        assertTrue(ShelfLayout.fits(Shelf.Nails, Packaging.Carded, "1:64"))
+        assertFalse(ShelfLayout.fits(Shelf.Nails, Packaging.Loose, "1:64"))
+        assertFalse(ShelfLayout.fits(Shelf.Nails, Packaging.Boxed, "1:64"))
+        assertEquals("Paku 1", ShelfLayout.label(env.texts, Shelf.Nails, 0))
+        assertEquals("Paku 8", ShelfLayout.label(env.texts, Shelf.Nails, ShelfLayout.NAILS - 1))
+
+        val hanging = card(1, ShelfSlotEntity(1, Shelf.Nails, 2))
+        val inLane = card(2, ShelfSlotEntity(2, Shelf.Boards, 5, 3))
+        val all = listOf(hanging, inLane, card(3), loose(4))
+        assertEquals(mapOf(3L to ShelfSlotEntity(3, Shelf.Nails, 7)), done(ShelfPlanner.place(all, 3, Shelf.Nails, 7)))
+        assertEquals(ShelfMove.DoesNotFit, ShelfPlanner.place(all, 3, Shelf.Nails, ShelfLayout.NAILS))
+        assertEquals(ShelfMove.DoesNotFit, ShelfPlanner.place(all, 4, Shelf.Nails, 0))
+        // From the tray onto the taken nail: the card there goes to the tray; from a lane, they trade.
+        assertEquals(mapOf(3L to ShelfSlotEntity(3, Shelf.Nails, 2), 1L to null), done(ShelfPlanner.place(all, 3, Shelf.Nails, 2)))
+        assertEquals(
+            mapOf(2L to ShelfSlotEntity(2, Shelf.Nails, 2), 1L to ShelfSlotEntity(1, Shelf.Boards, 5, 3)),
+            done(ShelfPlanner.place(all, 2, Shelf.Nails, 2)),
+        )
+    }
+
+    @Test
     fun `anywhere on the desk, and a taken lift level swaps like a compartment`() {
         val all = listOf(box(1, scale = "1:24"), loose(2, ShelfSlotEntity(2, Shelf.Lifts, 1)), loose(3), loose(4, scale = "1:43"))
         assertEquals(mapOf(1L to ShelfSlotEntity(1, Shelf.Desk, 350, 200)), done(ShelfPlanner.place(all, 1, Shelf.Desk, 350, 200)))

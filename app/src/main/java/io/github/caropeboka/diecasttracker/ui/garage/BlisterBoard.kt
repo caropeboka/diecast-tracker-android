@@ -33,8 +33,8 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 
-// The user's laser-cut MDF blister boards, traced from their photo: two alike, side by side on the wall above the white
-// desk. A board's own axes: x across from its centre line, y up from the bottom edge, z out of the face; sizes in
+// The user's laser-cut MDF blister boards, traced from their photo: two alike, side by side on the wall above the
+// nails over the white desk. A board's own axes: x across from its centre line, y up from the bottom edge, z out of the face; sizes in
 // metres.
 
 private const val BOARD_W = 0.46f
@@ -66,8 +66,8 @@ private const val JOINT = 0.17f
 internal const val LEAN = 0f
 private const val BOARD_Z = WALL_Z + 0.004f + THICKNESS / 2
 
-/** Their bottom edges this high: a hand above the desk, so the lifts and the boxes on it stay clear. */
-internal const val BOARD_Y = DESK_TOP + 0.17f
+/** Their bottom edges this high: above the nails' top row of cards (a hand above the desk before the nails came). */
+internal const val BOARD_Y = NAILS_TOP + 0.045f
 
 /** The two boards, a finger's width apart, a little right of the middle so the black shelf has room; the desk under them. */
 internal const val BOARDS = ShelfLayout.BOARDS

@@ -217,7 +217,7 @@ internal class ShelfCamera(start: Sight, private val fieldOfView: () -> Float) :
     private fun keepInRoom() {
         val shift = floatArrayOf(
             target[0].coerceIn(LOOK_LEFT, LOOK_RIGHT) - target[0],
-            target[1].coerceIn(0f, 1.4f) - target[1],
+            target[1].coerceIn(0f, 1.8f) - target[1],
             target[2].coerceIn(WALL_Z, 1.2f) - target[2],
         )
         for (i in 0..2) {

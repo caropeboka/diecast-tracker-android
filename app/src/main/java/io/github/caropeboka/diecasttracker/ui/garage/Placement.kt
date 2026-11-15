@@ -19,8 +19,8 @@ import kotlin.math.sin
 // Where each diecast is drawn, from the place the collector put it in (see data/shelf), and which place a tap is
 // on. Sizes in metres.
 
-private const val CARD_W = 0.108f
-private const val CARD_H = 0.165f
+internal const val CARD_W = 0.108f
+internal const val CARD_H = 0.165f
 
 /** A card standing on the black shelf: as deep as its blister, tipped back against nothing much. */
 private const val CARD_D = 0.03f
@@ -35,7 +35,7 @@ private const val BOTTOM = LEDGE_TOP + 0.001f
 
 /**
  * A place tapped on the furniture: a lane, a tier at an angle (degrees from the back wall), a compartment, a point on
- * the desk ([spot] millimetres across, [depth] in from the back), a lift's level.
+ * the desk ([spot] millimetres across, [depth] in from the back), a lift's level, a nail.
  */
 data class Spot(val shelf: Shelf, val spot: Int, val angle: Float = 0f, val depth: Int = 0) {
     /** What a slot keeps of it besides [spot]: the angle in tenths of a degree, or the depth on the desk. */
@@ -128,6 +128,11 @@ internal fun layOut(
             if (index == 0) placed += onLift(it.item, level) else overflow += it.row.id
         }
     }
+    put.filter { it.slot.shelf == Shelf.Nails }.groupBy { it.slot.spot }.forEach { (nail, on) ->
+        on.sortedBy { it.row.id }.forEachIndexed { index, it ->
+            if (index == 0) placed += hanging(it.item, nail) else overflow += it.row.id
+        }
+    }
 
     val desk = mutableMapOf<Long, Pair<Int, Int>>()
     val taken = LIFT_FOOTPRINTS.toMutableList()
@@ -198,10 +203,10 @@ private fun standUp(item: DecorItem, spot: ShelfSpot): PlacedDecor {
 internal fun ShelfRow.placed(slot: ShelfSlotEntity?) = copy(shelfKey = slot?.shelf?.key, spot = slot?.spot, position = slot?.position)
 
 /**
- * Places for whatever waits in the tray, the way the shelves filled before the collector chose: cards row by row
- * across the lanes, loose cars into the case from the top, small boxes from its bottom row as in the photo, then
- * small loose cars onto the lifts, the rest round the black shelf's tiers, and what's still left onto the desk in
- * rows from the back. What has no room left stays out.
+ * Places for whatever waits in the tray, the way the shelves filled before the collector chose: cards on the nails
+ * first (row by row from the top left), then row by row across the lanes, loose cars into the case from the top,
+ * small boxes from its bottom row as in the photo, then small loose cars onto the lifts, the rest round the black
+ * shelf's tiers, and what's still left onto the desk in rows from the back. What has no room left stays out.
  */
 internal fun arrange(
     rows: List<ShelfRow>,
@@ -220,11 +225,14 @@ internal fun arrange(
 
     for (row in waiting) {
         val slot = when {
-            row.packaging == Packaging.Carded -> (0 until ShelfLayout.LANES)
-                .map { it to at(Shelf.Boards, it) }
-                .filter { (_, cards) -> cards.size < laneCards }
-                .minByOrNull { (_, cards) -> cards.size }
-                ?.let { (lane, cards) -> ShelfSlotEntity(row.id, Shelf.Boards, lane, (cards.maxOfOrNull { it.position } ?: -1) + 1) }
+            row.packaging == Packaging.Carded -> (0 until ShelfLayout.NAILS)
+                .firstOrNull { at(Shelf.Nails, it).isEmpty() }
+                ?.let { ShelfSlotEntity(row.id, Shelf.Nails, it) }
+                ?: (0 until ShelfLayout.LANES)
+                    .map { it to at(Shelf.Boards, it) }
+                    .filter { (_, cards) -> cards.size < laneCards }
+                    .minByOrNull { (_, cards) -> cards.size }
+                    ?.let { (lane, cards) -> ShelfSlotEntity(row.id, Shelf.Boards, lane, (cards.maxOfOrNull { it.position } ?: -1) + 1) }
             ShelfLayout.fits(Shelf.Case, row.packaging, row.scale) ->
                 (if (row.packaging == Packaging.Loose) fromTop else fromBottom)
                     .firstOrNull { at(Shelf.Case, it).isEmpty() }
@@ -296,6 +304,10 @@ private fun onLane(item: ShelfItem, lane: Int, index: Int, laneCards: Int): Plac
 
 /** How far apart the cards of a lane hang when it takes [laneCards]: the top one ends at the rails' top at most. */
 internal fun laneStep(laneCards: Int) = if (laneCards <= 1) STEP else min(STEP, (RAIL_TOP - BOTTOM - CARD_H) / (laneCards - 1))
+
+/** On its nail by the hang hole, flat against the wall; lifted off the nail and out. */
+private fun hanging(item: ShelfItem, nail: Int): Placed =
+    Placed(item, Pose(onNail(nail), 0f, 0f), Pose(onNail(nail, up = 0.022f, out = 0.05f), 0f, 0f), Size(CARD_W, CARD_H))
 
 /** In the case, standing on the compartment's floor: a car halfway in, a box filling it; out straight forward. */
 private fun inCompartment(item: ShelfItem, cell: Int): Placed {

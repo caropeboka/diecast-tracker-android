@@ -66,9 +66,11 @@
     <string name="decor_height_hint">Supaya ukurannya pas di samping diecast.</string>
     <string name="decor_edit">Ubah hiasan</string>
     <string name="decor_delete_text">Hiasan ini hilang dari garasi. Koleksi diecast-mu tidak berubah.</string>
-    <string name="garage_case_no_cards">Kartu (blister) tempatnya di papan atau laci hitam.</string>
+    <string name="garage_case_no_cards">Kartu (blister) tempatnya di paku, papan, atau laci hitam.</string>
     <string name="garage_case_small_only">Rak putih hanya muat skala 1:60 atau lebih kecil.</string>
     <string name="garage_focus_desk">Meja</string>
+    <string name="garage_focus_nails">Paku</string>
+    <string name="garage_nails_cards_only">Paku hanya untuk kartu (blister), satu kartu per paku.</string>
     <string name="garage_dog">Anjing nanoblok</string>
     <string name="garage_tap_desk">Ketuk tempat kosong di meja putih.</string>
     <string name="garage_lifts_small_only">Lift hanya muat mobil loose 1:60 atau lebih kecil.</string>
