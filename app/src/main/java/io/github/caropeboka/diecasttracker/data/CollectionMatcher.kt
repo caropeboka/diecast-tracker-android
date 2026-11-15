@@ -26,6 +26,33 @@ class CollectionMatcher(private val repository: DiecastRepository) {
     }
 
     companion object {
+        /**
+         * Two numbers as printed that can't be the same release: "4/250 · 1/5" and "3/5" differ in the series' fifth,
+         * "15" and "23" too. Unknown (null, or nothing to compare like "1/5" against "61/250") is not different: the
+         * AI often misses a number. Cards of the same name with other numbers are other cars (the 2026 Batman
+         * series has two "Batmobile" cards).
+         */
+        fun otherNumber(a: String?, b: String?): Boolean {
+            val first = fractions(a)
+            val second = fractions(b)
+            if (first.isNotEmpty() || second.isNotEmpty()) {
+                return first.keys.intersect(second.keys).any { first[it] != second[it] }
+            }
+            val x = a.orEmpty().filter(Char::isDigit).trimStart('0')
+            val y = b.orEmpty().filter(Char::isDigit).trimStart('0')
+            return x.isNotEmpty() && y.isNotEmpty() && x != y
+        }
+
+        /** "61/250 · 2/10" → {250: 61, 10: 2}: each number by what it counts out of. */
+        private fun fractions(value: String?): Map<Int, Int> = FRACTION.findAll(value.orEmpty())
+            .mapNotNull { match ->
+                val (part, whole) = match.destructured
+                whole.toIntOrNull()?.let { it to (part.toIntOrNull() ?: return@mapNotNull null) }
+            }
+            .toMap()
+
+        private val FRACTION = Regex("(\\d{1,4})\\s*/\\s*(\\d{1,4})")
+
         /** 0–100. Containment counts as a strong match ("Datsun 510" vs "'71 Datsun 510"). */
         fun similarity(a: String, b: String): Double {
             if (a.isEmpty() || b.isEmpty()) return 0.0

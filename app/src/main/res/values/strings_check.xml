@@ -34,6 +34,9 @@
     <string name="add_to_collection">Add to the collection</string>
     <string name="check_typed">Searched by typing</string>
     <string name="check_in_collection">In your collection</string>
+    <string name="check_look_alikes">Look-alikes in your collection</string>
+    <string name="check_other_number">Number %1$s: maybe another car</string>
+    <string name="check_not_this">Not this one: log it as new</string>
     <string name="check_buy_one_more">Bought one more (+1 quantity)</string>
     <string name="check_got_it">Got it</string>
     <string name="check_searching">Searching your collection</string>

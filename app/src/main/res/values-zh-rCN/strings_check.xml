@@ -34,6 +34,9 @@
     <string name="add_to_collection">加入收藏</string>
     <string name="check_typed">通过输入搜索</string>
     <string name="check_in_collection">在你的收藏中</string>
+    <string name="check_look_alikes">收藏中相似的</string>
+    <string name="check_other_number">编号 %1$s：可能是另一辆</string>
+    <string name="check_not_this">不是这辆，记为新的</string>
     <string name="check_buy_one_more">再买一件（数量 +1）</string>
     <string name="check_got_it">入手</string>
     <string name="check_searching">正在搜索你的收藏</string>

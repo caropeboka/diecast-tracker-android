@@ -3,6 +3,7 @@ package io.github.caropeboka.diecasttracker.data
 import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.data.CollectionMatcher.Companion.normalize
+import io.github.caropeboka.diecasttracker.data.CollectionMatcher.Companion.otherNumber
 import io.github.caropeboka.diecasttracker.data.CollectionMatcher.Companion.similarText
 import io.github.caropeboka.diecasttracker.data.CollectionMatcher.Companion.similarity
 import io.github.caropeboka.diecasttracker.data.ai.ScanFields
@@ -11,6 +12,8 @@ import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -93,6 +96,24 @@ class CollectionMatcherTest {
         assertEquals(DiecastStatus.Spotted, match.status)
         assertEquals(2, match.sightingsCount)
         assertEquals(35_000L, match.sightingsMinPrice)
+    }
+
+    @Test
+    fun `another number on a card of the same name is another car`() {
+        // The 2026 Batman series: two cards both called "Batmobile".
+        assertTrue(otherNumber("4/250 · 1/5", "5/250 · 3/5"))
+        assertTrue(otherNumber("1/5", "3/5"))
+        assertTrue(otherNumber("No. 15", "23"))
+        assertFalse(otherNumber("4/250 · 1/5", "1/5"))
+        assertFalse(otherNumber("61 / 250", "61/250"))
+        assertFalse(otherNumber("No.15", "15"))
+        // Nothing to compare: the AI often misses the number.
+        assertFalse(otherNumber("1/5", "61/250"))
+        assertFalse(otherNumber(null, "3/5"))
+        assertFalse(otherNumber("", "15"))
+        // The match itself still counts the same name.
+        add("Batmobile") { it.copy(collectionNumber = "4/250 · 1/5") }
+        assertEquals(1, find("Batmobile", number = "3/5").size)
     }
 
     @Test

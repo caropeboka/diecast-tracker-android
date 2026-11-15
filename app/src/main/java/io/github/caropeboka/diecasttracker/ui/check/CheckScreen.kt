@@ -480,10 +480,12 @@ private fun ResultCard(
 ) {
     val verdict = result.verdict(diecasts)
     val style = verdict.style()
-    val matches = result.matchIds.mapNotNull(diecasts::get)
+    // The same car first, then look-alikes with another number.
+    val matches = result.matchIds.mapNotNull(diecasts::get).sortedBy(result::isOther)
     val canSpot = !result.done && verdict != Verdict.Failed
     // Something to log as seen here: a new one, or one already wanted or seen (owned ones only get +1).
-    val spottable = verdict == Verdict.New || matches.any { it.status == DiecastStatus.Wishlist || it.status == DiecastStatus.Spotted }
+    val spottable = verdict == Verdict.New ||
+        matches.any { !result.isOther(it) && (it.status == DiecastStatus.Wishlist || it.status == DiecastStatus.Spotted) }
     val shape = MaterialTheme.shapes.large
 
     Column(
@@ -532,6 +534,7 @@ private fun ResultCard(
             if (matches.isNotEmpty()) {
                 MatchPanel(
                     matches = matches,
+                    isOther = result::isOther,
                     canSpot = canSpot,
                     busy = busy,
                     onOpen = onOpen,
@@ -579,6 +582,12 @@ private fun ResultCard(
                     null -> Unit
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Named like one in the collection but another car: seen here as a new one.
+                    if (canSpot && verdict != Verdict.New) {
+                        OutlinedButton(onClick = { viewModel.spot(result) }, enabled = !busy, shape = MaterialTheme.shapes.medium) {
+                            IconLabel(R.drawable.ic_visibility, stringResource(R.string.check_not_this))
+                        }
+                    }
                     OutlinedButton(onClick = { onAdd(null) }, shape = MaterialTheme.shapes.medium) {
                         IconLabel(R.drawable.ic_add, stringResource(if (verdict == Verdict.Owned) R.string.check_separate_item else R.string.add_to_collection))
                     }
@@ -617,6 +626,8 @@ private fun Note(@DrawableRes icon: Int, text: String) {
 @Composable
 private fun MatchPanel(
     matches: List<DiecastListItem>,
+    /** A look-alike with another number: probably another car of the same name. */
+    isOther: (DiecastListItem) -> Boolean,
     canSpot: Boolean,
     busy: Boolean,
     onOpen: (Long) -> Unit,
@@ -632,7 +643,7 @@ private fun MatchPanel(
             .padding(vertical = 4.dp),
     ) {
         Text(
-            stringResource(R.string.check_in_collection),
+            stringResource(if (matches.all(isOther)) R.string.check_look_alikes else R.string.check_in_collection),
             style = MaterialTheme.typography.labelMedium,
             color = Garage.MutedForeground,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -651,6 +662,15 @@ private fun MatchPanel(
                     val small = MaterialTheme.typography.bodySmall
                     listOfNotNull(match.brand, match.series, match.color).joinToString(" · ").takeIf(String::isNotEmpty)?.let {
                         Text(it, style = small, color = Garage.MutedForeground, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (isOther(match)) {
+                        Text(
+                            stringResource(R.string.check_other_number, match.collectionNumber.orEmpty()),
+                            style = small,
+                            color = Garage.Brand2,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                     // What the shelf price is up against.
                     if (match.status == DiecastStatus.Wishlist && match.targetPrice != null) {

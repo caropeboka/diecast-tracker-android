@@ -34,6 +34,9 @@
     <string name="add_to_collection">Tambah ke koleksi</string>
     <string name="check_typed">Dicari dengan mengetik</string>
     <string name="check_in_collection">Di koleksimu</string>
+    <string name="check_look_alikes">Mirip di koleksimu</string>
+    <string name="check_other_number">Nomor %1$s: mungkin mobil lain</string>
+    <string name="check_not_this">Bukan yang ini, catat sebagai baru</string>
     <string name="check_buy_one_more">Beli satu lagi (+1 jumlah)</string>
     <string name="check_got_it">Dapat</string>
     <string name="check_searching">Mencari di koleksimu</string>

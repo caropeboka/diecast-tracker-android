@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.Messages
 import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.data.CollectionMatcher
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.MAX_MONEY
 import io.github.caropeboka.diecasttracker.data.PhotoException
@@ -393,6 +394,12 @@ class CheckViewModel(
     }
 }
 
-/** The verdict without the "Ditemui" entry the check itself created. */
+/**
+ * The verdict without the "Ditemui" entry the check itself created, and without look-alikes whose number says they
+ * are another car of the same name.
+ */
 fun CheckResult.verdict(diecasts: Map<Long, DiecastListItem>): Verdict =
-    verdictOf(failed, matchIds.mapNotNull(diecasts::get))
+    verdictOf(failed, matchIds.mapNotNull(diecasts::get).filterNot(::isOther))
+
+/** Named like what was read, but with another number: a look-alike, not this one. */
+fun CheckResult.isOther(item: DiecastListItem): Boolean = CollectionMatcher.otherNumber(fields?.collectionNumber, item.collectionNumber)

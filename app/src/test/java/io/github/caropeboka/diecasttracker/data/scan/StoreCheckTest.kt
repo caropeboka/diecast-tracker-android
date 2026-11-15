@@ -11,6 +11,9 @@ import io.github.caropeboka.diecasttracker.data.ai.vision
 import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
+import io.github.caropeboka.diecasttracker.ui.check.CheckResult
+import io.github.caropeboka.diecasttracker.ui.check.isOther
+import io.github.caropeboka.diecasttracker.ui.check.verdict
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -139,6 +142,26 @@ class StoreCheckTest {
         assertEquals("Toys Kingdom GI", saved.orderedSightings.single().place)
         assertNull(saved.orderedSightings.single().photoFile)
         assertFalse(check.isOpen(item.id))
+    }
+
+    @Test
+    fun `a card of the same name with another number is a look-alike, not this one`() = runBlocking {
+        // Two Batman series cards both say "Batmobile": the blue one was seen before, the gold one is on the shelf.
+        val blue = env.repository.save(
+            DiecastEntity(name = "BATMOBILE", brand = "Hot Wheels", collectionNumber = "4/250 · 1/5", status = DiecastStatus.Spotted),
+        )
+        fake.otherwise(200, FakeGemini.answer("""{"name": "Batmobile", "brand": "Hot Wheels", "collection_number": "3/5"}"""))
+        val item = check.check(env.pendingPhoto())
+        val matches = check.matches(item.fields!!)
+        assertEquals(listOf(blue), matches.map { it.id })
+
+        val result = CheckResult(key = item.id, checkId = item.id, fields = item.fields, matchIds = matches.map { it.id })
+        val diecasts = matches.associateBy { it.id }
+        assertTrue(result.isOther(matches.single()))
+        assertEquals(Verdict.New, result.verdict(diecasts))
+
+        // Read without its number it may still be the blue one.
+        assertEquals(Verdict.Spotted, result.copy(fields = item.fields!!.copy(collectionNumber = null)).verdict(diecasts))
     }
 
     @Test

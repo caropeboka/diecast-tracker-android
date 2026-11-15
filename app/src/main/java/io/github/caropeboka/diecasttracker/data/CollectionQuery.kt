@@ -134,7 +134,7 @@ object CollectionQuery {
         SimpleSQLiteQuery("$SELECT_ITEMS WHERE d.id IN (${ids.joinToString(",") { "?" }})", ids.toTypedArray())
 
     private val SELECT_ITEMS = """
-        SELECT d.id, d.name, d.brand, d.series, d.color, d.year, d.rarity, d.status, d.quantity,
+        SELECT d.id, d.name, d.brand, d.series, d.collection_number, d.color, d.year, d.rarity, d.status, d.quantity,
             d.purchase_price, d.market_value, d.target_price,
             (SELECT p.file_name FROM diecast_photos p WHERE p.diecast_id = d.id ORDER BY p.position, p.id LIMIT 1) AS cover_file,
             (SELECT COUNT(*) FROM sightings s WHERE s.diecast_id = d.id) AS sightings_count,
