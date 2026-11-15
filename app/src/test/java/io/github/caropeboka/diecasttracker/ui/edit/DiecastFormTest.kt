@@ -24,6 +24,16 @@ class DiecastFormTest {
     private val today = LocalDate.of(2026, 10, 18)
 
     @Test
+    fun `a scale written with a slash or spaces is saved the usual way`() {
+        val form = DiecastForm.new(DiecastStatus.Owned, today).copy(name = "Batmobile")
+        assertEquals("1:60", form.copy(scale = " 1/60 ").toEntity(null).scale)
+        assertEquals("1:18", form.copy(scale = "1 : 18").toEntity(null).scale)
+        assertEquals("1:64", form.copy(scale = "1:64").toEntity(null).scale)
+        assertEquals("Mini", form.copy(scale = "Mini").toEntity(null).scale)
+        assertNull(form.copy(scale = " ").toEntity(null).scale)
+    }
+
+    @Test
     fun `a new owned diecast was bought today, a wish was not`() {
         assertEquals("2026-10-18", DiecastForm.new(DiecastStatus.Owned, today).purchaseDate)
         assertNull(DiecastForm.new(DiecastStatus.Wishlist, today).purchaseDate)
