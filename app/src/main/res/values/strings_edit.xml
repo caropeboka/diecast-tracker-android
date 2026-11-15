@@ -35,6 +35,9 @@
     <string name="edit_photo_count">%1$d/%2$d photos</string>
     <string name="edit_make_cover">Make cover</string>
     <string name="edit_delete_photo">Delete photo</string>
+    <string name="edit_rotate">Rotate</string>
+    <string name="edit_flip">Flip</string>
+    <string name="edit_turn_failed">The photo could not be turned: %1$s</string>
     <string name="edit_take_photo">Take a photo</string>
     <string name="edit_take_another">Another photo</string>
     <string name="gallery">Gallery</string>
@@ -162,6 +165,15 @@
     <string name="sighting_no_place">Place not logged</string>
     <string name="cheapest">Cheapest</string>
     <string name="sighting_delete">Delete this sighting</string>
+    <string name="sighting_more">More for this sighting</string>
+    <string name="sighting_move">Move to…</string>
+    <string name="sighting_move_title">Whose sighting was this?</string>
+    <string name="sighting_move_hint">Logged on the wrong diecast, for example another car of the same name? Move it where it belongs.</string>
+    <string name="sighting_new_item">A new item</string>
+    <string name="sighting_new_item_hint">Spotted, with this sighting’s photo as its cover</string>
+    <string name="sighting_no_targets">No other diecast with this name yet.</string>
+    <string name="sighting_moved">Sighting moved to %1$s.</string>
+    <string name="sighting_split">A new diecast was made from the sighting: fill in its number and colour.</string>
     <string name="sighting_notes_hint">Card a bit dented, only 1 left…</string>
     <string name="sighting_photo">Sighting photo</string>
     <string name="photo">Photo</string>

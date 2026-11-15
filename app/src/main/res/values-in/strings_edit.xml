@@ -34,6 +34,9 @@
     <string name="edit_photo_count">%1$d/%2$d foto</string>
     <string name="edit_make_cover">Jadikan cover</string>
     <string name="edit_delete_photo">Hapus foto</string>
+    <string name="edit_rotate">Putar</string>
+    <string name="edit_flip">Balik</string>
+    <string name="edit_turn_failed">Foto tidak bisa diputar: %1$s</string>
     <string name="edit_take_photo">Ambil foto</string>
     <string name="edit_take_another">Foto lagi</string>
     <string name="gallery">Galeri</string>
@@ -157,6 +160,15 @@
     <string name="sighting_no_place">Tempat tidak dicatat</string>
     <string name="cheapest">Termurah</string>
     <string name="sighting_delete">Hapus temuan ini</string>
+    <string name="sighting_more">Lainnya untuk temuan ini</string>
+    <string name="sighting_move">Pindahkan ke…</string>
+    <string name="sighting_move_title">Temuan ini sebenarnya yang mana?</string>
+    <string name="sighting_move_hint">Tercatat di diecast yang salah, misalnya mobil lain yang namanya sama? Pindahkan ke yang benar.</string>
+    <string name="sighting_new_item">Item baru</string>
+    <string name="sighting_new_item_hint">Ditemui, foto temuan ini jadi sampulnya</string>
+    <string name="sighting_no_targets">Belum ada diecast lain dengan nama ini.</string>
+    <string name="sighting_moved">Temuan dipindahkan ke %1$s.</string>
+    <string name="sighting_split">Diecast baru dibuat dari temuan itu: lengkapi nomor dan warnanya.</string>
     <string name="sighting_notes_hint">Kartu agak penyok, stok tinggal 1…</string>
     <string name="sighting_photo">Foto temuan</string>
     <string name="photo">Foto</string>

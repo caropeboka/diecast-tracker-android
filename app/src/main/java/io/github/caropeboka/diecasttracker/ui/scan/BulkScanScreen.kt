@@ -61,6 +61,7 @@ import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.DiecastStatus
 import io.github.caropeboka.diecasttracker.data.Rarity
 import io.github.caropeboka.diecasttracker.data.ai.Confidence
+import io.github.caropeboka.diecasttracker.data.receipt.receiptItem
 import io.github.caropeboka.diecasttracker.data.scan.ScanItemStatus
 import io.github.caropeboka.diecasttracker.data.scan.ScanWorkState
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
@@ -74,7 +75,9 @@ import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.components.SuggestInput
 import io.github.caropeboka.diecasttracker.ui.components.TagInput
 import io.github.caropeboka.diecasttracker.ui.components.TextInput
+import io.github.caropeboka.diecasttracker.ui.edit.BulkReceipt
 import io.github.caropeboka.diecasttracker.ui.edit.Matches
+import io.github.caropeboka.diecasttracker.ui.edit.ReceiptMatchRow
 import io.github.caropeboka.diecasttracker.ui.edit.Suggestions
 import io.github.caropeboka.diecasttracker.ui.edit.toLocalDateOrNull
 import io.github.caropeboka.diecasttracker.ui.places.LocationField
@@ -174,7 +177,7 @@ fun BulkScanScreen(
                         onSaveAll = viewModel::saveAll,
                     )
                 }
-                item(key = "defaults") { DefaultsCard(viewModel, suggestions) }
+                item(key = "defaults") { DefaultsCard(viewModel, suggestions, all, onAiSettings) }
                 items(all, key = { it.item.id }) { row ->
                     QueueCard(
                         row = row,
@@ -298,7 +301,7 @@ private fun countdown(at: Long): String {
 }
 
 @Composable
-private fun DefaultsCard(viewModel: BulkScanViewModel, suggestions: Suggestions) {
+private fun DefaultsCard(viewModel: BulkScanViewModel, suggestions: Suggestions, rows: List<QueueRow>, onAiSettings: () -> Unit) {
     val defaults = viewModel.defaults
     val spotted = defaults.status == DiecastStatus.Spotted
 
@@ -347,6 +350,24 @@ private fun DefaultsCard(viewModel: BulkScanViewModel, suggestions: Suggestions)
             )
         }
         if (defaults.status == DiecastStatus.Owned) {
+            // One receipt for the whole pile: each photo read so far takes its line's price.
+            BulkReceipt(
+                rows = rows.filter { it.item.status == ScanItemStatus.Done }.map { row ->
+                    val edits = viewModel.edits[row.item.id] ?: QuickEdits()
+                    val fields = row.item.fields
+                    val name = edits.name ?: fields?.name.orEmpty()
+                    ReceiptMatchRow(
+                        key = row.item.id,
+                        name = name.ifBlank { stringResource(R.string.photo) },
+                        photo = row.item.photoFile,
+                        item = receiptItem(name, edits.brand ?: fields?.brand, edits.series ?: fields?.series, edits.collectionNumber ?: fields?.collectionNumber),
+                        receiptId = edits.receiptId,
+                        line = edits.receiptLine,
+                    )
+                },
+                onApply = viewModel::applyReceipt,
+                onAiSettings = onAiSettings,
+            )
             SuggestInput(
                 defaults.storageLocation,
                 { viewModel.updateDefaults(defaults.copy(storageLocation = it)) },
@@ -422,6 +443,7 @@ private fun QueueCard(
                                 fields?.let { Pill(stringResource(it.confidence.short), it.confidence.color()) }
                                 if (row.matches.isNotEmpty()) Pill(stringResource(R.string.bulk_similar), Garage.MutedForeground)
                                 fields?.readBy?.let { Pill(it, Garage.MutedForeground) }
+                                if (edits.receiptId != null && status == DiecastStatus.Owned) Pill(stringResource(R.string.receipt), Garage.Gain)
                             }
                             TextInput(edits.name ?: fields?.name.orEmpty(), { v -> onEdit { it.copy(name = v) } }, stringResource(R.string.edit_model_name))
                         }

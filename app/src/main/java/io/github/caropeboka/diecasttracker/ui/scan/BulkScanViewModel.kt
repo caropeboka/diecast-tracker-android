@@ -24,6 +24,7 @@ import io.github.caropeboka.diecasttracker.data.PhotoStore
 import io.github.caropeboka.diecasttracker.data.UserPrefs
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
+import io.github.caropeboka.diecasttracker.data.db.ReceiptEntity
 import io.github.caropeboka.diecasttracker.data.db.ScanItemEntity
 import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
@@ -139,6 +140,32 @@ class BulkScanViewModel(
     fun edit(id: Long, change: (QuickEdits) -> QuickEdits) {
         edits = edits + (id to change(edits[id] ?: QuickEdits()))
         saved[EDITS] = Json.encodeToString(edits)
+    }
+
+    /**
+     * One receipt for the queue: each photo given a line takes its price and the receipt; one marked as not on it (null)
+     * lets go of this receipt, keeping its price. The receipt's date and store become the shared ones when those are
+     * still today's date and empty.
+     */
+    fun applyReceipt(receipt: ReceiptEntity, lines: Map<Long, Int?>) {
+        var used = 0
+        lines.forEach { (id, line) ->
+            val price = line?.let(receipt.lines::getOrNull)?.price
+            when {
+                line != null -> {
+                    used++
+                    edit(id) { it.copy(price = price?.toString() ?: it.price, receiptId = receipt.id, receiptLine = line) }
+                }
+                edits[id]?.receiptId == receipt.id -> edit(id) { it.copy(receiptId = null, receiptLine = null) }
+            }
+        }
+        var next = defaults
+        receipt.boughtOn?.let { date ->
+            if (next.date.isBlank() || next.date == LocalDate.now().toString()) next = next.copy(date = date.toString())
+        }
+        receipt.store?.let { store -> if (next.place.name.isBlank()) next = next.copy(place = PlaceValue(store)) }
+        if (next != defaults) updateDefaults(next)
+        messages.show(texts.plural(R.plurals.receipt_applied_many, used, used))
     }
 
     private fun forget(id: Long) {

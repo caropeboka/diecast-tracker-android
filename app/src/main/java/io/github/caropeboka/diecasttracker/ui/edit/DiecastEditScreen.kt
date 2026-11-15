@@ -68,6 +68,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -87,6 +90,7 @@ import io.github.caropeboka.diecasttracker.data.ValueSource
 import io.github.caropeboka.diecasttracker.data.ai.MAX_SCAN_PHOTOS
 import io.github.caropeboka.diecasttracker.data.db.CatalogItemEntity
 import io.github.caropeboka.diecasttracker.data.dex.LinkAction
+import io.github.caropeboka.diecasttracker.data.receipt.receiptItem
 import io.github.caropeboka.diecasttracker.ui.components.AiProgressView
 import io.github.caropeboka.diecasttracker.ui.components.ChoiceInput
 import io.github.caropeboka.diecasttracker.ui.components.DateInput
@@ -232,9 +236,16 @@ fun DiecastEditScreen(
             PhotoSection(viewModel, scanEnabled, openCamera, onOpen)
             DexSection(viewModel, onOpenEntry)
             IdentitySection(viewModel, suggestions)
-            OwnershipSection(viewModel, suggestions)
+            OwnershipSection(viewModel, suggestions, onAiSettings)
             viewModel.existing?.let { existing ->
-                SightingsCard(viewModel.sightings, viewModel::openSighting, viewModel::deleteSighting)
+                SightingsCard(
+                    viewModel.sightings,
+                    onAdd = viewModel::openSighting,
+                    onDelete = viewModel::deleteSighting,
+                    moveTargets = viewModel::moveTargets,
+                    onMove = viewModel::moveSighting,
+                    onSplit = { id -> viewModel.splitSighting(id, onOpen) },
+                )
                 PriceCheckPanel(existing, viewModel.sightings, viewModel.form.photos.firstOrNull(), viewModel::marketValueApplied, onAiSettings)
             }
         }
@@ -337,6 +348,23 @@ private fun StatusToggle(value: DiecastStatus, onChange: (DiecastStatus) -> Unit
     }
 }
 
+/** A round button on the big photo. */
+@Composable
+private fun PhotoTool(@DrawableRes icon: Int, label: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Garage.Background.copy(alpha = 0.78f))
+            .border(1.dp, Garage.Border, CircleShape)
+            .clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(painterResource(icon), contentDescription = null, tint = Garage.Foreground, modifier = Modifier.size(20.dp))
+    }
+}
+
 @Composable
 private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, onCamera: () -> Unit, onOpen: (Long) -> Unit) {
     val photos = viewModel.form.photos
@@ -381,6 +409,14 @@ private fun PhotoSection(viewModel: DiecastEditViewModel, scanEnabled: Boolean, 
                         color = Garage.MutedForeground,
                         textAlign = TextAlign.Center,
                     )
+                }
+            }
+
+            if (current != null && !busy) {
+                // Turning works on the photo in view, like the studio pill below.
+                Row(Modifier.align(Alignment.TopEnd).padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PhotoTool(R.drawable.ic_rotate_right, stringResource(R.string.edit_rotate)) { viewModel.turnPhoto(selected, mirror = false) }
+                    PhotoTool(R.drawable.ic_flip, stringResource(R.string.edit_flip)) { viewModel.turnPhoto(selected, mirror = true) }
                 }
             }
 
@@ -689,7 +725,7 @@ private fun IdentitySection(viewModel: DiecastEditViewModel, suggestions: Sugges
 }
 
 @Composable
-private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Suggestions) {
+private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Suggestions, onAiSettings: () -> Unit) {
     val form = viewModel.form
     val errors = viewModel.errors
     val today = LocalDate.now()
@@ -739,10 +775,22 @@ private fun OwnershipSection(viewModel: DiecastEditViewModel, suggestions: Sugge
                 placeholder = "500.000", error = errors[Field.TargetPrice], highlighted = Field.TargetPrice in viewModel.aiFields,
             )
             else -> {
-                MoneyInput(
-                    form.purchasePrice, { v -> set(Field.PurchasePrice) { it.copy(purchasePrice = v) } }, stringResource(R.string.edit_purchase_price),
-                    placeholder = "35.000", error = errors[Field.PurchasePrice], highlighted = Field.PurchasePrice in viewModel.aiFields,
-                )
+                ReceiptPanel(
+                    key = "receipt-${viewModel.diecastId}-${viewModel.round}",
+                    receiptId = form.receiptId,
+                    line = form.receiptLine,
+                    diecastId = viewModel.diecastId,
+                    item = { receiptItem(form.name, form.brand, form.series, form.collectionNumber) },
+                    onApply = viewModel::applyReceipt,
+                    onDetach = viewModel::detachReceipt,
+                    onAiSettings = onAiSettings,
+                ) { fieldModifier ->
+                    MoneyInput(
+                        form.purchasePrice, { v -> set(Field.PurchasePrice) { it.copy(purchasePrice = v) } }, stringResource(R.string.edit_purchase_price),
+                        placeholder = "35.000", error = errors[Field.PurchasePrice], highlighted = Field.PurchasePrice in viewModel.aiFields,
+                        modifier = fieldModifier,
+                    )
+                }
                 MoneyInput(
                     form.marketValue, { v -> set(Field.MarketValue) { it.copy(marketValue = v) } }, stringResource(R.string.edit_market_value),
                     placeholder = stringResource(R.string.optional), error = errors[Field.MarketValue],

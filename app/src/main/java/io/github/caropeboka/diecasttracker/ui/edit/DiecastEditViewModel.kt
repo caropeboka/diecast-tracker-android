@@ -33,8 +33,10 @@ import io.github.caropeboka.diecasttracker.data.ai.Confidence
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.FieldSuggestion
 import io.github.caropeboka.diecasttracker.data.ai.MAX_SCAN_PHOTOS
+import io.github.caropeboka.diecasttracker.data.ai.ScanFields
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.DiecastListItem
+import io.github.caropeboka.diecasttracker.data.db.ReceiptEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
 import io.github.caropeboka.diecasttracker.data.dex.DexLinkState
 import io.github.caropeboka.diecasttracker.data.dex.DexRef
@@ -400,6 +402,24 @@ class DiecastEditViewModel(
         clearError(Field.MarketValue)
     }
 
+    /**
+     * Bought with [receipt] as its [line]: that line's price, and the receipt's date and store where the form has none
+     * (a new form's own date counts as none). The price is marked ✦ like the AI's.
+     */
+    fun applyReceipt(receipt: ReceiptEntity, line: Int?) {
+        val (next, filled) = form.withReceipt(receipt, line, dateIsDefault = isNew && form.purchaseDate == original.purchaseDate)
+        replaceForm(next)
+        errors = errors - filled
+        if (Field.PurchasePrice in filled) markAiFields(aiFields + Field.PurchasePrice)
+        val labels = filled.mapNotNull { RECEIPT_FIELDS[it] }.map { texts(it) }
+        messages.show(if (labels.isEmpty()) texts(R.string.receipt_attached) else texts(R.string.receipt_filled, labels.joinToString(", ")))
+    }
+
+    /** No receipt with this one after all; the receipt stays for the others (or goes at start-up when nobody has it). */
+    fun detachReceipt() {
+        update { it.copy(receiptId = null, receiptLine = null) }
+    }
+
     private fun markAiFields(fields: Set<Field>) {
         aiFields = fields
         saved[AI_FIELDS] = ArrayList(fields.map { it.name })
@@ -505,6 +525,34 @@ class DiecastEditViewModel(
         if (photos.isPending(name) && name != queuePhoto) photos.delete(name)
         update { it.copy(photos = it.photos - name) }
         selectedPhoto = 0
+    }
+
+    /**
+     * Turns the photo in view a quarter to the right, or mirrors it ([mirror]): a turned copy takes its place (a studio
+     * copy stays one). The old photo goes when the change is saved, or at once when it was added just now.
+     */
+    fun turnPhoto(index: Int, mirror: Boolean) {
+        val name = form.photos.getOrNull(index) ?: return
+        if (makingStudio || scanning || processingPhotos > 0) return
+        photoError = null
+        processingPhotos++
+        viewModelScope.launch {
+            try {
+                val turned = withContext(Dispatchers.IO) { photos.turned(name, quarters = if (mirror) 0 else 1, mirror = mirror) }
+                if (name in studioPhotos) {
+                    studioPhotos = studioPhotos - name + turned
+                    saved[STUDIO_PHOTOS] = ArrayList(studioPhotos)
+                }
+                update { it.copy(photos = it.photos.map { photo -> if (photo == name) turned else photo }) }
+                if (photos.isPending(name) && name != queuePhoto) photos.delete(name)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                photoError = texts(R.string.edit_turn_failed, e.message ?: e::class.simpleName.orEmpty())
+            } finally {
+                processingPhotos--
+            }
+        }
     }
 
     fun makeCover(index: Int) {
@@ -760,6 +808,41 @@ class DiecastEditViewModel(
         }
     }
 
+    /** Where a sighting may move: diecasts named like this one (the saved name), this one left out. */
+    suspend fun moveTargets(): List<DiecastListItem> {
+        val diecast = existing ?: return emptyList()
+        return matcher.find(ScanFields(name = diecast.name, brand = diecast.brand), limit = 8).filter { it.id != diecast.id }
+    }
+
+    /** The sighting was of [target]: it moves there. */
+    fun moveSighting(id: Long, target: DiecastListItem) {
+        viewModelScope.launch {
+            try {
+                repository.moveSighting(id, target.id)
+                messages.show(texts(R.string.sighting_moved, target.name))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                messages.show(texts(R.string.failed_because, e.message ?: e::class.simpleName.orEmpty()))
+            }
+        }
+    }
+
+    /** The sighting was of another car of the same name: it becomes its own "Ditemui" diecast, which [onCreated] opens. */
+    fun splitSighting(id: Long, onCreated: (Long) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val created = repository.splitSighting(id) ?: return@launch
+                messages.show(texts(R.string.sighting_split))
+                onCreated(created)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                messages.show(texts(R.string.failed_because, e.message ?: e::class.simpleName.orEmpty()))
+            }
+        }
+    }
+
     private fun storeSightingDraft(draft: SightingDraft?) {
         sightingDraft = draft
         saved[SIGHTING] = draft?.let { Json.encodeToString(it) }
@@ -869,6 +952,13 @@ class DiecastEditViewModel(
         private const val QUEUE_PHOTO = "queue_photo"
         private const val STUDIO_PHOTOS = "studio_photos"
         private const val ROUND = "round"
+
+        /** What a receipt fills, by the labels the form shows. */
+        private val RECEIPT_FIELDS = mapOf(
+            Field.PurchasePrice to R.string.edit_purchase_price,
+            Field.PurchaseDate to R.string.field_purchase_date,
+            Field.PurchasePlace to R.string.edit_bought_at,
+        )
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

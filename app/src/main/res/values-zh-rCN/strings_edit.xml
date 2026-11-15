@@ -34,6 +34,9 @@
     <string name="edit_photo_count">%1$d/%2$d 张照片</string>
     <string name="edit_make_cover">设为封面</string>
     <string name="edit_delete_photo">删除照片</string>
+    <string name="edit_rotate">旋转</string>
+    <string name="edit_flip">翻转</string>
+    <string name="edit_turn_failed">无法旋转照片：%1$s</string>
     <string name="edit_take_photo">拍照</string>
     <string name="edit_take_another">再拍一张</string>
     <string name="gallery">相册</string>
@@ -157,6 +160,15 @@
     <string name="sighting_no_place">未记录地点</string>
     <string name="cheapest">最便宜</string>
     <string name="sighting_delete">删除这条发现记录</string>
+    <string name="sighting_more">这条发现记录的更多操作</string>
+    <string name="sighting_move">移到…</string>
+    <string name="sighting_move_title">这条记录其实属于哪辆？</string>
+    <string name="sighting_move_hint">记在了错误的合金车上（比如同名的另一辆）？把它移到正确的那辆。</string>
+    <string name="sighting_new_item">新的一件</string>
+    <string name="sighting_new_item_hint">状态为已发现，以这条记录的照片作封面</string>
+    <string name="sighting_no_targets">还没有同名的其他合金车。</string>
+    <string name="sighting_moved">发现记录已移到 %1$s。</string>
+    <string name="sighting_split">已用这条记录新建合金车：请补上编号和颜色。</string>
     <string name="sighting_notes_hint">卡片有点压痕，只剩 1 个…</string>
     <string name="sighting_photo">发现照片</string>
     <string name="photo">照片</string>
