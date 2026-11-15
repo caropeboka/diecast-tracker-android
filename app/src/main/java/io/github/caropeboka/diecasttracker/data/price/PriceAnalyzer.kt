@@ -56,6 +56,8 @@ data class PriceListing(
     /** The currency it was priced in when not Rupiah ([price] is converted), and that price. */
     val currency: String? = null,
     @SerialName("original_price") val originalPrice: Double? = null,
+    /** Where it can be opened: only listings found by the automatic check have one. */
+    val link: String? = null,
 )
 
 /** Over the counted listings only. [spread]: the middle half's width against the median. */
@@ -97,7 +99,8 @@ data class PriceAnalysis(
  * and how far the result can be trusted (web: `PriceAnalyzer.php`). Pure arithmetic, no AI, so the numbers are exact.
  */
 object PriceAnalyzer {
-    fun analyze(read: List<PriceListing>, texts: Texts): PriceAnalysis {
+    /** [screenshots] false: the listings came from a search of the app's own, so no tips about taking screenshots. */
+    fun analyze(read: List<PriceListing>, texts: Texts, screenshots: Boolean = true): PriceAnalysis {
         var listings = dedupe(read).map { listing ->
             val usable = listing.match == ListingMatch.Match && listing.price > 0
             listing.copy(
@@ -109,7 +112,7 @@ object PriceAnalyzer {
 
         val prices = listings.filter { it.status == ListingStatus.Included }.map { it.price }.sorted()
         val stats = if (prices.isEmpty()) null else stats(prices)
-        val (accuracy, reasons, tips) = judge(listings, stats, texts)
+        val (accuracy, reasons, tips) = judge(listings, stats, texts, screenshots)
 
         val sorted = listings.sortedWith(compareBy<PriceListing> { it.status.ordinal }.thenBy { it.price })
 
@@ -176,7 +179,7 @@ object PriceAnalyzer {
     }
 
     /** Scores how much to trust the median, and says why, in plain words. */
-    private fun judge(listings: List<PriceListing>, stats: PriceStats?, texts: Texts): Triple<PriceAccuracy, List<String>, List<String>> {
+    private fun judge(listings: List<PriceListing>, stats: PriceStats?, texts: Texts, screenshots: Boolean): Triple<PriceAccuracy, List<String>, List<String>> {
         val count = stats?.count ?: 0
         val reasons = mutableListOf<String>()
         val tips = mutableListOf<String>()
@@ -191,7 +194,7 @@ object PriceAnalyzer {
             } else {
                 texts(R.string.price_reason_none)
             }
-            tips += texts(R.string.price_tip_keywords)
+            tips += texts(if (screenshots) R.string.price_tip_keywords else R.string.price_tip_keywords_auto)
             return Triple(PriceAccuracy.Insufficient, reasons, tips)
         }
 
@@ -222,7 +225,8 @@ object PriceAnalyzer {
         if (sold >= 3) {
             score += 1
             reasons += texts.plural(R.plurals.price_reason_sold, sold, sold)
-        } else {
+        } else if (screenshots) {
+            // Google Shopping shows no sales.
             tips += texts(R.string.price_tip_best_selling)
         }
 
@@ -231,7 +235,7 @@ object PriceAnalyzer {
             reasons += texts(R.string.price_reason_unclear)
         }
 
-        if (count < 5) tips += texts(R.string.price_tip_more_screenshots)
+        if (screenshots && count < 5) tips += texts(R.string.price_tip_more_screenshots)
         if (otherCondition >= 3) tips += texts(R.string.price_tip_condition)
 
         val accuracy = when {

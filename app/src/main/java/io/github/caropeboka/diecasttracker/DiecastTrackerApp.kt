@@ -33,6 +33,7 @@ import io.github.caropeboka.diecasttracker.data.places.Nominatim
 import io.github.caropeboka.diecasttracker.data.places.PlaceLookup
 import io.github.caropeboka.diecasttracker.data.price.OwnPriceFinder
 import io.github.caropeboka.diecasttracker.data.price.PriceChecker
+import io.github.caropeboka.diecasttracker.data.price.ShoppingSearch
 import io.github.caropeboka.diecasttracker.data.receipt.ReceiptReader
 import io.github.caropeboka.diecasttracker.data.receipt.ReceiptRepository
 import io.github.caropeboka.diecasttracker.data.receipt.ReceiptStore
@@ -97,11 +98,20 @@ class AppContainer(context: Context) {
     val dex = DexRepository(database, dexMatcher)
     val dexCustom = DexCustom(database, dexMatcher, photos, texts, context.filesDir)
     val checklist = ChecklistReader(vision, texts)
+    /** Google Shopping through SerpApi, for the automatic price check (the collector's own key). */
+    val shopping = ShoppingSearch(http, aiSettings.serpApiKey, texts)
+
     // Rates for listings priced abroad (eBay), even when prices are shown in Rupiah.
-    val priceChecker = PriceChecker(vision, database, texts, rates = {
-        refreshRates(needed = true)
-        prefs.rates.first()
-    })
+    val priceChecker = PriceChecker(
+        vision,
+        database,
+        texts,
+        rates = {
+            refreshRates(needed = true)
+            prefs.rates.first()
+        },
+        shopping = shopping,
+    )
     val ownPrices = OwnPriceFinder(database, matcher)
     val receiptStore = ReceiptStore(context.filesDir)
     val receipts = ReceiptRepository(database, receiptStore)

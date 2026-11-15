@@ -231,7 +231,7 @@ data class SightingEntity(
 data class PriceCheckEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "diecast_id") val diecastId: Long,
-    /** How many screenshots were read. */
+    /** How many screenshots were read; 0 for an automatic check (Google Shopping searched through SerpApi). */
     val screenshots: Int,
     /** Every listing read, counted or not; stored as JSON. */
     val listings: List<PriceListing>,

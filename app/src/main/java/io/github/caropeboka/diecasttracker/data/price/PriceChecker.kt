@@ -21,6 +21,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -28,6 +29,7 @@ import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -118,6 +120,7 @@ data class PriceEstimate(
 /**
  * Reads marketplace screenshots (Tokopedia, Shopee, eBay…) with the AI and records a price check for a diecast
  * (web: `PriceChecker.php`); [PriceAnalyzer] does the sums. Prices in another currency are converted at [rates].
+ * With [shopping] (a SerpApi key), [checkOnline] searches Google Shopping itself instead of reading screenshots.
  */
 class PriceChecker(
     private val vision: AiVision,
@@ -125,10 +128,14 @@ class PriceChecker(
     private val texts: Texts,
     private val rates: suspend () -> ExchangeRates? = { null },
     private val clock: () -> Long = System::currentTimeMillis,
+    private val shopping: ShoppingSearch? = null,
 ) {
     private val dao = db.priceChecks()
 
     val enabled: Flow<Boolean> = vision.enabled
+
+    /** A SerpApi key is set, so [checkOnline] can run. */
+    val onlineEnabled: Flow<Boolean> = shopping?.enabled ?: flowOf(false)
 
     fun observe(diecastId: Long): Flow<List<PriceCheckEntity>> = dao.observeFor(diecastId)
 
@@ -158,6 +165,62 @@ class PriceChecker(
             createdAt = clock(),
         )
         return check.copy(id = dao.insert(check))
+    }
+
+    /**
+     * The automatic check: Google Shopping is searched for [query] through SerpApi ([onFound] gets how many listings
+     * came back), the AI tells from their titles which are this diecast (text only, no photos), and [PriceAnalyzer]
+     * does the sums as for screenshots. Recorded with `screenshots = 0`. Nothing found: a [ShoppingSearchException],
+     * and no check is recorded.
+     */
+    suspend fun checkOnline(
+        diecast: DiecastEntity,
+        query: String,
+        onFound: (Int) -> Unit = {},
+        onEvent: (AiEvent) -> Unit = {},
+    ): PriceCheckEntity {
+        val search = checkNotNull(shopping) { "No shopping search" }
+        val found = search.search(query)
+        if (found.isEmpty()) throw ShoppingSearchException(texts(R.string.price_auto_nothing, query.trim()))
+        onFound(found.size)
+
+        val system = MATCH_PROMPT.replace("{language}", texts(R.string.ai_answer_language))
+        val read = vision.extract(emptyList(), system, matchInstruction(diecast, query, found), MATCH_SCHEMA, onEvent).data
+        val verdicts = read.array("listings").orEmpty().mapNotNull { it as? JsonObject }
+            .mapNotNull { verdict -> (verdict["index"] as? JsonPrimitive)?.let { it.intOrNull ?: it.doubleOrNull?.toInt() }?.let { it to verdict } }
+            .toMap()
+
+        val rates = if (found.any { it.currency != IDR }) rates() else null
+        val listings = found.mapIndexed { index, result -> listing(result, verdicts[index], rates) }
+        val analysis = PriceAnalyzer.analyze(listings, texts, screenshots = false)
+        val hint = read.string("search_hint")?.trim()?.ifEmpty { null }?.takeIf { it.lowercase() != query.trim().lowercase() }
+        val abroad = analysis.listings.any { it.currency != null && it.status == ListingStatus.Included }
+        val check = PriceCheckEntity(
+            diecastId = diecast.id,
+            screenshots = 0,
+            listings = analysis.listings,
+            stats = analysis.stats,
+            accuracy = analysis.accuracy,
+            reasons = analysis.reasons,
+            tips = analysis.tips + listOfNotNull(
+                texts(R.string.price_tip_asking),
+                texts(R.string.price_tip_abroad).takeIf { abroad },
+                hint?.let { texts(R.string.price_tip_search_hint, it) },
+            ),
+            aiNote = read.string("note")?.trim()?.ifEmpty { null },
+            createdAt = clock(),
+        )
+        return check.copy(id = dao.insert(check))
+    }
+
+    /** How many SerpApi searches the saved key has left; null without a key or when its account can't be read. */
+    suspend fun searchesLeft(): Int? {
+        val search = shopping ?: return null
+        return try {
+            search.account().left
+        } catch (_: ShoppingSearchException) {
+            null
+        }
     }
 
     /** Uses the check's suggested price (or [value]) as the diecast's market value; returns the diecast. */
@@ -233,6 +296,40 @@ class PriceChecker(
         )
     }
 
+    /** One Google Shopping result with the AI's [verdict] on it (Unclear without one). */
+    private fun listing(result: ShoppingResult, verdict: JsonObject?, rates: ExchangeRates?): PriceListing {
+        val currency = result.currency
+        val rate = if (currency == IDR) 1.0 else rates?.idrPer(currency)
+        return PriceListing(
+            title = result.title,
+            price = if (rate == null) 0 else (result.price * rate).roundToLong().coerceAtLeast(0),
+            shop = result.shop,
+            rating = result.rating,
+            marketplace = "google",
+            match = if (rate == null) ListingMatch.Unclear else ListingMatch.fromKey(verdict?.string("match")),
+            reason = if (rate == null) texts(R.string.price_no_rate, currency) else verdict?.string("reason")?.trim()?.ifEmpty { null },
+            currency = currency.takeIf { it != IDR },
+            originalPrice = result.price.takeIf { currency != IDR },
+            link = result.link,
+        )
+    }
+
+    private fun matchInstruction(diecast: DiecastEntity, query: String, found: List<ShoppingResult>): String {
+        val lines = found.mapIndexed { index, result ->
+            val details = listOfNotNull(
+                result.shop?.let { "shop: $it" },
+                "price: ${result.currency} ${plain(result.price)}",
+                result.condition?.let { "condition: $it" },
+            ).joinToString(" · ")
+            "$index. ${result.title} — $details"
+        }
+        return "Target diecast:\n${describe(diecast)}\n\nGoogle Shopping search: \"${query.trim()}\"\n\n" +
+            "Listings (${found.size}):\n${lines.joinToString("\n")}"
+    }
+
+    /** "45000" for a whole price, "12.5" otherwise. */
+    private fun plain(price: Double): String = if (price % 1.0 == 0.0) price.toLong().toString() else price.toString()
+
     private fun currencyOf(json: JsonObject): String =
         json.string("currency")?.trim()?.uppercase()?.takeIf { CURRENCY.matches(it) } ?: IDR
 
@@ -306,6 +403,74 @@ class PriceChecker(
         private val CURRENCY = Regex("^[A-Z]{3}$")
         private val MODEL_CODE = Regex("\\b[A-Z]{2,5}\\d{3,}\\b")
         private val ESTIMATE_BLOCK = Regex("```[ \\t]*(?:estimate|json)?[ \\t]*\\r?\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
+
+        private val MATCH_PROMPT = """
+            You help an Indonesian diecast collector estimate market prices. You are given a description of the diecast
+            being priced and numbered product listings from a Google Shopping search in Indonesia: each with its title,
+            the shop, the price and, when the shop says so, a second-hand condition. You can't see the pictures: judge
+            from the words only.
+
+            For EVERY listing give its index and:
+            - match — compare with the target diecast:
+              "match": the same casting and the same variant, in the same condition (carded vs loose) as the target.
+              "different_variant": same casting but another variant — e.g. Super Treasure Hunt vs regular, another color,
+                series, year, premium vs mainline. STH and regular prices differ hugely, so be strict.
+              "different_condition": same item but loose when the target is carded, or the other way round.
+              "bundle": a lot / set / several cars sold together.
+              "different_item": a different car or product (a real car part, a poster, a case, another brand's car).
+              "unclear": the title doesn't let you tell (too short, no casting name).
+              A listing title that doesn't mention "loose" is normally carded. Indonesian titles may say "ori" or
+              "original" (genuine), "kartu"/"blister"/"card" (carded), "loose"/"tanpa kartu"/"lepasan" (loose), "bekas"
+              (second-hand).
+            - reason: a few words in {language} explaining the match decision.
+
+            Also give:
+            - note: one or two sentences in {language} about what the results show (e.g. mostly other castings, prices
+              cluster around X).
+            - search_hint: better Google Shopping keywords for this diecast if the results look off-target, else null.
+        """.trimIndent()
+
+        private val MATCH_SCHEMA: JsonObject = run {
+            fun nullable(name: String) = buildJsonObject {
+                putJsonArray("anyOf") {
+                    addJsonObject { put("type", name) }
+                    addJsonObject { put("type", "null") }
+                }
+            }
+            buildJsonObject {
+                put("type", "object")
+                putJsonObject("properties") {
+                    putJsonObject("listings") {
+                        put("type", "array")
+                        putJsonObject("items") {
+                            put("type", "object")
+                            putJsonObject("properties") {
+                                putJsonObject("index") { put("type", "integer") }
+                                putJsonObject("match") {
+                                    put("type", "string")
+                                    putJsonArray("enum") { ListingMatch.entries.forEach { add(it.key) } }
+                                }
+                                putJsonObject("reason") { put("type", "string") }
+                            }
+                            putJsonArray("required") {
+                                add("index")
+                                add("match")
+                                add("reason")
+                            }
+                            put("additionalProperties", false)
+                        }
+                    }
+                    put("note", nullable("string"))
+                    put("search_hint", nullable("string"))
+                }
+                putJsonArray("required") {
+                    add("listings")
+                    add("note")
+                    add("search_hint")
+                }
+                put("additionalProperties", false)
+            }
+        }
 
         private val KEYWORDS_PROMPT = """
             You help an Indonesian diecast collector find one diecast for sale online. Suggest up to $MAX_KEYWORDS search

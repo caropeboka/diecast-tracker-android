@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The automatic price check: Google Shopping through SerpApi. Edit all three languages together. -->
+<resources>
+    <string name="serpapi_no_key">Tambahkan key SerpApi dulu (Pengaturan → Cek harga otomatis).</string>
+    <string name="serpapi_offline">SerpApi tidak bisa dihubungi. Periksa koneksi internet.</string>
+    <string name="serpapi_key_rejected">SerpApi tidak menerima key ini. Periksa di Pengaturan → Cek harga otomatis.</string>
+    <string name="serpapi_quota">Jatah pencarian SerpApi sedang habis (paket gratis: 250 sebulan dan 50 sejam). Pakai screenshot dulu sampai jatahnya kembali.</string>
+    <string name="serpapi_failed">Pencarian Google Shopping gagal: %1$s</string>
+    <string name="price_auto_nothing">Google Shopping tidak menemukan apa pun untuk \"%1$s\". Coba kata kunci lain (pencarian yang kosong tidak dihitung).</string>
+    <string name="price_tip_asking">Ini harga yang dipasang toko di Google Shopping, bukan harga yang benar-benar terjual. Bandingkan dengan eBay terjual atau catatanmu sendiri.</string>
+    <string name="price_tip_keywords_auto">Coba kata kunci lain (misalnya tanpa nomor seri), lalu cek lagi.</string>
+
+    <string name="price_auto">Cek otomatis di Google Shopping</string>
+    <string name="price_auto_hint">Tanpa screenshot: SerpApi mencari di Google Shopping dengan kata kunci ini, lalu AI memilih listing yang memang diecast ini. Memakai satu jatah pencarian SerpApi-mu.</string>
+    <string name="price_auto_setup">Cek tanpa screenshot? Atur cek harga otomatis →</string>
+    <string name="price_auto_searching">Mencari \"%1$s\" di Google Shopping</string>
+    <plurals name="price_auto_found">
+        <item quantity="other">%d listing ditemukan di Google Shopping</item>
+    </plurals>
+    <plurals name="price_auto_left">
+        <item quantity="other">Sudah dicek di Google Shopping. Sisa %d pencarian SerpApi.</item>
+    </plurals>
+    <string name="price_auto_or">Atau cari sendiri dan ambil screenshot:</string>
+    <plurals name="price_checked_auto">
+        <item quantity="other">Dicek %1$s · %2$d listing dari Google Shopping, otomatis</item>
+    </plurals>
+    <string name="price_open_listing">Buka listing</string>
+
+    <string name="settings_price_auto">Cek harga otomatis</string>
+    <string name="settings_price_auto_on">SerpApi · %1$s</string>
+    <string name="settings_price_auto_off">Belum diatur: cek harga pasaran tanpa screenshot</string>
+    <string name="serpapi_intro">Mengecek harga pasaran diecast tanpa screenshot. SerpApi mencarinya di Google Shopping Indonesia, AI-mu memilih listing yang diecast-nya sama, dan aplikasi menghitung mediannya seperti dari screenshot.</string>
+    <string name="serpapi_plan">Perlu akun SerpApi gratis: 250 pencarian sebulan dan 50 sejam. Setiap cek memakai satu; pencarian yang sama dalam satu jam gratis.</string>
+    <string name="serpapi_privacy">Yang dikirim ke SerpApi hanya kata kunci pencarian dan key-mu, tidak pernah foto. Key-nya tetap di HP ini dan tidak ikut backup.</string>
+    <string name="serpapi_key">Key SerpApi</string>
+    <string name="serpapi_saved">Key SerpApi disimpan.</string>
+    <string name="serpapi_removed">Key SerpApi dihapus.</string>
+    <string name="serpapi_remove_text">Cek harga otomatis tidak muncul lagi sampai kamu menambahkan key lagi.</string>
+    <string name="serpapi_test_ok">Key-nya berfungsi.</string>
+    <plurals name="serpapi_test_left">
+        <item quantity="other">Key-nya berfungsi (%1$s): sisa %2$d pencarian.</item>
+    </plurals>
+</resources>

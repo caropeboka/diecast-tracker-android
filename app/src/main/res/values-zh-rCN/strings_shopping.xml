@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The automatic price check: Google Shopping through SerpApi. Edit all three languages together. -->
+<resources>
+    <string name="serpapi_no_key">请先添加 SerpApi 密钥（设置 → 自动查价）。</string>
+    <string name="serpapi_offline">无法连接 SerpApi。请检查网络连接。</string>
+    <string name="serpapi_key_rejected">SerpApi 不接受此密钥。请在 设置 → 自动查价 中检查。</string>
+    <string name="serpapi_quota">SerpApi 的搜索次数暂时用完了（免费方案每月 250 次、每小时 50 次）。恢复之前请先用截图。</string>
+    <string name="serpapi_failed">Google 购物搜索失败：%1$s</string>
+    <string name="price_auto_nothing">Google 购物没有找到“%1$s”。请换个关键词（没有结果的搜索不计次数）。</string>
+    <string name="price_tip_asking">这些是商家在 Google 购物上的标价，不是实际成交价。可以与 eBay 已售商品或你自己的记录比较。</string>
+    <string name="price_tip_keywords_auto">换个关键词（例如去掉系列编号）再查一次。</string>
+
+    <string name="price_auto">在 Google 购物上自动查价</string>
+    <string name="price_auto_hint">无需截图：SerpApi 用这些关键词搜索 Google 购物，AI 挑出确实是这辆合金车的商品。会用掉一次 SerpApi 搜索。</string>
+    <string name="price_auto_setup">不想截图？设置自动查价 →</string>
+    <string name="price_auto_searching">正在 Google 购物上搜索“%1$s”</string>
+    <plurals name="price_auto_found">
+        <item quantity="other">在 Google 购物上找到 %d 个商品</item>
+    </plurals>
+    <plurals name="price_auto_left">
+        <item quantity="other">已在 Google 购物上查价。SerpApi 还剩 %d 次搜索。</item>
+    </plurals>
+    <string name="price_auto_or">或者自己搜索并截图：</string>
+    <plurals name="price_checked_auto">
+        <item quantity="other">%1$s 查价 · 来自 Google 购物的 %2$d 个商品，自动</item>
+    </plurals>
+    <string name="price_open_listing">打开商品</string>
+
+    <string name="settings_price_auto">自动查价</string>
+    <string name="settings_price_auto_on">SerpApi · %1$s</string>
+    <string name="settings_price_auto_off">未设置：无需截图即可查市场价</string>
+    <string name="serpapi_intro">无需截图即可查合金车的市场价。SerpApi 在印度尼西亚的 Google 购物上搜索，你的 AI 挑出同一款合金车的商品，应用像处理截图一样算出中位数。</string>
+    <string name="serpapi_plan">需要一个免费的 SerpApi 账户：每月 250 次搜索、每小时 50 次。每次查价用一次；一小时内重复同样的搜索不计次数。</string>
+    <string name="serpapi_privacy">发送给 SerpApi 的只有搜索关键词和你的密钥，绝不发送照片。密钥只保存在这部手机上，不包含在备份中。</string>
+    <string name="serpapi_key">SerpApi 密钥</string>
+    <string name="serpapi_saved">SerpApi 密钥已保存。</string>
+    <string name="serpapi_removed">SerpApi 密钥已删除。</string>
+    <string name="serpapi_remove_text">在你再次添加密钥之前，不会提供自动查价。</string>
+    <string name="serpapi_test_ok">密钥可用。</string>
+    <plurals name="serpapi_test_left">
+        <item quantity="other">密钥可用（%1$s）：还剩 %2$d 次搜索。</item>
+    </plurals>
+</resources>

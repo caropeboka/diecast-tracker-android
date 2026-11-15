@@ -40,6 +40,9 @@ class FakeGemini : Interceptor {
     var onRequest: () -> Unit = {}
 
     val calls = mutableListOf<String>()
+
+    /** Every request's whole address, query included. */
+    val urls = mutableListOf<String>()
     val keys = mutableListOf<String?>()
     val bodies = mutableListOf<String>()
 
@@ -65,6 +68,7 @@ class FakeGemini : Interceptor {
             request.url.host + path
         }
         calls += target
+        urls += request.url.toString()
         keys += request.header("x-goog-api-key")
         bearers += request.header("Authorization")
         bodies += request.body?.let { body -> Buffer().also(body::writeTo).readUtf8() }.orEmpty()

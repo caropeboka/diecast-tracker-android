@@ -182,6 +182,17 @@ class AiSettings(context: Context, private val clock: () -> Long = System::curre
         store.edit { it.remove(key(provider)) }
     }
 
+    /**
+     * The SerpApi key for the automatic price check (Google Shopping). Not an AI, but a key all the same, so it lives
+     * here, out of cloud backups with the others.
+     */
+    val serpApiKey: Flow<String?> = store.data.map { it[SERPAPI_KEY]?.takeIf(String::isNotBlank) }
+
+    /** Null or blank removes it. */
+    suspend fun setSerpApiKey(key: String?) {
+        store.edit { it.put(SERPAPI_KEY, key) }
+    }
+
     /** The web caches the model list for 12 hours per key; so does this. */
     override suspend fun get(key: String): List<String>? {
         val prefs = store.data.first()
@@ -242,6 +253,7 @@ class AiSettings(context: Context, private val clock: () -> Long = System::curre
         val CUSTOM_URL = stringPreferencesKey("custom_base_url")
         val CUSTOM_NAME = stringPreferencesKey("custom_name")
         val CLOUDFLARE_ACCOUNT = stringPreferencesKey("cloudflare_account")
+        val SERPAPI_KEY = stringPreferencesKey("serpapi_api_key")
         val FALLBACKS = stringPreferencesKey("gemini_fallbacks")
         val FALLBACKS_KEY = stringPreferencesKey("gemini_fallbacks_key")
         val FALLBACKS_AT = longPreferencesKey("gemini_fallbacks_at")

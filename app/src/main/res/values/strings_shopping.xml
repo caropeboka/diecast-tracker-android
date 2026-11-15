@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The automatic price check: Google Shopping through SerpApi. Edit all three languages together. -->
+<resources>
+    <string name="serpapi_no_key">Add a SerpApi key first (Settings → Automatic price check).</string>
+    <string name="serpapi_offline">Can\'t reach SerpApi. Check the internet connection.</string>
+    <string name="serpapi_key_rejected">SerpApi doesn\'t accept this key. Check it in Settings → Automatic price check.</string>
+    <string name="serpapi_quota">The SerpApi searches are used up for now (the free plan has 250 a month and 50 an hour). Use screenshots until they\'re back.</string>
+    <string name="serpapi_failed">The Google Shopping search failed: %1$s</string>
+    <string name="price_auto_nothing">Google Shopping found nothing for \"%1$s\". Try other keywords (a search that finds nothing isn\'t counted).</string>
+    <string name="price_tip_asking">These are shops\' asking prices on Google Shopping, not what it sold for. Compare with eBay sold listings or your own records.</string>
+    <string name="price_tip_keywords_auto">Try other keywords (for example without the series number) and check again.</string>
+
+    <string name="price_auto">Check automatically on Google Shopping</string>
+    <string name="price_auto_hint">No screenshots: SerpApi searches Google Shopping with these keywords and the AI picks the listings that are this diecast. Uses one of your SerpApi searches.</string>
+    <string name="price_auto_setup">Check without screenshots? Set up the automatic check →</string>
+    <string name="price_auto_searching">Searching Google Shopping for \"%1$s\"</string>
+    <plurals name="price_auto_found">
+        <item quantity="one">%d listing found on Google Shopping</item>
+        <item quantity="other">%d listings found on Google Shopping</item>
+    </plurals>
+    <plurals name="price_auto_left">
+        <item quantity="one">Checked on Google Shopping. %d SerpApi search left.</item>
+        <item quantity="other">Checked on Google Shopping. %d SerpApi searches left.</item>
+    </plurals>
+    <string name="price_auto_or">Or search yourself and take screenshots:</string>
+    <plurals name="price_checked_auto">
+        <item quantity="one">Checked %1$s · %2$d listing from Google Shopping, automatically</item>
+        <item quantity="other">Checked %1$s · %2$d listings from Google Shopping, automatically</item>
+    </plurals>
+    <string name="price_open_listing">Open the listing</string>
+
+    <string name="settings_price_auto">Automatic price check</string>
+    <string name="settings_price_auto_on">SerpApi · %1$s</string>
+    <string name="settings_price_auto_off">Not set up: check market prices without screenshots</string>
+    <string name="serpapi_intro">Checks a diecast\'s market price without screenshots. SerpApi searches Google Shopping in Indonesia for it, your AI picks the listings that are the same diecast, and the app works out the median as it does with screenshots.</string>
+    <string name="serpapi_plan">It needs a free SerpApi account: 250 searches a month and 50 an hour. Each check uses one; the same search again within an hour is free.</string>
+    <string name="serpapi_privacy">Only the search keywords and your key go to SerpApi, never photos. The key stays on this phone and isn\'t in backups.</string>
+    <string name="serpapi_key">SerpApi key</string>
+    <string name="serpapi_saved">SerpApi key saved.</string>
+    <string name="serpapi_removed">SerpApi key removed.</string>
+    <string name="serpapi_remove_text">The automatic price check isn\'t offered until you add a key again.</string>
+    <string name="serpapi_test_ok">The key works.</string>
+    <plurals name="serpapi_test_left">
+        <item quantity="one">The key works (%1$s): %2$d search left.</item>
+        <item quantity="other">The key works (%1$s): %2$d searches left.</item>
+    </plurals>
+</resources>
