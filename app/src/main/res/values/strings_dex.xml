@@ -176,7 +176,7 @@
     <string name="dex_search_self">Not these? Search</string>
     <string name="dex_not_linked">Not linked to the Dex yet.</string>
     <string name="dex_pick_title">Find the right entry</string>
-    <string name="dex_pick_hint">Searches every synced list by name, series, number or toy code.</string>
+    <string name="dex_pick_hint">Searches every synced list by name, series, number or toy code. Tap an entry to see it first.</string>
     <string name="dex_pick_choose">Pick</string>
     <string name="dex_pick_none">Nothing found. Try fewer words, or sync that year in the Dex tab.</string>
     <string name="dex_pick_empty">Type a name, series or number.</string>

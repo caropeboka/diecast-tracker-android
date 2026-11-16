@@ -251,6 +251,8 @@ fun DexCatalogScreen(
             EntrySheet(
                 entry = entry,
                 catalog = catalog!!,
+                // Opened for one entry, closing it leaves: it is always the route's.
+                firstVariant = if (viewModel.forEntry) viewModel.entryVariant else null,
                 onDismiss = {
                     viewModel.open(null)
                     if (viewModel.forEntry) onBack()
@@ -365,8 +367,12 @@ private fun EntrySheet(
     onAdd: (Long, DiecastStatus) -> Unit,
     onOpenDiecast: (Long) -> Unit,
     tools: EntryTools?,
+    // The variant shown first (the one tapped elsewhere); the main one when null or not one of [entry]'s.
+    firstVariant: Long? = null,
 ) {
-    var variantId by rememberSaveable(entry.number) { mutableLongStateOf(entry.variants.first().item.id) }
+    var variantId by rememberSaveable(entry.number) {
+        mutableLongStateOf(entry.variants.find { it.item.id == firstVariant }?.item?.id ?: entry.variants.first().item.id)
+    }
     val variant = entry.variants.find { it.item.id == variantId } ?: entry.variants.first()
     val item = variant.item
     var confirmDelete by rememberSaveable(entry.number) { mutableStateOf(false) }

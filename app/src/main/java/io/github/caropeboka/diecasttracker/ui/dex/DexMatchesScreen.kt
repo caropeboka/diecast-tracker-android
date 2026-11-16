@@ -176,6 +176,7 @@ private fun ReviewCard(item: ReviewItem, viewModel: DexMatchesViewModel, onOpenD
                 searching = false
                 viewModel.act(id, LinkAction.Link, ref.row.item.id, message = { it(R.string.dex_msg_linked) })
             },
+            onOpen = { ref -> onOpenEntry(ref.row.item) },
             onDismiss = { searching = false },
         )
     }

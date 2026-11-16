@@ -33,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.container
 import io.github.caropeboka.diecasttracker.data.dex.DexRef
@@ -43,11 +44,20 @@ import kotlinx.coroutines.delay
 
 /**
  * Searches every list in the Dex for a diecast's entry, for when the automatic match is wrong or missing. [start]
- * is the first search (the diecast's name); [brand]'s lists come first.
+ * is the first search (the diecast's name); [brand]'s lists come first. Tapping an entry opens it ([onOpen]) to be
+ * looked at first: the sheet steps aside meanwhile (it is a window of its own, over any screen) and comes back with
+ * the same search.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DexPickerSheet(start: String, brand: String?, year: Int?, onPick: (DexRef) -> Unit, onDismiss: () -> Unit) {
+fun DexPickerSheet(
+    start: String,
+    brand: String?,
+    year: Int?,
+    onPick: (DexRef) -> Unit,
+    onOpen: (DexRef) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val dex = LocalContext.current.container.dex
     var query by rememberSaveable { mutableStateOf(start) }
     // Keeps the last results while the next search waits for typing to pause.
@@ -55,6 +65,12 @@ fun DexPickerSheet(start: String, brand: String?, year: Int?, onPick: (DexRef) -
         delay(250)
         value = dex.search(query, brand, year)
     }
+    var away by rememberSaveable { mutableStateOf(false) }
+    LifecycleResumeEffect(Unit) {
+        away = false
+        onPauseOrDispose {}
+    }
+    if (away) return
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Garage.Card) {
         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -82,7 +98,10 @@ fun DexPickerSheet(start: String, brand: String?, year: Int?, onPick: (DexRef) -
                 else -> LazyColumn(Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(list, key = { it.row.item.id }) { ref ->
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            DexEntryCard(ref, Modifier.weight(1f))
+                            DexEntryCard(ref, Modifier.weight(1f)) {
+                                away = true
+                                onOpen(ref)
+                            }
                             Button(onClick = { onPick(ref) }, shape = MaterialTheme.shapes.medium) { Text(stringResource(R.string.dex_pick_choose)) }
                         }
                     }

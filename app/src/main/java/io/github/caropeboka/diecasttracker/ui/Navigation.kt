@@ -120,9 +120,9 @@ data object DexRoute
 @Serializable
 data class DexBrandRoute(val brand: String)
 
-/** One dex; with [number], opened on that entry (closing it goes back). */
+/** One dex; with [number], opened on that entry (closing it goes back), on the variant [item] when given. */
 @Serializable
-data class DexCatalogRoute(val id: Long, val number: String? = null)
+data class DexCatalogRoute(val id: Long, val number: String? = null, val item: Long? = null)
 
 /** "Cocokkan Dex". */
 @Serializable
@@ -171,7 +171,7 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
     }
     val openDiecast = { id: Long -> nav.navigate(DiecastEditRoute(id = id)) }
     val openCatalog = { id: Long -> nav.navigate(DexCatalogRoute(id)) }
-    val openEntry = { item: CatalogItemEntity -> nav.navigate(DexCatalogRoute(item.catalogId, item.number)) }
+    val openEntry = { item: CatalogItemEntity -> nav.navigate(DexCatalogRoute(item.catalogId, item.number, item.id)) }
     // The collection is always at the bottom of the stack. Its filters live in its view model's own saved state
     // (not the entry's savedStateHandle, a different one), so the link goes through that view model.
     val openCollection = { link: CollectionLink ->

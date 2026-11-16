@@ -163,7 +163,7 @@
     <string name="dex_search_self">Bukan ini? Cari sendiri</string>
     <string name="dex_not_linked">Belum ditautkan ke Dex.</string>
     <string name="dex_pick_title">Cari entri yang benar</string>
-    <string name="dex_pick_hint">Mencari di semua daftar yang sudah disinkronkan: nama, seri, nomor, atau kode mainan.</string>
+    <string name="dex_pick_hint">Mencari di semua daftar yang sudah disinkronkan: nama, seri, nomor, atau kode mainan. Ketuk entri untuk melihatnya dulu.</string>
     <string name="dex_pick_choose">Pilih</string>
     <string name="dex_pick_none">Tidak ketemu. Coba lebih sedikit kata, atau sinkronkan tahunnya di tab Dex.</string>
     <string name="dex_pick_empty">Ketik nama, seri, atau nomor.</string>

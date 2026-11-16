@@ -163,7 +163,7 @@
     <string name="dex_search_self">都不是？自己搜索</string>
     <string name="dex_not_linked">尚未关联图鉴。</string>
     <string name="dex_pick_title">查找正确的条目</string>
-    <string name="dex_pick_hint">按名称、系列、编号或玩具代码搜索所有已同步的清单。</string>
+    <string name="dex_pick_hint">按名称、系列、编号或玩具代码搜索所有已同步的清单。点按条目可先查看。</string>
     <string name="dex_pick_choose">选择</string>
     <string name="dex_pick_none">没有找到。试试少输入几个词，或在图鉴页同步那一年。</string>
     <string name="dex_pick_empty">输入名称、系列或编号。</string>

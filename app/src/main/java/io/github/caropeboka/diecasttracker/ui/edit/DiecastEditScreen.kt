@@ -678,6 +678,7 @@ private fun DexSection(viewModel: DiecastEditViewModel, onOpenEntry: (CatalogIte
                 searching = false
                 if (viewModel.isNew) viewModel.chooseDex(ref) else viewModel.linkDex(LinkAction.Link, ref.row.item.id)
             },
+            onOpen = { ref -> onOpenEntry(ref.row.item) },
             onDismiss = { searching = false },
         )
     }

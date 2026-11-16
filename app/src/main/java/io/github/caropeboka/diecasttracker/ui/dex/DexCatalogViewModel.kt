@@ -52,6 +52,9 @@ class DexCatalogViewModel(private val saved: SavedStateHandle, dex: DexRepositor
     /** Opened for one entry (a diecast's link): its sheet shows at once, and closing it leaves the dex. */
     val forEntry = route.number != null
 
+    /** The variant of that entry to show first. */
+    val entryVariant = route.item
+
     val catalog: StateFlow<CatalogEntity?> = dex.observeCatalog(catalogId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Null while loading. */
