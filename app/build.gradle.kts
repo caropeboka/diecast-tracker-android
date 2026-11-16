@@ -22,8 +22,8 @@ android {
         applicationId = "io.github.caropeboka.diecasttracker"
         minSdk = 29
         targetSdk = 36
-        versionCode = 32
-        versionName = "0.15.0"
+        versionCode = 33
+        versionName = "0.16.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
