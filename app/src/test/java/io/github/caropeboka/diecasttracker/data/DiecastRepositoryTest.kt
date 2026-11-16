@@ -142,6 +142,18 @@ class DiecastRepositoryTest {
     }
 
     @Test
+    fun `search covers where it was bought and where it was seen`() = runBlocking {
+        repository.save(diecast("1995 Mazda RX-7") { it.copy(purchasePlace = "Indomaret Teluk Naga II") })
+        val seen = repository.save(diecast("Porsche 911 Rally") { it.copy(status = DiecastStatus.Wishlist) })
+        repository.addSighting(SightingEntity(diecastId = seen, place = "Alfamart Kalibaru", seenOn = LocalDate.of(2026, 11, 13)))
+        repository.save(diecast("Ford Mustang") { it.copy(purchasePlace = "Toys Kingdom") })
+
+        assertEquals(listOf("1995 Mazda RX-7"), list(CollectionFilter(search = "teluk naga")))
+        assertEquals(listOf("Porsche 911 Rally"), list(CollectionFilter(search = "alfamart")))
+        assertTrue(list(CollectionFilter(search = "lawson")).isEmpty())
+    }
+
+    @Test
     fun `brand, rarity and tag filters`() = runBlocking {
         repository.save(diecast("Datsun") { it.copy(brand = "Hot Wheels", rarity = Rarity.TreasureHunt) }, tagNames = listOf("JDM"))
         repository.save(diecast("Supra") { it.copy(brand = "hot wheels") }, tagNames = listOf("JDM", "Favorit"))
@@ -236,4 +248,5 @@ class DiecastRepositoryTest {
         assertTrue(cover in env.savedFiles)
         assertFalse(gold in env.savedFiles)
     }
+
 }

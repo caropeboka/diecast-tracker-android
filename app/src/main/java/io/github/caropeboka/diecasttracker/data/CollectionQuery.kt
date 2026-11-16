@@ -60,12 +60,16 @@ data class CollectionFilter(
 }
 
 object CollectionQuery {
+    /** The web's columns plus where it was bought, so "Indomaret" finds what came from there. */
     private val SEARCH_COLUMNS = listOf(
-        "name", "brand", "make", "series", "color", "collection_number", "storage_location", "notes",
+        "name", "brand", "make", "series", "color", "collection_number", "storage_location", "notes", "purchase_place",
     )
 
     private const val HAS_TAG =
         "EXISTS (SELECT 1 FROM diecast_tag dt JOIN tags t ON t.id = dt.tag_id WHERE dt.diecast_id = d.id AND "
+
+    /** Where it was seen: a sighting's place. */
+    private const val SEEN_AT = "EXISTS (SELECT 1 FROM sightings s WHERE s.diecast_id = d.id AND s.place LIKE ? ESCAPE '\\')"
 
     fun build(filter: CollectionFilter): SupportSQLiteQuery {
         val where = mutableListOf<String>()
@@ -74,7 +78,7 @@ object CollectionQuery {
         val search = filter.search.trim()
         if (search.isNotEmpty()) {
             val pattern = "%" + escapeLike(search) + "%"
-            val anyColumn = SEARCH_COLUMNS.map { "d.$it LIKE ? ESCAPE '\\'" } + "${HAS_TAG}t.name LIKE ? ESCAPE '\\')"
+            val anyColumn = SEARCH_COLUMNS.map { "d.$it LIKE ? ESCAPE '\\'" } + "${HAS_TAG}t.name LIKE ? ESCAPE '\\')" + SEEN_AT
             where += anyColumn.joinToString(" OR ", "(", ")")
             repeat(anyColumn.size) { args += pattern }
         }
