@@ -63,8 +63,11 @@ each other's backups.
 ## Features
 
 ### 📦 Collection
-- A grid or list with search (tags included), filters for status, brand, rarity, tag and missing data, and 7 sort
-  orders.
+- A grid or list with search (tags, where it was bought and where it was seen included), filters for status, brand,
+  car manufacturer, rarity, tag and missing data, and 7 sort orders.
+- **Tidy up data:** brands, car manufacturers, series and scales written in more than one way ("HOT WHEELS",
+  "Hotwheels", "1/64") are written one way with a tap (and undone just as fast), and cars that look entered twice are
+  listed to open one by one.
 - Up to 8 photos per car from the camera or the gallery; the first one is the cover. Turn or mirror a photo that came
   out the wrong way.
 - Owned, wishlist, spotted and sold, with packaging, condition, scale, prices, storage location and tags.
@@ -134,6 +137,8 @@ each other's backups.
 - A guided tour on first launch that spotlights each part of the app on the real screens.
 - One `.zip` backup with every photo, the Dex, price checks, receipts, shelf places and decorations, saved through
   the file picker or shared. Restores phone and web backups (merge or replace). Excel export. A reminder after 30 days.
+- **Automatic backup (optional):** once a week, into a folder on the phone (the newest three kept) and/or over one
+  file you chose, e.g. on Google Drive. The reminder speaks up when it fails.
 
 ## Download and install
 
@@ -223,7 +228,8 @@ is free. It needs an AI set up too, which sorts out the listings.
   and, only when you set up the automatic price check and tap it, [SerpApi](https://serpapi.com) with the search
   keywords and your key (never photos).
 - API keys are stored on the phone and excluded from Android's cloud backup.
-- Backups are files you save or share yourself; nothing is uploaded automatically.
+- Backups are files you save or share yourself. The automatic backup writes only where you chose (a folder, or a
+  file in an app such as Google Drive); nothing else is uploaded.
 
 ## Building from source
 
@@ -263,18 +269,18 @@ view model each, and navigation uses type-safe routes.
 | Area | Libraries |
 | --- | --- |
 | UI | Jetpack Compose (Material 3), Navigation Compose, shared-element and container transitions |
-| Data | Room (schema v9, every version migrated, schemas in `app/schemas`), DataStore |
+| Data | Room (schema v10, every version migrated, schemas in `app/schemas`), DataStore |
 | Network | OkHttp 5, kotlinx.serialization |
 | Images | Coil 3, ML Kit subject segmentation (on the device) |
 | Maps and location | MapLibre Android with OpenFreeMap, Fused Location Provider |
-| Background work | WorkManager (Dex sync, thumbnails, bulk scan) |
+| Background work | WorkManager (Dex sync, thumbnails, bulk scan, weekly backup) |
 | 3D | SceneView 4 on Filament; the furniture is built from code, no model files |
 
 ```
 app/src/main/java/io/github/caropeboka/diecasttracker/
 ├── data/            entities, DAOs, repositories and the app's logic
 │   ├── ai/          Gemini and OpenAI-style clients, provider switching, scanner, chat
-│   ├── backup/      backup zip export and restore, Excel
+│   ├── backup/      backup zip export and restore, the weekly backup, Excel
 │   ├── dashboard/   the Garage dashboard's figures
 │   ├── decor/       decorations for the 3D shelf
 │   ├── dex/         wiki parsing, sync, matching, progress, own lists
@@ -286,7 +292,8 @@ app/src/main/java/io/github/caropeboka/diecasttracker/
 │   ├── receipt/     receipts read by the AI and kept as proof
 │   ├── scan/        bulk scan queue and in-store check
 │   ├── shelf/       3D garage placement
-│   └── studio/      studio photos on the phone
+│   ├── studio/      studio photos on the phone
+│   └── tidy/        spellings written several ways and duplicates
 ├── ui/              Compose screens per feature (collection, edit, dex, garage, check, explore, …)
 └── util/            money and date formats
 ```
@@ -294,7 +301,7 @@ app/src/main/java/io/github/caropeboka/diecasttracker/
 Texts live in `app/src/main/res/values*/strings_<feature>.xml`: `values` (English), `values-in` (Indonesian) and
 `values-zh-rCN` (Simplified Chinese).
 
-**Tests:** 291 JVM and Robolectric tests, many of them ports of the web app's feature tests with their real-world
+**Tests:** 328 JVM and Robolectric tests, many of them ports of the web app's feature tests with their real-world
 fixtures (wiki tables, backup zips, AI answers). The AI providers and wikis are faked with OkHttp interceptors, and
 every Room migration is tested from each older schema.
 

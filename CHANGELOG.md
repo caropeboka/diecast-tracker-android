@@ -4,6 +4,32 @@ All notable changes to Diecast Tracker for Android. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 Releases with an APK are on the [Releases page](https://github.com/caropeboka/diecast-tracker-android/releases).
 
+## [0.16.0] - 2026-11-16
+
+### Added
+- Automatic backup: Settings → Data & backup → "Automatic backup" writes the backup once a week by itself, into a
+  folder on the phone (as `backup-diecast-auto-<date>.zip`, the newest three kept; backups saved by hand are never
+  touched) and/or over one file chosen in any app that saves files, such as Google Drive. A place backs up as soon
+  as it is picked, and the week counts from then; "Back up now" runs it at any time. The page says where each place
+  is ("On this phone", "Google Drive") and warns when the copy is on the phone too, as only a copy off the phone
+  helps if the phone is lost. When a place can no longer be written, the page says which and why, and the backup
+  reminder on the collection speaks up at once with a "Fix it" button.
+- Settings → Tidy up data: brands, car manufacturers, series and scales written in more than one way are grouped
+  ("HOT WHEELS", "Hot-Wheels" and "Hot Wheels"; "Citroen" and "Citroën"; "1/64" and "1:64"), with the usual
+  spelling suggested; one tap writes every car the chosen way, and the snackbar's "Undo" puts them back. Spellings
+  that are only alike ("Lamborgini", "Lamborghini") are marked "Maybe the same". Cars that look entered twice (one
+  name and brand, nothing given that tells them apart) are listed to open one by one. "Leave as is" and "Not a
+  duplicate" are remembered. The Settings row says how many things there are to look at.
+
+### Changed
+- The collection's search also finds where a car was bought and where it was seen ("Alfamart", "Teluk Naga").
+
+### Fixed
+- In the Dex search ("Not these? Search", "Change" or "Search the Dex" on a car's page, and in Match the Dex) the
+  entries can be tapped, as everywhere else, to open the entry and look at it first; back from it, the search is
+  still open as it was.
+- A Dex entry opened from a car's page or from a search shows the variant that was tapped, not always the main colour.
+
 ## [0.15.0] - 2026-11-15
 
 ### Added
@@ -183,6 +209,7 @@ The first complete version: the collection with photos and backup import (phase 
 and the hunting map (3), the Dex with wiki sync and own lists (4), and backup and Excel export, the Garage dashboard,
 market prices from screenshots, the bulk scan and the in-store check (5).
 
+[0.16.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.16.0
 [0.15.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.15.0
 [0.14.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.14.0
 [0.13.0]: https://github.com/caropeboka/diecast-tracker-android/releases/tag/v0.13.0

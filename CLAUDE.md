@@ -36,8 +36,15 @@ on the phone since 2026-11-07 (it starts, the 64 diecasts intact) but **its new 
 **0.11.0** (the user's first look at 0.10.0, see "From the phone after 0.10.0"): every number on Garasi opens Koleksi
 filtered, the map's stats and history days open, the Dex tab per brand with a page each, Tomica Premium per year;
 covered by tests (252 pass), on the phone since 2026-11-07 (it starts, the 64 diecasts intact), not tried there yet. The collection's brands (read from the phone 2026-11-07): Hot Wheels,
-Matchbox, Tomica (Premium and the regular lineup), Bburago, Maisto, Moto Cross, Roll Speed. Everything up to 0.12.0
-is committed and pushed (tags v0.11.0, v0.12.0; 0.13.0 given to the user to commit on 2026-11-10). **Open source** (2026-11-08): MIT `LICENSE`, the README rewritten for other collectors
+Matchbox, Tomica (Premium and the regular lineup), Bburago, Maisto, Moto Cross, Roll Speed. Everything up to 0.15.0
+is committed and pushed (tags v0.11.0–v0.15.0; 0.14.0 and 0.15.0 committed by the user on 2026-11-15, their GitHub
+releases prepared the same day in `build/github-release/0.14.0` and `0.15.0`, published by the user). **0.16.0**
+(my list of improvements after 0.15.0, the user: "gas", "lets go"; see "After 0.15.0 (0.16.0)"): search by place,
+the weekly automatic backup (option B of three, my recommendation, the user may still pick another) and "Rapikan
+data"; covered by tests (328 pass, no lint errors), on the phone since 2026-11-16: search by place, the tidy page
+(nothing tidied there), the Dex search's entries, a folder in Documents (its zip checked) and a copy on Drive picked
+by the user (written from the app without an error; the file in Drive not checked yet); the first weekly run in the background (around 2026-11-22) is the open question, Drive's
+above all. Release 0.16.0 prepared on 2026-11-16 in `build/github-release/0.16.0`. **Open source** (2026-11-08): MIT `LICENSE`, the README rewritten for other collectors
 (badges, screenshots from the user's phone in `docs/screenshots`, install guide, the AI providers, privacy, building,
 architecture, contributing), `CHANGELOG.md`, `docs/icon.svg` (the launcher icon as SVG), and the first GitHub release
 v0.11.0 (see "Public releases" under "Build, test, run"). **0.12.0** (the user's list from the phone on 2026-11-08,
@@ -200,11 +207,16 @@ Matches get +1 (owned) or "Dapat" (wishlist/spotted → owned today, "Beli di" =
   "advanced flow" (developer options, a restart, a one-day wait) unless the app is registered in the Android Developer
   Console ($25 and an ID; or a free limited-distribution account, 20 devices at most). Not registered yet.
 - **Public releases** (GitHub Releases, from 0.11.0; the user publishes them on github.com, the APK is MIT-licensed
-  code without the board's Hot Wheels logo; the small logos of shops, AIs and brands stay in, README "Logos"): move `assets/brand/hot_wheels_logo.png` out, `:app:assembleRelease`, copy the
-  APK to `build/github-release/diecast-tracker.apk` (the asset name never changes: the README links
-  `releases/latest/download/diecast-tracker.apk`), put the logo back and build again for the phone. Check the copy
+  code without the board's Hot Wheels logo; the small logos of shops, AIs and brands stay in, README "Logos"): since
+  0.14.0 built from a clean copy of the tag, which never holds the git-ignored board logo and leaves the working tree
+  alone: `git archive v<version> | tar -x -C <scratch>/<version>`, copy `signing.properties` and `local.properties`
+  in, `:app:assembleRelease` there (~5 min each; long paths are enabled on this laptop), then `./gradlew --stop`.
+  Copy the APK to `build/github-release/<version>/diecast-tracker.apk` (the asset name never changes: the README links
+  `releases/latest/download/diecast-tracker.apk`; publish older versions first, as GitHub's "latest" is the one
+  marked so). Resource file names are shortened in release APKs, so look for a drawable with `aapt2 dump resources`,
+  not `unzip -l`. Before 0.14.0: the logo moved out of the working tree and built there. Check the copy
   with `unzip -l` (no `assets/brand/`) and `apksigner verify --print-certs` (the user's key, SHA-256 `15:DE:A3:46…`).
-  Release notes in `build/github-release/release-notes-<version>.md` with the APK's SHA-256; a `CHANGELOG.md` entry
+  Release notes in `build/github-release/<version>/release-notes-<version>.md` with the APK's SHA-256; a `CHANGELOG.md` entry
   per version (Keep a Changelog); tag `v<version>` on the commit that bumps the version or after it.
 - Room schemas are exported to `app/schemas`; every schema change needs a real migration (no destructive fallback).
 - Test fixture `app/src/test/resources/web-backup-v1.zip` is made by the web app's own `CollectionBackup`:
@@ -869,6 +881,62 @@ filter, the price check's results, the AI log and "read by" labels, the collecti
   `DiecastForm.toEntity` → `cleanScale` ("1/60", "1 : 60" → "1:60"). `GainTest`, `FormatTest`, `LogosTest`,
   `DiecastFormTest`.
 
+## After 0.15.0 (0.16.0)
+
+My list of improvements after 0.15.0, built in the order I proposed (search, backup, tidy-up). Later ones offered,
+not asked for yet: the collection's value over time, a monthly SerpApi refresh with a wishlist alert, "Lihat di rak"
+from a diecast's page, and registering in the Android Developer Console.
+
+- **Search by place:** `CollectionQuery`'s search also covers `purchase_place` and, through an `EXISTS` on
+  `sightings`, where a diecast was seen. `DiecastRepositoryTest`.
+- **Automatic backup** (option B: a folder on the phone and/or one file overwritten; A was the folder only, C a
+  notification to back up by hand). `data/backup/AutoBackup` (pure apart from the exporter: `BackupFolder` /
+  `BackupCopy` are interfaces, a mutex, `state` Idle/Running for the card) writes the zip once into
+  `cache/auto-backup.zip` with `BackupExporter.writeBackup`, then copies it: the folder gets
+  `backup-diecast-auto-<yyyy-MM-dd>.zip` (a second run that day writes over it; a failed write deletes its half file)
+  and loses the automatic ones beyond the newest 3 (`outdated`, by the date in the name; hand-saved ones never
+  touched); the copy is written over (`openOutputStream` "wt", then "w"). One place failing doesn't stop the other;
+  the errors per place ("Folder: …", "Salinan: …"; a lost permission or file says "Pilih ulang") and the time (only
+  when something was written, which also counts as a backup for the reminder) go to `UserPrefs`
+  (`auto_backup_on/folder/copy/last/error`). `BackupPlaces`: the Storage Access Framework (`OpenDocumentTree` for
+  the folder: Google Drive can't be picked as a folder, only as a file; `CreateDocument` for the copy; persisted
+  read/write permissions, released when a place is changed or removed). `AutoBackupWork`: a 7-day periodic
+  WorkManager job (`auto-backup`, `KEEP`, first run 7 days after the last backup, battery and storage not low,
+  linear back-off 30 min, one retry), rescheduled at start-up and when the settings change. A place picked
+  backs up at once and counts the week from then (it scheduled a run at once beside it on the phone, which lost the
+  lock and came back half an hour later); a weekly run that finds a backup writing counts it as its own
+  (`run(whenBusy = true)`). On the phone the copy's save screen first opened in the folder last used (Documents/Diecast
+  Tracker) and the first try saved the copy there before the user changed it to Drive: the card now names a place by
+  its provider (`BackupPlaces.kind`: the phone's storage, downloads and media providers → "On this phone", Drive's
+  `com.google.android.apps.docs.storage` → "Google Drive", other apps by their label) and warns that a copy on the
+  phone won't help if the phone is lost. Checking a place's grant: `adb shell dumpsys activity permissions` prints each
+  `UriPermission{…}` line **before** its `persisted=` line (`persisted=0x0` = released). `AutoBackupCard` on
+  "Data & backup": the two places (pick / change / remove), the weekly switch (on by itself with the first place,
+  off with the last), the last time, the error, the progress and "Backup sekarang". `BackupReminder.isDue(failing)`:
+  a failing automatic backup brings the reminder card on Koleksi at once (not while put off), with "Perbaiki".
+  `AutoBackupTest`, `BackupReminderTest`. **Not tried on the phone:** whether Drive takes a background "wt" write
+  through the persisted permission (if not: a weekly notification instead).
+- **"Rapikan data"** (Settings, after Data & backup, with the count; `TidyRoute`, `ui/tidy`). `data/tidy/Tidy` is
+  pure: per field (brand, make, series, scale) the distinct spellings as stored, joined (union-find) when their key
+  is the same (`Tidy.key`: NFD, accents dropped, lower case, letters and digits only; a scale's key is
+  `tidyScale`, now in `Domain.kt` and used by the form's `cleanScale`) or, but scales, when one slip apart (keys of 5+
+  letters, the same digits, a letter left out, added or wrong or two swapped: "Lamborgini"; a `similar_text` bar of
+  88 % first grouped "Thrill Racers - Ice '12" with "- Space '12" on the phone) as "Mungkin sama". The suggestion: a `COMMON_BRANDS` brand or a
+  `SCALES` scale of the same key, else the most used (ties: both cases, then accents, then the longer). One spelling
+  alone shows when it has a usual writing that differs ("hot wheels", "1/60"). Duplicates: the same name and brand
+  key, then each joins the first group it could be a copy of every member of (no `otherNumber`, colour, year, scale
+  or rarity that differs; the status doesn't count). "Biarkan" / "Bukan dobel" store pairs (and each spelling alone),
+  "Bukan sama" only the pairs whose keys differ (the same-key ones come back as their own group), in
+  `UserPrefs.tidyIgnored`, so a new spelling or diecast brings a group back; "Tampilkan lagi"
+  clears them. "Rapikan" → `DiecastRepository.rename` (only rows still holding one of the spellings, by id, one
+  transaction, `updated_at` set, the Dex re-linked for brand and series) and the snackbar's "Urungkan" →
+  `restore`. Duplicates are opened one by one (no merge). `TidyTest`, `DiecastRepositoryTest`.
+- **Dex search entries open** (the user: in the form's "Bukan ini? Cari sendiri" the entries couldn't be tapped):
+  `DexPickerSheet(onOpen)` makes each `DexEntryCard` open its entry like the panel's (form and "Cocokkan Dex").
+  A `ModalBottomSheet` is a window of its own and would float over the next screen, so the sheet steps aside
+  (`away`, saveable) before navigating and comes back on the next resume (`LifecycleResumeEffect`) with its query.
+  `DexCatalogRoute.item` (the tapped variant) makes the entry sheet open on that variant (`EntrySheet(firstVariant)`).
+
 ## 3D garage (G0 0.6.7–0.6.8, G1 0.7.0)
 
 The user's real furniture from their photos, in 3D, with the owned diecasts on it: left the black carved corner shelf
@@ -1029,7 +1097,7 @@ floor leaning back before 0.14.0). Opens from "Rak 3D" on the Garasi dashboard
 | 3D garage (0.6.7+) | SceneView/Filament, furniture modelled in code after the user's photos (black corner shelf, two MDF blister boards on the wall, a white desk 70 × 40 × 25 cm with two car lifts under them since 0.12.0, eight nails for single cards between the desk and the boards since 0.14.0, white 6 × 10 case on the wall beside the boards). Owned diecasts only, one place each whatever the quantity. Free placement with a tray of unplaced ones; the place writes "Lokasi simpan". The trademarked logo stays out of git. Decorations (the user's figures) on the black shelf, cut out on the phone and optionally cleaned (0.7.3). How many cards a lane takes is the collector's setting (0.12.0). |
 | Dex | Two stages: 4a wiki sync, matching, progress, "Cocokkan Dex", form panel, add from Dex, scan suggestion; 4b own lists (manual, Excel/CSV, AI from screenshots, from the collection). Since 0.10.0: Hot Wheels from 1989, Matchbox from 2000, Mini GT (with Kaido House) 2018–2022 and Tomica's regular lineup from their wikis; other lines through the AI's web search into own dexes, reviewed first. Since 0.11.0: Tomica Premium per release year; the Dex tab shows a card per brand, which opens that brand's page with its lists. The Dex starts from scratch on the phone (no web backup change). Thumbnails download in the background, Wi-Fi only by default, user can allow mobile data. Own dexes: the AI's checklist rows are reviewed before they're added; entries can be edited (both unlike the web). |
 | Location filling | GPS only on request (map picker); the picked place is remembered 3 hours and pre-fills new diecasts and sightings. |
-| Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue). |
+| Background work | WorkManager (Dex sync, thumbnail downloads, bulk scan queue, the weekly automatic backup since 0.16.0). |
 | Settings | DataStore (every AI provider's key, model, on/off and order; the custom server's URL and name; the SerpApi key since 0.15.0). |
 | AI provider | Gemini, Groq, Mistral, OpenRouter and one OpenAI-compatible server (0.8.0; Gemini only before), plus Cloudflare Workers AI, NVIDIA NIM, Z.ai and OVHcloud (no key, off by default) since 0.10.0, tried in the user's order: on quota, busy, timeout or a refused key the same request goes to the next; one out of quota rests until it is back. Cerebras left out (no free tier). Claude as in the web may follow. Duplicate warning as on the web (no "+1" shortcut). |
 | Lock | None — opens straight in (personal phone). |
@@ -1041,7 +1109,7 @@ floor leaning back before 0.14.0). Opens from "Rak 3D" on the Garasi dashboard
 | Receipts (0.14.0) | A receipt's photo read by the AI fills the purchase price (date and store only when empty; since 0.15.0 the store's point on the map from its printed address, street level or closer); one receipt covers several diecasts (form and bulk scan), each picking its line. Kept as proof apart from the car photos, in phone backups; unused ones go after a day. |
 | Tanya AI (0.10.0) | A chat in the diecast form that sees its photos and fields; suggested changes applied with "Pakai"; Gemini searches the web and shows its sources. |
 | Map regions (0.10.0) | Provinsi → kabupaten/kota → kecamatan → desa from OpenStreetMap's admin levels per point, looked up while Peta is open and cached a year; a drill-down chart that also filters the page. |
-| Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. No automatic backup. Excel: export only (no collection import from Excel). |
+| Backup (phase 5a) | One zip in the web's backup format + the Dex, so phone and web can both restore it. Manual: "Simpan" (file picker) or "Bagikan" (share sheet); reminder card after 30 days without a backup. Since 0.16.0 an optional weekly automatic backup into a folder on the phone (newest 3 kept) and/or over one chosen file (Drive), its failures shown by the reminder. Excel: export only (no collection import from Excel). |
 | Devices | Phone: Infinix NOTE 50 Pro (X6855), Android 16 (API 36), arm64; USB debugging on, the laptop is allowed. Emulator AVD `Medium_Phone_API_37.0` (API 37, WHPX acceleration works). |
 
 ## Phases (each ends with a usable APK)
