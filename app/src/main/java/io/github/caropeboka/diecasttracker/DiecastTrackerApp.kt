@@ -12,8 +12,11 @@ import io.github.caropeboka.diecasttracker.data.ai.DiecastChat
 import io.github.caropeboka.diecasttracker.data.ai.DiecastScanner
 import io.github.caropeboka.diecasttracker.data.ai.GeminiClient
 import io.github.caropeboka.diecasttracker.data.ai.OpenAiClient
+import io.github.caropeboka.diecasttracker.data.backup.AutoBackup
+import io.github.caropeboka.diecasttracker.data.backup.AutoBackupWork
 import io.github.caropeboka.diecasttracker.data.backup.BackupExporter
 import io.github.caropeboka.diecasttracker.data.backup.BackupImporter
+import io.github.caropeboka.diecasttracker.data.backup.BackupPlaces
 import io.github.caropeboka.diecasttracker.data.db.AppDatabase
 import io.github.caropeboka.diecasttracker.data.decor.DecorMaker
 import io.github.caropeboka.diecasttracker.data.decor.DecorRepository
@@ -75,6 +78,17 @@ class AppContainer(context: Context) {
         laneCards = { prefs.laneCards.first() },
     )
     val backupExporter = BackupExporter(context, database, photos, scope, onBackup = prefs::setLastBackup)
+
+    /** The weekly backup to a folder on the phone and/or one file on Drive, run by [AutoBackupWork]. */
+    val autoBackup = AutoBackup(
+        backupExporter,
+        texts,
+        context.cacheDir,
+        settings = { prefs.autoBackup.first() },
+        record = prefs::setAutoBackupResult,
+        folderAt = { BackupPlaces.folder(context.contentResolver, it) },
+        copyAt = { BackupPlaces.copy(context.contentResolver, it) },
+    )
     val messages = Messages()
 
     val http = OkHttpClient()
@@ -182,6 +196,9 @@ class DiecastTrackerApp : Application() {
                 before = System.currentTimeMillis() - Nominatim.REVERSE_TTL_MS,
                 regionsBefore = System.currentTimeMillis() - Nominatim.REGION_TTL_MS,
             )
+            // The weekly backup stays scheduled (WorkManager forgets it after a force stop until the app starts).
+            val auto = container.prefs.autoBackup.first()
+            AutoBackupWork.schedule(this@DiecastTrackerApp, auto.on && auto.hasPlace, auto.lastAt)
             // Thumbnails left from an earlier sync: carry on when the network allows.
             if (container.dex.countMissingImages() > 0) {
                 DexWork.downloadImages(this@DiecastTrackerApp, container.prefs.dexCellular.first())

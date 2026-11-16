@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import io.github.caropeboka.diecasttracker.data.backup.AutoBackupSettings
 import io.github.caropeboka.diecasttracker.data.backup.BackupTimes
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.data.shelf.ShelfLayout
@@ -64,6 +65,41 @@ class UserPrefs(context: Context) {
 
     suspend fun snoozeBackupReminder(until: Long) {
         store.edit { it[BACKUP_SNOOZED_UNTIL] = until }
+    }
+
+    /** The weekly automatic backup: whether it runs, its places and how the last try went. */
+    val autoBackup: Flow<AutoBackupSettings> = store.data.map {
+        AutoBackupSettings(it[AUTO_BACKUP_ON] ?: false, it[AUTO_BACKUP_FOLDER], it[AUTO_BACKUP_COPY], it[AUTO_BACKUP_LAST], it[AUTO_BACKUP_ERROR])
+    }
+
+    suspend fun setAutoBackupOn(on: Boolean) {
+        store.edit { it[AUTO_BACKUP_ON] = on }
+    }
+
+    /** A new place starts with a clean slate: the last error was about the old one. */
+    suspend fun setAutoBackupFolder(uri: String?) {
+        store.edit {
+            if (uri == null) it.remove(AUTO_BACKUP_FOLDER) else it[AUTO_BACKUP_FOLDER] = uri
+            it.remove(AUTO_BACKUP_ERROR)
+        }
+    }
+
+    suspend fun setAutoBackupCopy(uri: String?) {
+        store.edit {
+            if (uri == null) it.remove(AUTO_BACKUP_COPY) else it[AUTO_BACKUP_COPY] = uri
+            it.remove(AUTO_BACKUP_ERROR)
+        }
+    }
+
+    /** [at]: a place was written, which counts as a backup for the reminder too; [error]: null when none failed. */
+    suspend fun setAutoBackupResult(at: Long?, error: String?) {
+        store.edit {
+            if (at != null) {
+                it[AUTO_BACKUP_LAST] = at
+                it[LAST_BACKUP] = at
+            }
+            if (error == null) it.remove(AUTO_BACKUP_ERROR) else it[AUTO_BACKUP_ERROR] = error
+        }
     }
 
     /** The last place chosen on the map or by GPS: "where I'm hunting now" (web: Cek koleksi's saved place). */
@@ -147,6 +183,11 @@ class UserPrefs(context: Context) {
         val DEX_CELLULAR = booleanPreferencesKey("dex_cellular")
         val LAST_BACKUP = longPreferencesKey("last_backup_at")
         val BACKUP_SNOOZED_UNTIL = longPreferencesKey("backup_snoozed_until")
+        val AUTO_BACKUP_ON = booleanPreferencesKey("auto_backup_on")
+        val AUTO_BACKUP_FOLDER = stringPreferencesKey("auto_backup_folder")
+        val AUTO_BACKUP_COPY = stringPreferencesKey("auto_backup_copy")
+        val AUTO_BACKUP_LAST = longPreferencesKey("auto_backup_last")
+        val AUTO_BACKUP_ERROR = stringPreferencesKey("auto_backup_error")
         val BULK_SCAN_PAUSED = booleanPreferencesKey("bulk_scan_paused")
         val GARAGE_DOG = stringPreferencesKey("garage_dog")
         val LANE_CARDS = intPreferencesKey("garage_lane_cards")

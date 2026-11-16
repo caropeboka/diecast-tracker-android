@@ -399,11 +399,15 @@ private fun BackupReminderCard(due: BackupDue, onBackup: () -> Unit, onLater: ()
                 )
                 Column(Modifier.weight(1f).padding(start = 8.dp, end = 8.dp)) {
                     Text(
-                        due.daysSinceLast?.let { pluralStringResource(R.plurals.backup_reminder_days, it.toInt(), it) } ?: stringResource(R.string.backup_reminder_never),
+                        when {
+                            due.failure != null -> stringResource(R.string.backup_reminder_failed)
+                            due.daysSinceLast != null -> pluralStringResource(R.plurals.backup_reminder_days, due.daysSinceLast.toInt(), due.daysSinceLast)
+                            else -> stringResource(R.string.backup_reminder_never)
+                        },
                         style = MaterialTheme.typography.titleSmall,
                     )
                     Text(
-                        stringResource(R.string.backup_reminder_text),
+                        due.failure ?: stringResource(R.string.backup_reminder_text),
                         style = MaterialTheme.typography.bodySmall,
                         color = Garage.MutedForeground,
                     )
@@ -411,7 +415,9 @@ private fun BackupReminderCard(due: BackupDue, onBackup: () -> Unit, onLater: ()
             }
             Row(Modifier.align(Alignment.End)) {
                 TextButton(onClick = onLater) { Text(stringResource(R.string.later)) }
-                TextButton(onClick = onBackup) { Text(stringResource(R.string.backup_reminder_now)) }
+                TextButton(onClick = onBackup) {
+                    Text(stringResource(if (due.failure != null) R.string.backup_reminder_fix else R.string.backup_reminder_now))
+                }
             }
         }
     }

@@ -1,5 +1,6 @@
 package io.github.caropeboka.diecasttracker.ui.data
 
+import android.app.Application
 import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
@@ -57,26 +58,40 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
+import io.github.caropeboka.diecasttracker.Messages
 import io.github.caropeboka.diecasttracker.R
 import io.github.caropeboka.diecasttracker.data.DiecastRepository
 import io.github.caropeboka.diecasttracker.data.UserPrefs
+import io.github.caropeboka.diecasttracker.data.backup.AutoBackup
+import io.github.caropeboka.diecasttracker.data.backup.AutoBackupSettings
+import io.github.caropeboka.diecasttracker.data.backup.AutoBackupState
+import io.github.caropeboka.diecasttracker.data.backup.AutoBackupWork
 import io.github.caropeboka.diecasttracker.data.backup.BackupExporter
+import io.github.caropeboka.diecasttracker.data.backup.BackupPlaces
 import io.github.caropeboka.diecasttracker.data.backup.BackupImporter
 import io.github.caropeboka.diecasttracker.data.backup.BackupTimes
 import io.github.caropeboka.diecasttracker.data.backup.ExportKind
 import io.github.caropeboka.diecasttracker.data.backup.ExportState
 import io.github.caropeboka.diecasttracker.data.backup.ImportState
+import io.github.caropeboka.diecasttracker.data.backup.PlaceKind
 import io.github.caropeboka.diecasttracker.ui.components.Heading
 import io.github.caropeboka.diecasttracker.ui.components.IconLabel
 import io.github.caropeboka.diecasttracker.ui.components.LocalSnackbar
 import io.github.caropeboka.diecasttracker.ui.components.SectionCard
 import io.github.caropeboka.diecasttracker.ui.theme.Garage
+import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.util.formatBytes
 import io.github.caropeboka.diecasttracker.util.formatDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 
@@ -86,7 +101,13 @@ class DataViewModel(
     repository: DiecastRepository,
     private val importer: BackupImporter,
     private val exporter: BackupExporter,
-    prefs: UserPrefs,
+    private val prefs: UserPrefs,
+    private val app: Application,
+    private val auto: AutoBackup,
+    /** Outlives the screen, so "Back up now" finishes after leaving it. */
+    private val appScope: CoroutineScope,
+    private val messages: Messages,
+    private val texts: Texts,
 ) : ViewModel() {
     val counts: StateFlow<Counts> = combine(repository.observeCount(), repository.observePhotoCount(), ::Counts)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Counts())
@@ -112,12 +133,81 @@ class DataViewModel(
 
     fun dismissExport() = exporter.dismiss()
 
+    /** Null while loading; the places' names come from their apps. */
+    val autoBackup: StateFlow<AutoBackupView?> = prefs.autoBackup
+        .map { settings ->
+            AutoBackupView(
+                settings,
+                folderName = settings.folder?.let { BackupPlaces.folderName(app, it) },
+                copyName = settings.copy?.let { BackupPlaces.fileName(app, it) },
+                copyApp = settings.copy?.takeIf { BackupPlaces.kind(it) == PlaceKind.Other }?.let { BackupPlaces.appName(app, it) },
+            )
+        }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val autoBackupState: StateFlow<AutoBackupState> = auto.state
+
+    fun setAutoBackupOn(on: Boolean) {
+        viewModelScope.launch {
+            prefs.setAutoBackupOn(on)
+            val settings = prefs.autoBackup.first()
+            AutoBackupWork.schedule(app, on && settings.hasPlace, settings.lastAt)
+        }
+    }
+
+    /** The first place chosen switches the weekly backup on; a new one is tried at once. */
+    fun pickFolder(uri: Uri) = choose(uri, { it.folder }, prefs::setAutoBackupFolder)
+
+    fun pickCopy(uri: Uri) = choose(uri, { it.copy }, prefs::setAutoBackupCopy)
+
+    fun removeFolder() = remove({ it.folder }, prefs::setAutoBackupFolder)
+
+    fun removeCopy() = remove({ it.copy }, prefs::setAutoBackupCopy)
+
+    fun backUpNow() {
+        appScope.launch {
+            val written = auto.run(now = true)
+            messages.show(texts(if (written) R.string.auto_backup_done else R.string.auto_backup_nowhere))
+        }
+    }
+
+    private fun choose(uri: Uri, place: (AutoBackupSettings) -> String?, set: suspend (String?) -> Unit) {
+        viewModelScope.launch {
+            if (!BackupPlaces.keep(app, uri)) {
+                messages.show(texts(R.string.auto_backup_cant_keep))
+                return@launch
+            }
+            val before = prefs.autoBackup.first()
+            place(before)?.takeIf { it != uri.toString() }?.let { BackupPlaces.release(app, it) }
+            set(uri.toString())
+            if (!before.hasPlace) prefs.setAutoBackupOn(true)
+            // The week counts from the backup made below, so the weekly run doesn't start beside it.
+            AutoBackupWork.schedule(app, prefs.autoBackup.first().on, lastAt = System.currentTimeMillis())
+            backUpNow()
+        }
+    }
+
+    /** Without a place left the weekly backup goes off. */
+    private fun remove(place: (AutoBackupSettings) -> String?, set: suspend (String?) -> Unit) {
+        viewModelScope.launch {
+            BackupPlaces.release(app, place(prefs.autoBackup.first()))
+            set(null)
+            val after = prefs.autoBackup.first()
+            if (!after.hasPlace) prefs.setAutoBackupOn(false)
+            AutoBackupWork.schedule(app, after.on && after.hasPlace, after.lastAt)
+        }
+    }
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as DiecastTrackerApp
                 val container = app.container
-                DataViewModel(container.repository, container.backupImporter, container.backupExporter, container.prefs)
+                DataViewModel(
+                    container.repository, container.backupImporter, container.backupExporter, container.prefs, app,
+                    container.autoBackup, container.scope, container.messages, container.texts,
+                )
             }
         }
     }
@@ -152,6 +242,14 @@ fun DataScreen(
     }
     val saveExcel = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(ExportKind.Excel.mime)) { uri ->
         if (uri != null) viewModel.save(ExportKind.Excel, uri)
+    }
+    val autoBackup by viewModel.autoBackup.collectAsStateWithLifecycle()
+    val autoBackupState by viewModel.autoBackupState.collectAsStateWithLifecycle()
+    val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) viewModel.pickFolder(uri)
+    }
+    val pickCopy = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(ExportKind.Backup.mime)) { uri ->
+        if (uri != null) viewModel.pickCopy(uri)
     }
 
     // A file made for sharing goes to the share sheet once.
@@ -213,6 +311,20 @@ fun DataScreen(
                     primary = true,
                     onSave = { saveBackup.launch(viewModel.fileName(ExportKind.Backup)) },
                     onShare = { viewModel.share(ExportKind.Backup) },
+                )
+            }
+
+            autoBackup?.let { view ->
+                AutoBackupCard(
+                    view = view,
+                    state = autoBackupState,
+                    busy = busy,
+                    onOn = viewModel::setAutoBackupOn,
+                    onPickFolder = { pickFolder.launch(null) },
+                    onRemoveFolder = viewModel::removeFolder,
+                    onPickCopy = { pickCopy.launch(AutoBackup.COPY_NAME) },
+                    onRemoveCopy = viewModel::removeCopy,
+                    onNow = viewModel::backUpNow,
                 )
             }
 

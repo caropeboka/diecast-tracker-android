@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The weekly automatic backup to a folder on the phone and/or one file on Google Drive. Edit all three languages together. -->
+<resources>
+    <string name="auto_backup_title">Backup otomatis</string>
+    <string name="auto_backup_text">Seminggu sekali aplikasi membuat backup sendiri, juga saat aplikasi ditutup. Pilih folder di HP, salinan di Google Drive, atau keduanya: hanya salinan di luar HP yang menolong kalau HP hilang.</string>
+    <string name="auto_backup_switch">Backup tiap minggu</string>
+    <string name="auto_backup_folder">Folder di HP</string>
+    <string name="auto_backup_folder_hint">3 backup otomatis terakhir disimpan di sana. Backup otomatis yang lebih lama dihapus, backup yang disimpan manual tidak pernah. Saat memilih, buat folder seperti \"Diecast Tracker\" di Documents.</string>
+    <string name="auto_backup_pick_folder">Pilih folder</string>
+    <string name="auto_backup_copy">Salinan di Google Drive</string>
+    <string name="auto_backup_copy_hint">Android tidak memberi aplikasi akses ke folder Drive, jadi satu file ditimpa tiap minggu. Saat menyimpannya, buka menu ☰ di kiri atas lalu pilih Drive: layar simpan mula-mula membuka folder terakhir yang dipakai (tempat lain di luar HP juga bisa).</string>
+    <string name="auto_backup_on_phone">Di HP ini</string>
+    <string name="auto_backup_google_drive">Google Drive</string>
+    <string name="auto_backup_copy_on_phone">Salinan ini juga ada di HP, jadi tidak menolong kalau HP hilang. Pilih ulang tempatnya, lalu pilih Drive di menu ☰.</string>
+    <string name="auto_backup_pick_copy">Pilih tempat simpan</string>
+    <string name="auto_backup_not_chosen">Belum dipilih</string>
+    <string name="auto_backup_change">Ganti</string>
+    <string name="auto_backup_remove">Lepas</string>
+    <string name="auto_backup_last">Backup otomatis terakhir: %1$s.</string>
+    <string name="auto_backup_never">Belum ada backup otomatis.</string>
+    <string name="auto_backup_failed">Percobaan terakhir gagal:</string>
+    <string name="auto_backup_now">Backup sekarang</string>
+    <string name="auto_backup_copying">Menyalin backup ke tempatnya…</string>
+    <string name="auto_backup_folder_failed">Folder: %1$s</string>
+    <string name="auto_backup_copy_failed">Salinan: %1$s</string>
+    <string name="auto_backup_folder_gone">folder tidak bisa dibuka lagi. Pilih ulang.</string>
+    <string name="auto_backup_copy_gone">file tidak bisa ditulis lagi. Pilih ulang.</string>
+    <string name="auto_backup_cant_keep">Tempat itu tidak mengizinkan aplikasi menulis lagi nanti. Pilih tempat lain.</string>
+    <string name="auto_backup_done">Backup otomatis tersimpan.</string>
+    <string name="auto_backup_nowhere">Backup tidak bisa disimpan: lihat Backup otomatis.</string>
+    <string name="backup_reminder_failed">Backup otomatis gagal</string>
+    <string name="backup_reminder_fix">Perbaiki</string>
+</resources>

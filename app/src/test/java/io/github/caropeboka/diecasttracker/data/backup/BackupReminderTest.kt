@@ -24,6 +24,14 @@ class BackupReminderTest {
     }
 
     @Test
+    fun `a failing automatic backup is due at once, unless put off`() {
+        val recent = BackupTimes(last = now - DAY_MILLIS)
+        assertTrue(BackupReminder.isDue(5, recent, now, failing = true))
+        assertFalse(BackupReminder.isDue(5, recent.copy(snoozedUntil = now + 1), now, failing = true))
+        assertFalse(BackupReminder.isDue(0, recent, now, failing = true))
+    }
+
+    @Test
     fun `days are whole days`() {
         assertEquals(31, BackupReminder.daysSince(now - 31 * DAY_MILLIS - 5_000, now))
     }

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The weekly automatic backup to a folder on the phone and/or one file on Google Drive. Edit all three languages together. -->
+<resources>
+    <string name="auto_backup_title">Automatic backup</string>
+    <string name="auto_backup_text">Once a week the app makes a backup by itself, also when it\'s closed. Pick a folder on the phone, a copy on Google Drive, or both: only a copy off the phone helps if the phone is lost.</string>
+    <string name="auto_backup_switch">Back up every week</string>
+    <string name="auto_backup_folder">Folder on the phone</string>
+    <string name="auto_backup_folder_hint">The three latest automatic backups stay there. Older automatic ones are removed, backups saved by hand never. When you pick it, create a folder such as \"Diecast Tracker\" in Documents.</string>
+    <string name="auto_backup_pick_folder">Pick a folder</string>
+    <string name="auto_backup_copy">Copy on Google Drive</string>
+    <string name="auto_backup_copy_hint">Android doesn\'t give an app a Drive folder, so one file is written over every week. When you save it, open the ☰ menu at the top left and choose Drive: the save screen first opens the last folder used (another place off the phone works too).</string>
+    <string name="auto_backup_on_phone">On this phone</string>
+    <string name="auto_backup_google_drive">Google Drive</string>
+    <string name="auto_backup_copy_on_phone">This copy is on the phone too, so it won\'t help if the phone is lost. Choose where to save again and pick Drive in the ☰ menu.</string>
+    <string name="auto_backup_pick_copy">Choose where to save</string>
+    <string name="auto_backup_not_chosen">Not chosen</string>
+    <string name="auto_backup_change">Change</string>
+    <string name="auto_backup_remove">Remove</string>
+    <string name="auto_backup_last">Last automatic backup: %1$s.</string>
+    <string name="auto_backup_never">No automatic backup yet.</string>
+    <string name="auto_backup_failed">The last try didn\'t work:</string>
+    <string name="auto_backup_now">Back up now</string>
+    <string name="auto_backup_copying">Copying the backup to its places…</string>
+    <string name="auto_backup_folder_failed">Folder: %1$s</string>
+    <string name="auto_backup_copy_failed">Copy: %1$s</string>
+    <string name="auto_backup_folder_gone">the folder can\'t be opened any more. Pick it again.</string>
+    <string name="auto_backup_copy_gone">the file can\'t be written any more. Choose it again.</string>
+    <string name="auto_backup_cant_keep">That place doesn\'t let the app write to it later. Choose another one.</string>
+    <string name="auto_backup_done">Automatic backup written.</string>
+    <string name="auto_backup_nowhere">The backup couldn\'t be written: see Automatic backup.</string>
+    <string name="backup_reminder_failed">Automatic backup failed</string>
+    <string name="backup_reminder_fix">Fix it</string>
+</resources>

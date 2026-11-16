@@ -45,7 +45,8 @@ data class CollectionUiState(
 )
 
 /** [daysSinceLast]: null when this phone never made a backup. */
-data class BackupDue(val daysSinceLast: Long?)
+/** [failure]: why the automatic backup failed, when it did. */
+data class BackupDue(val daysSinceLast: Long?, val failure: String? = null)
 
 /** The collection with these filters (others cleared), opened from elsewhere; [sort] null keeps the remembered one. */
 data class CollectionLink(
@@ -126,9 +127,11 @@ class CollectionViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CollectionUiState())
 
     /** Null while no backup reminder is due. */
-    val backupDue: StateFlow<BackupDue?> = combine(prefs.backupTimes, repository.observeCount()) { times, count ->
+    val backupDue: StateFlow<BackupDue?> = combine(prefs.backupTimes, prefs.autoBackup, repository.observeCount()) { times, auto, count ->
         val now = System.currentTimeMillis()
-        BackupDue(times.last?.let { BackupReminder.daysSince(it, now) }).takeIf { BackupReminder.isDue(count, times, now) }
+        val failure = auto.error?.takeIf { auto.on }
+        BackupDue(times.last?.let { BackupReminder.daysSince(it, now) }, failure)
+            .takeIf { BackupReminder.isDue(count, times, now, failing = failure != null) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun snoozeBackupReminder() {
