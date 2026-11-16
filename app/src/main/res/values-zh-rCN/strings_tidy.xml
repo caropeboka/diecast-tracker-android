@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tidy_title">整理数据</string>
+    <string name="tidy_intro">同一名称的不同写法，以及似乎录入了两次的合金车。在你选择之前不会改动任何内容。</string>
+    <string name="tidy_all_clean">一切整齐：没有需要处理的写法或重复记录。</string>
+    <string name="tidy_spellings">写法</string>
+    <string name="tidy_spellings_note">选择正确的写法，其他写法的合金车都会改成它。</string>
+    <string name="tidy_maybe">可能相同</string>
+    <string name="tidy_usual">常用写法</string>
+    <plurals name="tidy_spelling_count">
+        <item quantity="other">%d 辆合金车</item>
+    </plurals>
+    <plurals name="tidy_more">
+        <item quantity="other">另 %d 个</item>
+    </plurals>
+    <string name="tidy_apply">统一写法</string>
+    <string name="tidy_leave">保持不变</string>
+    <string name="tidy_not_same">不是同一个</string>
+    <plurals name="tidy_applied">
+        <item quantity="other">已将 %1$d 辆合金车改为“%2$s”。</item>
+    </plurals>
+    <string name="tidy_undone">已恢复原样。</string>
+    <string name="tidy_failed">无法修改：%1$s</string>
+    <string name="tidy_duplicates">重复录入？</string>
+    <string name="tidy_duplicates_note">名称和品牌相同，且没有信息能区分它们。逐个打开以删除其中一个或移动其发现记录；如果确实有两个，保留一个并把数量设为 2。</string>
+    <string name="tidy_not_duplicate">不是重复</string>
+    <string name="tidy_show_skipped">重新显示已保持不变的项目</string>
+    <plurals name="settings_tidy_count">
+        <item quantity="other">%d 项待处理</item>
+    </plurals>
+    <string name="settings_tidy_clean">都很整齐</string>
+</resources>

@@ -20,6 +20,7 @@ import io.github.caropeboka.diecasttracker.data.dex.DexPrefill
 import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.data.receipt.place
+import io.github.caropeboka.diecasttracker.data.tidyScale
 import kotlinx.serialization.Serializable
 import java.time.LocalDate
 
@@ -366,10 +367,7 @@ private fun String.clean(): String? = trim().ifEmpty { null }
 /** "1:64", "1 : 18". */
 private val SCALE = Regex("^1\\s*:\\s*\\d{1,4}$")
 
-/** A scale written with a slash or spaces ("1/60", "1 : 60"), so it doesn't count as another one. */
-private val LOOSE_SCALE = Regex("^1\\s*[:/]\\s*(\\d{1,4})$")
-
-/** "1:60" for "1/60" or "1 : 60"; anything else as typed, trimmed (null when empty). */
-internal fun String.cleanScale(): String? = clean()?.let { text -> LOOSE_SCALE.matchEntire(text)?.let { "1:" + it.groupValues[1] } ?: text }
+/** "1:60" for "1/60" or "1 : 60" (see [tidyScale]); anything else as typed, trimmed (null when empty). */
+internal fun String.cleanScale(): String? = clean()?.let(::tidyScale)
 
 fun String.toLocalDateOrNull(): LocalDate? = runCatching { LocalDate.parse(this) }.getOrNull()

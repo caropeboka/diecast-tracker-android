@@ -165,6 +165,17 @@ class UserPrefs(context: Context) {
         }
     }
 
+    /** What "Rapikan data" was told to leave as it is (see [io.github.caropeboka.diecasttracker.data.tidy.Tidy.ignoreKeys]). */
+    val tidyIgnored: Flow<Set<String>> = store.data.map { it[TIDY_IGNORED].orEmpty() }
+
+    suspend fun ignoreTidy(keys: Set<String>) {
+        store.edit { it[TIDY_IGNORED] = it[TIDY_IGNORED].orEmpty() + keys }
+    }
+
+    suspend fun clearTidyIgnored() {
+        store.edit { it.remove(TIDY_IGNORED) }
+    }
+
     /** The first-run tour was finished or skipped. */
     val tourDone: Flow<Boolean> = store.data.map { it[TOUR_DONE] ?: false }
 
@@ -192,5 +203,6 @@ class UserPrefs(context: Context) {
         val GARAGE_DOG = stringPreferencesKey("garage_dog")
         val LANE_CARDS = intPreferencesKey("garage_lane_cards")
         val GARAGE_FLIPPED = stringSetPreferencesKey("garage_flipped")
+        val TIDY_IGNORED = stringSetPreferencesKey("tidy_ignored")
     }
 }

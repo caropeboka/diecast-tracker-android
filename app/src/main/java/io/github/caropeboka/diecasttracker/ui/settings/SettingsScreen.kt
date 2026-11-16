@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -82,6 +83,7 @@ fun SettingsScreen(
     onAiSettings: () -> Unit,
     onPriceSearch: () -> Unit,
     onData: () -> Unit,
+    onTidy: () -> Unit,
     onTour: () -> Unit,
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
 ) {
@@ -92,6 +94,7 @@ fun SettingsScreen(
     val ai by viewModel.aiSetup.collectAsStateWithLifecycle(null)
     val serpApiKey by viewModel.serpApiKey.collectAsStateWithLifecycle(null)
     val backups by viewModel.backupTimes.collectAsStateWithLifecycle(null)
+    val tidy by viewModel.tidyCount.collectAsStateWithLifecycle(null)
 
     SettingsScaffold(stringResource(R.string.settings_title), onBack) {
         SectionCard(null) {
@@ -125,6 +128,14 @@ fun SettingsScreen(
                 else -> stringResource(R.string.settings_backup_last, formatDate(Instant.ofEpochMilli(last).atZone(ZoneId.systemDefault()).toLocalDate()))
             }
             Category(R.drawable.ic_folder_zip, stringResource(R.string.settings_data), backupSummary, onClick = onData)
+            Divider()
+
+            val tidySummary = when (val count = tidy) {
+                null -> ""
+                0 -> stringResource(R.string.settings_tidy_clean)
+                else -> pluralStringResource(R.plurals.settings_tidy_count, count, count)
+            }
+            Category(R.drawable.ic_auto_fix_high, stringResource(R.string.tidy_title), tidySummary, onClick = onTidy)
         }
 
         SectionCard(null) {

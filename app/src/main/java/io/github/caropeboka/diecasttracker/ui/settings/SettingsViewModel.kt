@@ -11,8 +11,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.caropeboka.diecasttracker.AppContainer
 import io.github.caropeboka.diecasttracker.DiecastTrackerApp
 import io.github.caropeboka.diecasttracker.R
+import io.github.caropeboka.diecasttracker.ui.tidy.observeTidyReport
 import io.github.caropeboka.diecasttracker.util.Currency
 import io.github.caropeboka.diecasttracker.util.DateStyle
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(private val container: AppContainer) : ViewModel() {
@@ -26,6 +28,9 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     val aiSetup = container.aiSettings.setup
     val serpApiKey = container.aiSettings.serpApiKey
     val backupTimes = prefs.backupTimes
+
+    /** How many spellings and duplicates "Rapikan data" has to show. */
+    val tidyCount = observeTidyReport(container.repository, prefs).map { it.report.count }
 
     var refreshing by mutableStateOf(false)
         private set

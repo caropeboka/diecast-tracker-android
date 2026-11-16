@@ -80,6 +80,20 @@ interface DiecastDao {
     @Update
     suspend fun update(diecast: DiecastEntity)
 
+    // One field written the same way for many ("Rapikan data").
+
+    @Query("UPDATE diecasts SET brand = :value, updated_at = :now WHERE id IN (:ids)")
+    suspend fun setBrand(ids: List<Long>, value: String, now: Long)
+
+    @Query("UPDATE diecasts SET make = :value, updated_at = :now WHERE id IN (:ids)")
+    suspend fun setMake(ids: List<Long>, value: String, now: Long)
+
+    @Query("UPDATE diecasts SET series = :value, updated_at = :now WHERE id IN (:ids)")
+    suspend fun setSeries(ids: List<Long>, value: String, now: Long)
+
+    @Query("UPDATE diecasts SET scale = :value, updated_at = :now WHERE id IN (:ids)")
+    suspend fun setScale(ids: List<Long>, value: String, now: Long)
+
     @Query("DELETE FROM diecasts WHERE id = :id")
     suspend fun delete(id: Long)
 

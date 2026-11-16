@@ -86,6 +86,15 @@ val SCALES = listOf("1:64", "1:62", "1:60", "1:43", "1:32", "1:24", "1:18", "1:8
 
 const val DEFAULT_SCALE = "1:64"
 
+/** A scale written with a slash or spaces ("1/60", "1 : 60"), so it doesn't count as another one. */
+private val LOOSE_SCALE = Regex("^1\\s*[:/]\\s*(\\d{1,4})$")
+
+/** "1:60" for "1/60" or "1 : 60"; anything else as written, trimmed. */
+fun tidyScale(scale: String): String {
+    val text = scale.trim()
+    return LOOSE_SCALE.matchEntire(text)?.let { "1:" + it.groupValues[1] } ?: text
+}
+
 /** Offered in the brand field next to the brands already in the collection. */
 val COMMON_BRANDS = listOf(
     "Hot Wheels", "Matchbox", "Tomica", "Mini GT", "Inno64", "Tarmac Works", "Pop Race", "Kaido House",

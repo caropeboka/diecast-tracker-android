@@ -48,6 +48,7 @@ import io.github.caropeboka.diecasttracker.ui.settings.AiSettingsScreen
 import io.github.caropeboka.diecasttracker.ui.settings.GeneralSettingsScreen
 import io.github.caropeboka.diecasttracker.ui.settings.PriceSearchSettingsScreen
 import io.github.caropeboka.diecasttracker.ui.settings.SettingsScreen
+import io.github.caropeboka.diecasttracker.ui.tidy.TidyScreen
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -103,6 +104,10 @@ data object GeneralSettingsRoute
 /** The SerpApi key for the automatic price check. */
 @Serializable
 data object PriceSearchSettingsRoute
+
+/** "Rapikan data": spellings and duplicates. */
+@Serializable
+data object TidyRoute
 
 /** "Peta jelajah". */
 @Serializable
@@ -312,12 +317,16 @@ fun DiecastTrackerRoot(openCheck: Flow<Unit> = emptyFlow()) {
                             onAiSettings = dropUnlessResumed { nav.navigate(AiSettingsRoute()) },
                             onPriceSearch = dropUnlessResumed { nav.navigate(PriceSearchSettingsRoute) },
                             onData = dropUnlessResumed { nav.navigate(DataRoute) },
+                            onTidy = dropUnlessResumed { nav.navigate(TidyRoute) },
                             // The tour starts on Koleksi.
                             onTour = dropUnlessResumed { nav.popBackStack<CollectionRoute>(inclusive = false) },
                         )
                     }
                     screen<GeneralSettingsRoute> {
                         GeneralSettingsScreen(onBack = dropUnlessResumed { nav.popBackStack() })
+                    }
+                    screen<TidyRoute> {
+                        TidyScreen(onBack = dropUnlessResumed { nav.popBackStack() }, onOpen = openDiecast)
                     }
                     screen<PriceSearchSettingsRoute> {
                         PriceSearchSettingsScreen(onBack = dropUnlessResumed { nav.popBackStack() })

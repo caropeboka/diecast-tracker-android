@@ -18,6 +18,8 @@ import io.github.caropeboka.diecasttracker.data.dex.DexMatcher
 import io.github.caropeboka.diecasttracker.data.locale.Texts
 import io.github.caropeboka.diecasttracker.data.places.PlaceValue
 import io.github.caropeboka.diecasttracker.data.shelf.unshelve
+import io.github.caropeboka.diecasttracker.data.tidy.TidyField
+import io.github.caropeboka.diecasttracker.data.tidy.TidyRow
 import io.github.caropeboka.diecasttracker.util.naturalCaseInsensitiveOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -172,6 +174,48 @@ class DiecastRepository(
     /** What decides which Dex entry a diecast is. */
     private fun DiecastEntity.identity() = listOf(name, brand, series, collectionNumber, year, rarity)
 
+    /**
+     * Writes [field] as [to] for those of [ids] that still say one of [from] (the page may be a moment behind);
+     * returns what each of them said, for [restore]. A new brand or series may point at another Dex entry.
+     */
+    suspend fun rename(field: TidyField, ids: Collection<Long>, from: Collection<String>, to: String): Map<Long, String> {
+        val old = db.withTransaction {
+            val old = ids.toList().chunked(SQL_CHUNK).flatMap { dao.getAll(it) }
+                .mapNotNull { diecast -> TidyRow(diecast.id, diecast.name, diecast.brand, diecast.make, diecast.series, diecast.scale).value(field)?.let { diecast.id to it } }
+                .filter { (_, value) -> value in from && value != to }
+                .toMap()
+            if (old.isNotEmpty()) write(field, old.keys.toList(), to)
+            old
+        }
+        relink(field, old.keys)
+        return old
+    }
+
+    /** Puts back what [rename] changed. */
+    suspend fun restore(field: TidyField, old: Map<Long, String>) {
+        db.withTransaction {
+            old.entries.groupBy({ it.value }, { it.key }).forEach { (value, ids) -> write(field, ids, value) }
+        }
+        relink(field, old.keys)
+    }
+
+    private suspend fun write(field: TidyField, ids: List<Long>, value: String) {
+        val now = clock()
+        ids.chunked(SQL_CHUNK).forEach { chunk ->
+            when (field) {
+                TidyField.Brand -> dao.setBrand(chunk, value, now)
+                TidyField.Make -> dao.setMake(chunk, value, now)
+                TidyField.Series -> dao.setSeries(chunk, value, now)
+                TidyField.Scale -> dao.setScale(chunk, value, now)
+            }
+        }
+    }
+
+    private suspend fun relink(field: TidyField, ids: Collection<Long>) {
+        if (field != TidyField.Brand && field != TidyField.Series) return
+        ids.forEach { id -> dao.get(id)?.let { dexMatcher.autoLink(it) } }
+    }
+
     fun observeSightings(diecastId: Long): Flow<List<SightingEntity>> = sightingDao.observeFor(diecastId)
 
     /** Everything the explore map shows, live. */
@@ -287,3 +331,6 @@ class DiecastRepository(
         toDelete += removed.map { it.fileName }
     }
 }
+
+/** Ids per `IN (…)`, well under SQLite's 999 variables. */
+private const val SQL_CHUNK = 500

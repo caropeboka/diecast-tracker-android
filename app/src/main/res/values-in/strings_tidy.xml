@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tidy_title">Rapikan data</string>
+    <string name="tidy_intro">Nama yang ditulis dengan beberapa cara, dan diecast yang sepertinya tercatat dua kali. Tidak ada yang berubah sebelum kamu memilih.</string>
+    <string name="tidy_all_clean">Semua sudah rapi: tidak ada penulisan atau data dobel yang perlu dilihat.</string>
+    <string name="tidy_spellings">Penulisan</string>
+    <string name="tidy_spellings_note">Pilih penulisan yang benar; semua diecast yang ditulis lain ikut diubah.</string>
+    <string name="tidy_maybe">Mungkin sama</string>
+    <string name="tidy_usual">penulisan umum</string>
+    <plurals name="tidy_spelling_count">
+        <item quantity="other">%d diecast</item>
+    </plurals>
+    <plurals name="tidy_more">
+        <item quantity="other">+%d lagi</item>
+    </plurals>
+    <string name="tidy_apply">Rapikan</string>
+    <string name="tidy_leave">Biarkan</string>
+    <string name="tidy_not_same">Bukan sama</string>
+    <plurals name="tidy_applied">
+        <item quantity="other">%1$d diecast sekarang ditulis “%2$s”.</item>
+    </plurals>
+    <string name="tidy_undone">Dikembalikan seperti semula.</string>
+    <string name="tidy_failed">Tidak bisa diubah: %1$s</string>
+    <string name="tidy_duplicates">Tercatat dua kali?</string>
+    <string name="tidy_duplicates_note">Nama dan mereknya sama, dan tidak ada yang membedakannya. Buka satu per satu untuk menghapus salah satunya atau memindahkan catatan temuannya; kalau memang punya dua, simpan satu dengan Jumlah 2.</string>
+    <string name="tidy_not_duplicate">Bukan dobel</string>
+    <string name="tidy_show_skipped">Tampilkan lagi yang kamu biarkan</string>
+    <plurals name="settings_tidy_count">
+        <item quantity="other">%d hal perlu dilihat</item>
+    </plurals>
+    <string name="settings_tidy_clean">Semua rapi</string>
+</resources>

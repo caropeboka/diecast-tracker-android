@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.caropeboka.diecasttracker.data.db.DiecastEntity
 import io.github.caropeboka.diecasttracker.data.db.SightingEntity
+import io.github.caropeboka.diecasttracker.data.tidy.TidyField
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -249,4 +250,24 @@ class DiecastRepositoryTest {
         assertFalse(gold in env.savedFiles)
     }
 
+    @Test
+    fun `a spelling written one way for many, and put back`() = runBlocking {
+        val caps = repository.save(diecast("Datsun 510") { it.copy(brand = "HOT WHEELS") })
+        val joined = repository.save(diecast("Mazda RX-7") { it.copy(brand = "Hotwheels") })
+        val right = repository.save(diecast("Porsche 911") { it.copy(brand = "Hot Wheels") })
+        // Changed since the page was drawn: left alone.
+        val moved = repository.save(diecast("Ford GT") { it.copy(brand = "Maisto") })
+        clock = 5_000L
+
+        val old = repository.rename(TidyField.Brand, listOf(caps, joined, right, moved), listOf("HOT WHEELS", "Hotwheels", "Hot Wheels"), "Hot Wheels")
+
+        assertEquals(mapOf(caps to "HOT WHEELS", joined to "Hotwheels"), old)
+        assertEquals(listOf("Hot Wheels", "Hot Wheels", "Hot Wheels", "Maisto"), listOf(caps, joined, right, moved).map { repository.details(it)!!.diecast.brand })
+        assertEquals(5_000L, repository.details(caps)!!.diecast.updatedAt)
+        assertEquals(1_000L, repository.details(right)!!.diecast.updatedAt)
+
+        repository.restore(TidyField.Brand, old)
+
+        assertEquals(listOf("HOT WHEELS", "Hotwheels", "Hot Wheels"), listOf(caps, joined, right).map { repository.details(it)!!.diecast.brand })
+    }
 }

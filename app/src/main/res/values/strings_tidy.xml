@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tidy_title">Tidy up data</string>
+    <string name="tidy_intro">Names written in more than one way, and diecasts that look entered twice. Nothing changes until you choose.</string>
+    <string name="tidy_all_clean">Everything is tidy: no spellings or duplicates to look at.</string>
+    <string name="tidy_spellings">Spellings</string>
+    <string name="tidy_spellings_note">Pick how it should be written; every diecast written another way takes it.</string>
+    <string name="tidy_maybe">Maybe the same</string>
+    <string name="tidy_usual">usual spelling</string>
+    <plurals name="tidy_spelling_count">
+        <item quantity="one">%d diecast</item>
+        <item quantity="other">%d diecasts</item>
+    </plurals>
+    <plurals name="tidy_more">
+        <item quantity="one">+%d more</item>
+        <item quantity="other">+%d more</item>
+    </plurals>
+    <string name="tidy_apply">Tidy up</string>
+    <string name="tidy_leave">Leave as is</string>
+    <string name="tidy_not_same">Not the same</string>
+    <plurals name="tidy_applied">
+        <item quantity="one">%1$d diecast now says “%2$s”.</item>
+        <item quantity="other">%1$d diecasts now say “%2$s”.</item>
+    </plurals>
+    <string name="tidy_undone">Put back as it was.</string>
+    <string name="tidy_failed">Couldn’t change it: %1$s</string>
+    <string name="tidy_duplicates">Entered twice?</string>
+    <string name="tidy_duplicates_note">Same name and brand, and nothing given tells them apart. Open each to delete one or move its sightings; if you have two, keep one with Quantity 2.</string>
+    <string name="tidy_not_duplicate">Not a duplicate</string>
+    <string name="tidy_show_skipped">Show what you left as it was</string>
+    <plurals name="settings_tidy_count">
+        <item quantity="one">%d thing to look at</item>
+        <item quantity="other">%d things to look at</item>
+    </plurals>
+    <string name="settings_tidy_clean">All tidy</string>
+</resources>
